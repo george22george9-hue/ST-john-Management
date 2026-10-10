@@ -1927,6 +1927,9 @@ function refreshFollowUp() {
                     <p style="margin: 4px 0 0; font-size: 0.85rem; color: var(--text-muted);">
                         <i class="ph ph-phone" style="vertical-align: middle;"></i> ${member.phone || 'لا يوجد رقم'}
                     </p>
+                    <p class="member-address" style="margin: 2px 0 0; font-size: 0.8rem; color: var(--primary);">
+                        <i class="ph ph-map-pin" style="vertical-align: middle;"></i> ${member.address || 'غير محدد'}
+                    </p>
                 </div>
                 <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px;">
                     ${badgeHtml}
