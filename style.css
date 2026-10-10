@@ -1234,59 +1234,75 @@ body {
 
 /* --- Mobile Scaling Fixes --- */
 @media (max-width: 900px) {
-    /* Scale down all fonts slightly */
+    /* Scale down all fonts significantly */
     body {
-        font-size: 14px !important;
+        font-size: 12px !important;
     }
     
-    h1 { font-size: 1.5rem !important; }
-    h2 { font-size: 1.3rem !important; }
-    h3 { font-size: 1.1rem !important; }
+    h1 { font-size: 1.2rem !important; }
+    h2 { font-size: 1.1rem !important; margin-bottom: 5px !important; }
+    h3 { font-size: 1rem !important; margin-bottom: 5px !important; }
+    p { font-size: 0.9rem !important; }
     
     /* Make buttons and inputs smaller */
     .btn {
         padding: 8px 12px !important;
-        font-size: 0.85rem !important;
+        font-size: 0.8rem !important;
+        border-radius: 6px !important;
     }
     
     .form-control, .search-box input {
         padding: 8px 10px !important;
-        font-size: 0.9rem !important;
+        font-size: 0.85rem !important;
     }
     
     /* Compact Table */
+    table {
+        min-width: 450px !important;
+    }
     table th, table td {
-        padding: 10px !important;
-        font-size: 0.85rem !important;
+        padding: 8px 5px !important;
+        font-size: 0.75rem !important;
+        white-space: nowrap;
     }
     
     /* Reduce padding in cards and modals */
     .glass {
-        padding: 15px !important;
+        padding: 12px !important;
+        border-radius: 10px !important;
     }
     
     .stat-card {
-        padding: 15px !important;
+        padding: 12px !important;
         min-width: unset !important;
+        flex-direction: row !important;
+        align-items: center !important;
+        justify-content: flex-start !important;
+        gap: 15px !important;
+        text-align: right !important;
     }
     
     .stat-info h3 {
         font-size: 0.9rem !important;
+        margin: 0 !important;
     }
     
     .stat-info p {
         font-size: 1.2rem !important;
+        margin: 0 !important;
     }
     
     .stat-icon {
-        width: 40px !important;
-        height: 40px !important;
+        width: 38px !important;
+        height: 38px !important;
         font-size: 1.2rem !important;
+        margin-bottom: 0 !important;
     }
     
     .page-header {
         padding: 10px !important;
-        margin-bottom: 15px !important;
+        margin-bottom: 12px !important;
+        gap: 10px !important;
     }
     
     .header-actions {
@@ -1296,8 +1312,50 @@ body {
     /* Fix table scrolling */
     .table-container {
         border-radius: 8px !important;
-        margin: 0 -10px !important; /* Make table touch screen edges */
-        width: calc(100% + 20px) !important;
+        margin: 0 !important;
+        width: 100% !important;
+        padding: 5px !important;
+    }
+    
+    /* Followup Cards */
+    .member-card {
+        padding: 12px !important;
+        margin-bottom: 10px !important;
+    }
+    
+    .member-card h3 {
+        font-size: 1.1rem !important;
+    }
+    
+    .member-stats {
+        gap: 8px !important;
+        font-size: 0.75rem !important;
+        flex-wrap: wrap !important;
+    }
+    
+    /* Checkboxes and Toggles */
+    .perm-select {
+        font-size: 0.8rem !important;
+        padding: 5px !important;
+    }
+    
+    /* Header padding */
+    .mobile-header {
+        padding: 12px 15px !important;
+    }
+    
+    /* Reduce modal size */
+    .modal {
+        padding: 15px !important;
+        width: 96% !important;
+        margin: 10px auto !important;
+        max-height: 90vh !important;
+        overflow-y: auto !important;
+    }
+    
+    /* Grid adjustments */
+    .stats-grid, .grid-cards {
+        gap: 10px !important;
     }
 }
 
