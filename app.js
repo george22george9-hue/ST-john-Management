@@ -1824,6 +1824,15 @@ function refreshFollowUp() {
     const grid = document.getElementById('followup-members-grid');
     grid.innerHTML = '';
 
+    // Populate region filter
+    const regionSelect = document.getElementById('filter-region-followup');
+    if (regionSelect) {
+        const currentVal = regionSelect.value;
+        const uniqueRegions = [...new Set(members.map(m => m.address).filter(Boolean))].sort();
+        regionSelect.innerHTML = '<option value="">كل المناطق</option>' + uniqueRegions.map(r => `<option value="${r}">${r}</option>`).join('');
+        regionSelect.value = currentVal;
+    }
+
     const oneMonthAgo = new Date();
     oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
     oneMonthAgo.setHours(0, 0, 0, 0);
@@ -1974,16 +1983,31 @@ function setupViewFilters(viewId, gridSelector, searchId) {
         const activeFilter = document.querySelector(`${viewId} .filter-btn.active`);
         const filterValue = activeFilter ? activeFilter.getAttribute('data-filter') : 'all';
         const query = searchInput ? searchInput.value.toLowerCase() : '';
+        const regionSelect = document.getElementById('filter-region-followup');
+        const regionQuery = (viewId === '#followup-view' && regionSelect) ? regionSelect.value.toLowerCase() : '';
 
         document.querySelectorAll(`${gridSelector} .member-card`).forEach(card => {
             const name = card.querySelector('h3').textContent.toLowerCase();
             const matchesSearch = name.includes(query);
             const cardFilters = card.getAttribute('data-filters').split(' ');
             const matchesFilter = filterValue === 'all' || cardFilters.includes(filterValue);
+            
+            let matchesRegion = true;
+            if (regionQuery) {
+                // Find anything containing the map pin icon which is usually the address
+                const regionEl = Array.from(card.querySelectorAll('p')).find(p => p.innerHTML.includes('ph-map-pin'));
+                const cardRegion = regionEl ? regionEl.textContent.toLowerCase() : '';
+                matchesRegion = cardRegion.includes(regionQuery);
+            }
 
-            card.style.display = matchesSearch && matchesFilter ? 'block' : 'none';
+            card.style.display = (matchesSearch && matchesFilter && matchesRegion) ? 'block' : 'none';
         });
     };
+    
+    const regionSelect = document.getElementById('filter-region-followup');
+    if (viewId === '#followup-view' && regionSelect) {
+        regionSelect.addEventListener('change', applyFilters);
+    }
 
     filters.forEach(btn => {
         btn.addEventListener('click', () => {
