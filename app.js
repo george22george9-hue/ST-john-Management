@@ -373,6 +373,11 @@ function applyPermissions() {
         const firstVisible = document.querySelector('.nav-btn[style="display: flex;"]');
         if (firstVisible) firstVisible.click();
     }
+    
+    // Make sure we enforce permissions immediately on load
+    if (typeof enforcePermissions === 'function') {
+        enforcePermissions();
+    }
 }
 
 // --- Initial Data Seed ---
@@ -3909,3 +3914,38 @@ function toggleMobileMenu() {
     if (sidebar) sidebar.classList.toggle('mobile-open');
     if (overlay) overlay.classList.toggle('active');
 }
+
+// --- Permissions Enforcement Patch ---
+(function() {
+    if (typeof enforcePermissions !== 'function') return;
+    
+    const originalRenderDashboard = window.renderDashboard;
+    if (originalRenderDashboard) {
+        window.renderDashboard = function(...args) { originalRenderDashboard.apply(this, args); enforcePermissions(); };
+    }
+    
+    const originalRenderAttendance = window.renderAttendance;
+    if (originalRenderAttendance) {
+        window.renderAttendance = function(...args) { originalRenderAttendance.apply(this, args); enforcePermissions(); };
+    }
+    
+    const originalRenderFollowup = window.renderFollowup;
+    if (originalRenderFollowup) {
+        window.renderFollowup = function(...args) { originalRenderFollowup.apply(this, args); enforcePermissions(); };
+    }
+    
+    const originalRenderServantsDashboard = window.renderServantsDashboard;
+    if (originalRenderServantsDashboard) {
+        window.renderServantsDashboard = function(...args) { originalRenderServantsDashboard.apply(this, args); enforcePermissions(); };
+    }
+    
+    const originalRenderCompetitions = window.renderCompetitions;
+    if (originalRenderCompetitions) {
+        window.renderCompetitions = function(...args) { originalRenderCompetitions.apply(this, args); enforcePermissions(); };
+    }
+    
+    const originalRenderSummary = window.renderSummary;
+    if (originalRenderSummary) {
+        window.renderSummary = function(...args) { originalRenderSummary.apply(this, args); enforcePermissions(); };
+    }
+})();
