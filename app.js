@@ -3161,7 +3161,11 @@ function getHistoricalMemberPoints() {
                     attendancePoints += 1;
                 }
             });
-            pointsMap[m.id] += teamRankPoints[m.teamKey] + attendancePoints;
+            
+            // If they didn't attend any round in this competition, they get 0 points total for this comp (no rank points)
+            if (attendancePoints > 0) {
+                pointsMap[m.id] += teamRankPoints[m.teamKey] + attendancePoints;
+            }
         });
     });
 
