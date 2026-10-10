@@ -279,6 +279,20 @@ function saveWaTasks(tasks) {
 }
 
 // --- Authentication & Permissions ---
+function enforcePermissions() {
+    if (currentUserRole === 'admin') return; // Admin sees everything
+    
+    // Hide or show elements based on permissions
+    document.querySelectorAll('[data-perm]').forEach(el => {
+        const requiredPerm = el.getAttribute('data-perm');
+        if (!currentPermissions.includes(requiredPerm)) {
+            el.style.display = 'none';
+        } else {
+            el.style.display = '';
+        }
+    });
+}
+
 const DB_KEY_AUTH = 'church_app_auth';
 
 function getAuthData() {
@@ -1087,7 +1101,12 @@ window.refreshAdminView = function () {
     }).join('');
 };
 
-function setupAdminTable() {
+function setupAdminTable(...args) {
+    const res = setupAdminTable_original(...args);
+    setTimeout(enforcePermissions, 50);
+    return res;
+}
+function setupAdminTable_original() {
     const tbody = document.getElementById('admin-members-tbody');
     if (!tbody) return;
     tbody.addEventListener('click', (e) => {
@@ -3461,7 +3480,12 @@ function setupCompetitions() {
     }
 }
 
-function renderCompetitions() {
+function renderCompetitions(...args) {
+    const res = renderCompetitions_original(...args);
+    setTimeout(enforcePermissions, 50);
+    return res;
+}
+function renderCompetitions_original() {
     const container = document.getElementById('competitions-list-container');
     if (!container) return;
 
@@ -3508,7 +3532,12 @@ function renderCompetitions() {
     });
 }
 
-function openCompetitionDetails(compId) {
+function openCompetitionDetails(...args) {
+    const res = openCompetitionDetails_original(...args);
+    setTimeout(enforcePermissions, 50);
+    return res;
+}
+function openCompetitionDetails_original(compId) {
     const comps = getCompetitions();
     const comp = comps.find(c => c.id === compId);
     if (!comp) return;
