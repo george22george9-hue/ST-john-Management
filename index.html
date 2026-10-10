@@ -34,25 +34,25 @@
                 <button class="nav-btn active" data-target="dashboard-view">
                     <i class="ph ph-squares-four"></i> الشاشة الرئيسية
                 </button>
-                <button class="nav-btn" data-target="attendance-view">
+                <button class="nav-btn" onclick="if(window.innerWidth <= 900) toggleMobileMenu()" data-target="attendance-view">
                     <i class="ph ph-calendar-check"></i> تسجيل الحضور
                 </button>
-                <button class="nav-btn" data-target="followup-view">
+                <button class="nav-btn" onclick="if(window.innerWidth <= 900) toggleMobileMenu()" data-target="followup-view">
                     <i class="ph ph-users-three"></i> المتابعة والافتقاد
                 </button>
-                <button class="nav-btn" data-target="servants-dashboard-view">
+                <button class="nav-btn" onclick="if(window.innerWidth <= 900) toggleMobileMenu()" data-target="servants-dashboard-view">
                     <i class="ph ph-star"></i> متابعة الخدام
                 </button>
-                <button class="nav-btn" data-target="competitions-view">
+                <button class="nav-btn" onclick="if(window.innerWidth <= 900) toggleMobileMenu()" data-target="competitions-view">
                     <i class="ph ph-trophy"></i> المسابقات
                 </button>
-                <button class="nav-btn" data-target="summary-view">
+                <button class="nav-btn" onclick="if(window.innerWidth <= 900) toggleMobileMenu()" data-target="summary-view">
                     <i class="ph ph-list-numbers"></i> الملخص
                 </button>
-                <button class="nav-btn" data-target="admin-view">
+                <button class="nav-btn" onclick="if(window.innerWidth <= 900) toggleMobileMenu()" data-target="admin-view">
                     <i class="ph ph-shield-check"></i> الإدارة
                 </button>
-                <button class="nav-btn" data-target="settings-view">
+                <button class="nav-btn" onclick="if(window.innerWidth <= 900) toggleMobileMenu()" data-target="settings-view">
                     <i class="ph ph-gear"></i> الإعدادات
                 </button>
             </nav>
@@ -63,8 +63,19 @@
             </div>
         </aside>
 
+
+        <!-- Mobile Sidebar Overlay -->
+        <div class="sidebar-overlay" id="mobile-sidebar-overlay" onclick="toggleMobileMenu()"></div>
+
         <!-- Main Content Area -->
         <main class="main-content">
+            
+            <!-- Mobile Header -->
+            <div class="mobile-header">
+                <h2><i class="ph ph-church"></i> اجتماع القديس يوحنا</h2>
+                <button class="hamburger-btn" onclick="toggleMobileMenu()"><i class="ph ph-list"></i></button>
+            </div>
+
             
             <!-- Dashboard View -->
             <section id="dashboard-view" class="view-section active">
