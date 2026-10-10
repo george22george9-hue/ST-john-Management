@@ -361,7 +361,11 @@ function checkLoginAndApply() {
 function applyPermissions() {
     document.querySelectorAll('.nav-btn').forEach(btn => {
         const target = btn.getAttribute('data-target');
-        if (currentUserRole === 'admin' || currentPermissions.includes(target)) {
+        const hasDirectPerm = currentPermissions.includes(target);
+        const hasImplicitPerm = (target === 'followup-view' && currentPermissions.includes('followup-edit')) ||
+                                (target === 'attendance-view' && currentPermissions.includes('attendance-edit'));
+        
+        if (currentUserRole === 'admin' || hasDirectPerm || hasImplicitPerm) {
             btn.style.display = 'flex';
         } else {
             btn.style.display = 'none';
