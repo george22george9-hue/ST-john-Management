@@ -1229,3 +1229,72 @@ body {
         width: 100%;
     }
 }
+
+/* --- Mobile Scaling Fixes --- */
+@media (max-width: 900px) {
+    /* Scale down all fonts slightly */
+    body {
+        font-size: 14px !important;
+    }
+    
+    h1 { font-size: 1.5rem !important; }
+    h2 { font-size: 1.3rem !important; }
+    h3 { font-size: 1.1rem !important; }
+    
+    /* Make buttons and inputs smaller */
+    .btn {
+        padding: 8px 12px !important;
+        font-size: 0.85rem !important;
+    }
+    
+    .form-control, .search-box input {
+        padding: 8px 10px !important;
+        font-size: 0.9rem !important;
+    }
+    
+    /* Compact Table */
+    table th, table td {
+        padding: 10px !important;
+        font-size: 0.85rem !important;
+    }
+    
+    /* Reduce padding in cards and modals */
+    .glass {
+        padding: 15px !important;
+    }
+    
+    .stat-card {
+        padding: 15px !important;
+        min-width: unset !important;
+    }
+    
+    .stat-info h3 {
+        font-size: 0.9rem !important;
+    }
+    
+    .stat-info p {
+        font-size: 1.2rem !important;
+    }
+    
+    .stat-icon {
+        width: 40px !important;
+        height: 40px !important;
+        font-size: 1.2rem !important;
+    }
+    
+    .page-header {
+        padding: 10px !important;
+        margin-bottom: 15px !important;
+    }
+    
+    .header-actions {
+        gap: 8px !important;
+    }
+    
+    /* Fix table scrolling */
+    .table-container {
+        border-radius: 8px !important;
+        margin: 0 -10px !important; /* Make table touch screen edges */
+        width: calc(100% + 20px) !important;
+    }
+}
