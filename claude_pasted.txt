@@ -1,0 +1,14 @@
+<USER_REQUEST>
+يسطا كلود عمل دول !!!!
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-10-02T01:25:52+03:00.
+
+The user's current state is as follows:
+Active Document: c:\الكنيسة\خطة الأجتماع\برنامج الحضور\app.js (LANGUAGE_JAVASCRIPT)
+Cursor is on line: 30
+Other open documents:
+- c:\الكنيسة\خطة الأجتماع\برنامج الحضور\app.js (LANGUAGE_JAVASCRIPT)
+- c:\الكنيسة\خطة الأجتماع\برنامج الحضور\index.html (LANGUAGE_HTML)
+- c:\الكنيسة\خطة الأجتماع\برنامج الحضور\style.css (LANGUAGE_CSS)
+</ADDITIONAL_METADATA>

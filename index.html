@@ -1,0 +1,1015 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>اجتماع القديس يوحنا الحبيب</title>
+    <!-- Fonts: Cairo -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <!-- Icons: Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- html2pdf for PDF generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <!-- SheetJS for Excel generation -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <!-- Styles -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo-container">
+                    <img src="logo.png" alt="لوجو الاجتماع" onerror="this.style.display='none'; document.getElementById('fallback-icon').style.display='block';">
+                    <i class="ph ph-church" id="fallback-icon" style="display:none; font-size: 2.5rem; color: var(--primary);"></i>
+                </div>
+                <h2>اجتماع القديس يوحنا الحبيب</h2>
+            </div>
+            <nav class="sidebar-nav">
+                <button class="nav-btn active" data-target="dashboard-view">
+                    <i class="ph ph-squares-four"></i> الشاشة الرئيسية
+                </button>
+                <button class="nav-btn" data-target="attendance-view">
+                    <i class="ph ph-calendar-check"></i> تسجيل الحضور
+                </button>
+                <button class="nav-btn" data-target="followup-view">
+                    <i class="ph ph-users-three"></i> المتابعة والافتقاد
+                </button>
+                <button class="nav-btn" data-target="servants-dashboard-view">
+                    <i class="ph ph-star"></i> متابعة الخدام
+                </button>
+                <button class="nav-btn" data-target="competitions-view">
+                    <i class="ph ph-trophy"></i> المسابقات
+                </button>
+                <button class="nav-btn" data-target="summary-view">
+                    <i class="ph ph-list-numbers"></i> الملخص
+                </button>
+                <button class="nav-btn" data-target="admin-view">
+                    <i class="ph ph-shield-check"></i> الإدارة
+                </button>
+                <button class="nav-btn" data-target="settings-view">
+                    <i class="ph ph-gear"></i> الإعدادات
+                </button>
+            </nav>
+            <div style="margin-top: auto; padding: 20px; text-align: center;">
+                <button class="btn btn-outline" id="btn-logout" style="width: 100%; border-color: var(--danger); color: var(--danger);">
+                    <i class="ph ph-sign-out"></i> تسجيل خروج
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            
+            <!-- Dashboard View -->
+            <section id="dashboard-view" class="view-section active">
+                <header class="view-header">
+                    <h1>ملخص الإجتماع</h1>
+                    <p class="subtitle">نظرة عامة على إحصائيات الحضور</p>
+                </header>
+
+                <div class="stats-grid">
+                    <div class="stat-card glass">
+                        <div class="stat-icon"><i class="ph ph-users"></i></div>
+                        <div class="stat-info">
+                            <h3>إجمالي الأعضاء</h3>
+                            <p class="stat-value" id="dash-total-members">0</p>
+                        </div>
+                    </div>
+                    <div class="stat-card glass">
+                        <div class="stat-icon"><i class="ph ph-chart-line-up"></i></div>
+                        <div class="stat-info">
+                            <h3>متوسط حضور الشهر</h3>
+                            <p class="stat-value" id="dash-avg-attendance">0%</p>
+                            <p class="stat-subtext" id="dash-month-compare" style="font-size: 0.8rem; color: var(--warning);">--</p>
+                        </div>
+                    </div>
+                    <div class="stat-card glass">
+                        <div class="stat-icon"><i class="ph ph-crown"></i></div>
+                        <div class="stat-info">
+                            <h3>أعلى حضور (الشهر)</h3>
+                            <p class="stat-value" id="dash-highest-attendance">0</p>
+                            <p class="stat-subtext" id="dash-highest-date">--</p>
+                        </div>
+                    </div>
+                    <div class="stat-card glass" style="border: 1px solid rgba(99, 102, 241, 0.5); background: rgba(99, 102, 241, 0.05);">
+                        <div class="stat-icon" style="color: var(--primary);"><i class="ph ph-magic-wand"></i></div>
+                        <div class="stat-info">
+                            <h3>المتوقع حضوره اليوم</h3>
+                            <p class="stat-value" id="dash-prediction">0</p>
+                            <p class="stat-subtext">بناءً على متوسط آخر 4 اجتماعات</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="areas-container glass mt-4">
+                    <h3><i class="ph ph-map-pin"></i> خريطة المناطق (إحصائيات الشهر)</h3>
+                    <div class="stats-grid" id="dash-areas-grid" style="grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); margin-top: 15px; gap: 10px;">
+                        <!-- Areas stats populated by JS -->
+                    </div>
+                </div>
+
+                <div class="birthdays-container glass mt-4" id="dash-birthdays-container" style="display: none;">
+                    <h3><i class="ph ph-confetti"></i> أعياد الميلاد</h3>
+                    <div id="dash-birthdays-list" class="birthdays-list">
+                        <!-- Birthdays will be populated here -->
+                    </div>
+                </div>
+
+                <div class="chart-container glass mt-4">
+                    <h3><i class="ph ph-trend-up"></i> كيرف الحضور في آخر الأسابيع</h3>
+                    <canvas id="attendanceChart"></canvas>
+                </div>
+            </section>
+
+            <!-- Attendance View -->
+            <section id="attendance-view" class="view-section">
+                <header class="view-header flex-between">
+                    <div>
+                        <h1>تسجيل حضور الجمعة</h1>
+                        <p class="subtitle">قم بتسجيل حضور اليوم</p>
+                    </div>
+                    <div class="header-actions">
+                        <select id="attendance-day-type" class="form-control" style="width: auto; display: inline-block; margin-left: 10px;">
+                            <option value="normal">يوم عادي</option>
+                            <option value="party">حفلة</option>
+                            <option value="evening">أمسية</option>
+                            <option value="funday">Fun Day</option>
+                            <option value="trip">رحلة</option>
+                            <option value="conference">مؤتمر</option>
+                            <option value="holiday">إجازة</option>
+                        </select>
+                        <input type="date" min="2024-01-01" max="2030-12-31" id="attendance-date" class="date-picker">
+                        <button class="btn btn-primary" id="btn-start-day">
+                            <i class="ph ph-pencil-simple"></i> فتح / تعديل اليوم
+                        </button>
+                    </div>
+                </header>
+
+                <div class="attendance-workspace glass" id="attendance-workspace" style="display: none;">
+                    <div class="workspace-header">
+                        <h2>تسجيل يوم: <span id="current-recording-date"></span></h2>
+                        <div class="live-counter">
+                            <i class="ph ph-users"></i> إجمالي الحضور: <span id="live-attendance-count">0</span>
+                        </div>
+                    </div>
+                    
+                    <input type="text" id="search-attendance" class="form-control" placeholder="بحث بالاسم..." style="margin-bottom: 15px;">
+                    
+                    <!-- Attendance Tabs -->
+                    <div class="attendance-tabs" style="display: flex; gap: 10px; margin-bottom: 20px;">
+                        <button class="btn btn-primary active" id="tab-attendance-general" style="flex: 1;">غياب وحضور</button>
+                        <button class="btn btn-outline" id="tab-attendance-servants" style="flex: 1;">إحصائيات الخدام اليومية</button>
+                    </div>
+
+                    <div class="members-list-attendance" id="attendance-members-list">
+                        <!-- Members will be injected here via JS -->
+                    </div>
+                    
+                    <div class="members-list-attendance" id="attendance-servants-list" style="display: none;">
+                        <!-- Servants will be injected here via JS -->
+                    </div>
+                    
+                    <div class="workspace-footer">
+                        <button class="btn btn-success" id="btn-save-attendance">حفظ الحضور</button>
+                    </div>
+                </div>
+                
+                <div class="empty-state" id="attendance-empty-state">
+                    <i class="ph ph-calendar-blank"></i>
+                    <h3>اختر تاريخاً أو ابدأ يوماً جديداً</h3>
+                    <p>سيتم عرض قائمة الأعضاء هنا لتسجيل الحضور</p>
+                </div>
+            </section>
+
+            <!-- Follow-up View -->
+            <section id="followup-view" class="view-section">
+                <header class="view-header flex-between">
+                    <div>
+                        <h1>المتابعة والافتقاد</h1>
+                        <p class="subtitle">متابعة الأعضاء وتوثيق الزيارات</p>
+                    </div>
+                    <div class="header-actions">
+                        <button class="btn btn-outline" id="btn-copy-absent-last" style="border-color: var(--danger); color: var(--danger);">
+                            <i class="ph ph-copy"></i> نسخ غياب آخر اجتماع
+                        </button>
+                        <button class="btn btn-outline" id="btn-copy-no-visit" style="border-color: var(--warning); color: var(--warning);">
+                            <i class="ph ph-copy"></i> نسخ تأخر الافتقاد
+                        </button>
+                        <button class="btn btn-primary" id="btn-open-bulk-visit">
+                            <i class="ph ph-users-three"></i> افتقاد جماعي
+                        </button>
+                        <button class="btn btn-success" id="btn-open-wa-task">
+                            <i class="ph ph-whatsapp-logo"></i> تكليف واتساب
+                        </button>
+                    </div>
+                </header>
+
+                <input type="text" id="search-followup" class="form-control" placeholder="بحث بالاسم..." style="margin-bottom: 15px; max-width: 300px;">
+
+                <div class="filters-container mt-2 mb-4">
+                    <button class="filter-btn active" data-filter="all">الكل</button>
+                    <button class="filter-btn warning-filter" data-filter="yellow">
+                        <i class="ph ph-warning-circle"></i> إنذار أول (غائب جمعتين)
+                    </button>
+                    <button class="filter-btn danger-filter" data-filter="red">
+                        <i class="ph ph-warning-octagon"></i> خطر (غائب 4 جمعات)
+                    </button>
+                    <button class="filter-btn danger-filter" data-filter="absent_lot">
+                        <i class="ph ph-warning-octagon"></i> غياب متكرر (أولى بالزيارة)
+                    </button>
+                    <button class="filter-btn" data-filter="absent_last">
+                        <i class="ph ph-user-minus"></i> غاب آخر جمعة
+                    </button>
+                    <button class="filter-btn warning-filter" data-filter="no_visit_month">
+                        <i class="ph ph-clock"></i> لم يُفتقد لأكثر من شهر
+                    </button>
+                </div>
+
+                <div class="members-grid" id="followup-members-grid">
+                    <!-- Member cards will be injected here via JS -->
+                </div>
+            </section>
+
+            <!-- Servants Dashboard View -->
+            <section id="servants-dashboard-view" class="view-section">
+                <header class="view-header">
+                    <h1>متابعة الخدام</h1>
+                    <p class="subtitle">إحصائيات شاملة عن خدمة كل خادم</p>
+                </header>
+
+                <input type="text" id="search-servants" class="form-control" placeholder="بحث باسم الخادم..." style="margin-bottom: 15px; max-width: 300px;">
+
+                <div class="glass" style="padding: 20px; border-radius: 16px;">
+                    <div style="overflow-x: auto;">
+                        <table style="width: 100%; border-collapse: collapse; min-width: 600px;">
+                            <thead>
+                                <tr style="border-bottom: 2px solid var(--glass-border);">
+                                    <th style="padding: 15px; text-align: right; color: var(--primary);">اسم الخادم</th>
+                                    <th style="padding: 15px; text-align: center; color: var(--primary);">نسبة الحضور</th>
+                                    <th style="padding: 15px; text-align: center; color: var(--primary);">إجمالي الافتقادات</th>
+                                    <th style="padding: 15px; text-align: center; color: var(--primary);">قدم فقرة</th>
+                                    <th style="padding: 15px; text-align: center; color: var(--primary);">مسؤول اليوم</th>
+                                    <th style="padding: 15px; text-align: right; color: var(--primary);">تحليل الحضور</th>
+                                </tr>
+                            </thead>
+                            <tbody id="servants-dashboard-list">
+                                <!-- Populated by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Competitions View -->
+            <section id="competitions-view" class="view-section">
+                <header class="view-header flex-between">
+                    <div>
+                        <h1>دوري المسابقات</h1>
+                        <p class="subtitle">إدارة المسابقات، وتوزيع الفرق، وتسجيل الدرجات أسبوعياً</p>
+                    </div>
+                    <button class="btn btn-primary" id="btn-create-competition">
+                        <i class="ph ph-plus-circle"></i> إضافة مسابقة جديدة
+                    </button>
+                </header>
+
+                <div class="competitions-grid mt-4" id="competitions-list-container">
+                    <!-- Competitions will be injected here -->
+                </div>
+            </section>
+
+            <!-- Summary View -->
+            <section id="summary-view" class="view-section">
+                <header class="view-header">
+                    <h1>الملخص</h1>
+                    <p class="subtitle">ملخص عدد الحضور وفقرات الخدام لكل جمعة</p>
+                </header>
+
+                <div class="glass" style="padding: 20px; border-radius: 16px;">
+                    <div style="overflow-x: auto;">
+                        <table style="width: 100%; border-collapse: collapse; min-width: 600px;">
+                            <thead>
+                                <tr style="border-bottom: 2px solid var(--glass-border);">
+                                    <th style="padding: 15px; text-align: right; color: var(--primary);">التاريخ</th>
+                                    <th style="padding: 15px; text-align: center; color: var(--primary);">نوع اليوم</th>
+                                    <th style="padding: 15px; text-align: center; color: var(--primary);">حضور المخدومين</th>
+                                    <th style="padding: 15px; text-align: center; color: var(--primary);">حضور الخدام</th>
+                                    <th style="padding: 15px; text-align: center; color: var(--primary);">إجمالي الحضور</th>
+                                    <th style="padding: 15px; text-align: center; color: var(--primary);">الفقرات المقدمة</th>
+                                    <th style="padding: 15px; text-align: center; color: var(--primary);">إجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody id="summary-list">
+                                <!-- Populated by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Admin View -->
+            <section id="admin-view" class="view-section">
+                <header class="view-header flex-between">
+                    <div>
+                        <h1>الإدارة</h1>
+                        <p class="subtitle">قاعدة بيانات جميع المخدومين والخدام وتعديل بياناتهم</p>
+                    </div>
+                    <button class="btn btn-primary" id="btn-add-person">
+                        <i class="ph ph-user-plus"></i> إضافة شخص
+                    </button>
+                </header>
+
+                <div class="admin-toolbar glass">
+                    <div class="search-bar">
+                        <i class="ph ph-magnifying-glass"></i>
+                        <input type="text" id="search-admin" placeholder="ابحث بالاسم أو المنطقة أو التليفون..." class="form-control" aria-label="بحث في قاعدة البيانات">
+                    </div>
+                    <div class="filters-container" id="admin-filters">
+                        <button class="filter-btn active" data-filter="all">الكل <span class="filter-count" id="count-all"></span></button>
+                        <button class="filter-btn" data-filter="member">المخدومين <span class="filter-count" id="count-member"></span></button>
+                        <button class="filter-btn" data-filter="servant">الخدام <span class="filter-count" id="count-servant"></span></button>
+                    </div>
+                </div>
+
+                <p class="admin-result-count" id="admin-result-count"></p>
+
+                <div class="glass admin-table-wrap">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th scope="col">الاسم</th>
+                                <th scope="col">الجنس / المرحلة</th>
+                                <th scope="col">المنطقة / العنوان</th>
+                                <th scope="col">النوع</th>
+                                <th scope="col">رقم التليفون</th>
+                                <th scope="col">تاريخ الميلاد</th>
+                                <th scope="col">العمر</th>
+                                <th scope="col">إجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody id="admin-members-tbody">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Settings View (For Data Management) -->
+            <section id="settings-view" class="view-section">
+                <header class="view-header">
+                    <h1>الإعدادات والبيانات</h1>
+                    <p class="subtitle">إدارة بيانات البرنامج والنسخ الاحتياطي</p>
+                </header>
+                
+                <div class="settings-grid">
+                    <div class="settings-card glass">
+                        <h3><i class="ph ph-users-gear"></i> إدارة الأعضاء</h3>
+                        <p>إضافة أعضاء، حذف أعضاء، أو إضافة مجموعة (يتطلب كلمة مرور).</p>
+                        <button class="btn btn-primary mt-2" id="btn-manage-members">
+                            <i class="ph ph-lock-key"></i> لوحة الإدارة
+                        </button>
+                    </div>
+                    <div class="settings-card glass">
+                        <h3><i class="ph ph-shield-check"></i> إدارة الصلاحيات</h3>
+                        <p>إدارة الخدام، تعيين كلمات المرور، وتحديد الشاشات المسموحة.</p>
+                        <button class="btn btn-warning mt-2" id="btn-manage-permissions">
+                            <i class="ph ph-key"></i> صلاحيات الخدام
+                        </button>
+                    </div>
+                    <div class="settings-card glass">
+                        <h3><i class="ph ph-download-simple"></i> نسخة احتياطية</h3>
+                        <p>قم بتحميل جميع بيانات البرنامج للاحتفاظ بها كنسخة أمان.</p>
+                        <button class="btn btn-success mt-2" id="btn-export-data">تحميل البيانات</button>
+                    </div>
+                    <div class="settings-card glass">
+                        <h3><i class="ph ph-upload-simple"></i> استعادة البيانات</h3>
+                        <p>قم برفع ملف البيانات السابق لاستعادته.</p>
+                        <input type="file" id="file-import" style="display: none;" accept=".json">
+                        <button class="btn btn-warning mt-2" id="btn-import-data">استعادة من ملف</button>
+                    </div>
+                    <div class="settings-card glass">
+                        <h3><i class="ph ph-cloud-arrow-up"></i> مزامنة مع الإكسيل</h3>
+                        <p>رفع كل الداتا والغياب لشيت جوجل على الإنترنت.</p>
+                        <button class="btn btn-primary mt-2" id="btn-sync-cloud">
+                            <i class="ph ph-arrows-clockwise"></i> بدء المزامنة
+                        </button>
+                    </div>
+                    <div class="settings-card glass">
+                        <h3><i class="ph ph-file-xls"></i> تصدير إكسيل المنظم</h3>
+                        <p>تنزيل ملف إكسيل يضم 3 صفحات منظمة للسكرتارية، الحضور، والافتقاد.</p>
+                        <button class="btn btn-success mt-2" id="btn-export-csv">
+                            <i class="ph ph-microsoft-excel-logo"></i> تحميل ملف الإكسيل
+                        </button>
+                    </div>
+                    <div class="settings-card glass">
+                        <h3><i class="ph ph-file-pdf"></i> تقارير شهرية</h3>
+                        <p>تنزيل تقرير PDF شامل للمواظبة والافتقاد لشهر معين.</p>
+                        <input type="month" id="report-month" class="form-control mt-2" style="margin-bottom: 10px;">
+                        <button class="btn btn-danger" id="btn-generate-pdf">
+                            <i class="ph ph-download-simple"></i> تحميل التقرير الشامل
+                        </button>
+                    </div>
+                    <div class="settings-card glass">
+                        <h3><i class="ph ph-file-pdf"></i> تقارير الافتقاد</h3>
+                        <p>تنزيل تقرير PDF خاص بالافتقادات فقط لشهر معين.</p>
+                        <input type="month" id="report-month-visit" class="form-control mt-2" style="margin-bottom: 10px;">
+                        <button class="btn btn-danger" id="btn-generate-pdf-visit">
+                            <i class="ph ph-download-simple"></i> تحميل تقرير الافتقاد
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- Modals -->
+    <!-- Manage Members Modal -->
+    <div class="modal-overlay" id="manage-members-modal-bg">
+        <div class="modal glass" style="max-width: 600px;">
+            <div class="modal-header">
+                <h3><i class="ph ph-users-gear"></i> إدارة الأعضاء</h3>
+                <button class="close-modal"><span style="font-size: 1.5rem; font-weight: bold; line-height: 1;">&times;</span></button>
+            </div>
+            <div class="modal-body" style="max-height: 75vh; overflow-y: auto;">
+                <!-- Add Single -->
+                <div class="settings-card glass" style="padding: 15px; margin-bottom: 20px;">
+                    <h4 style="margin-bottom: 10px;">إضافة شخص واحد</h4>
+                    <div class="form-group mt-2">
+                        <input type="text" id="new-member-name" class="form-control" placeholder="اسم الشخص ثلاثي...">
+                    </div>
+                    <div class="form-group mt-2">
+                        <input type="text" id="new-member-address" class="form-control" placeholder="المنطقة السكنية أو العنوان (اختياري)...">
+                    </div>
+                    <div class="form-group">
+                        <label>نوع الشخص:</label>
+                        <select id="new-member-role" class="form-control">
+                            <option value="member">عضو (مخدوم)</option>
+                            <option value="servant">خادم</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>الجنس:</label>
+                        <select id="new-member-gender" class="form-control">
+                            <option value="male">ذكر</option>
+                            <option value="female">أنثى</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-success" id="btn-save-member">إضافة</button>
+                </div>
+                
+                <!-- Add Bulk -->
+                <div class="settings-card glass" style="padding: 15px; margin-bottom: 20px;">
+                    <h4 style="margin-bottom: 10px;">إضافة مجموعة (كل اسم في سطر)</h4>
+                    <div class="form-group mt-2">
+                        <textarea id="bulk-members-text" class="form-control" rows="4" placeholder="مينا أمير&#10;أندرو مجدي..."></textarea>
+                    </div>
+                    <div class="form-group mt-2">
+                        <select id="bulk-members-gender" class="form-control">
+                            <option value="male">أولاد</option>
+                            <option value="female">بنات</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-primary" id="btn-save-bulk">إضافة المجموعة</button>
+                </div>
+
+                <!-- Delete List -->
+                <div class="settings-card glass" style="padding: 15px;">
+                    <h4 style="margin-bottom: 10px;">إدارة وحذف الأعضاء</h4>
+                    <input type="text" id="search-manage" class="form-control mt-2 mb-2" placeholder="بحث بالاسم...">
+                    <div id="delete-members-list" class="members-list-attendance mt-2" style="max-height: 250px;">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add / Edit Person Modal -->
+    <div class="modal-overlay" id="person-modal-bg">
+        <div class="modal glass" style="max-width: 480px;" role="dialog" aria-modal="true" aria-labelledby="person-modal-title">
+            <div class="modal-header">
+                <h3 id="person-modal-title"><i class="ph ph-user-circle"></i> <span id="person-modal-title-text">إضافة شخص</span></h3>
+                <button class="close-modal" aria-label="إغلاق"><span style="font-size: 1.5rem; font-weight: bold; line-height: 1;">&times;</span></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="person-id">
+                <div class="form-group">
+                    <label for="person-name">الاسم</label>
+                    <input type="text" id="person-name" class="form-control" placeholder="الاسم ثلاثي" autocomplete="off">
+                </div>
+                <div class="form-group">
+                    <label for="person-phone">رقم التليفون (اختياري)</label>
+                    <input type="tel" id="person-phone" class="form-control" placeholder="01xxxxxxxxx" dir="ltr" style="text-align: right;">
+                </div>
+                <div class="form-group">
+                    <label for="person-address">المنطقة (اختياري)</label>
+                    <select id="person-address" class="form-control">
+                        <option value="">-- اختار المنطقة --</option>
+                        <option value="سندبيس أ">سندبيس أ</option>
+                        <option value="سندبيس ب">سندبيس ب</option>
+                        <option value="البرادعة">البرادعة</option>
+                        <option value="بهادة">بهادة</option>
+                        <option value="اجهور">اجهور</option>
+                        <option value="أخرى">أخرى (كفرعبيان أو غيره)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="person-birthdate">تاريخ الميلاد (اختياري)</label>
+                    <input type="date" id="person-birthdate" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label>النوع</label>
+                    <div class="segmented" id="person-role">
+                        <button type="button" data-value="member" class="active">مخدوم</button>
+                        <button type="button" data-value="servant">خادم</button>
+                    </div>
+                </div>
+                <div class="form-group" style="display: flex; gap: 10px;">
+                    <div style="flex: 1;">
+                        <label>الجنس</label>
+                        <div class="segmented" id="person-gender">
+                            <button type="button" data-value="male" class="active">ذكر</button>
+                            <button type="button" data-value="female">أنثى</button>
+                        </div>
+                    </div>
+                    <div style="flex: 1;">
+                        <label>المرحلة</label>
+                        <div class="segmented" id="person-education">
+                            <button type="button" data-value="student" class="active">طالب</button>
+                            <button type="button" data-value="graduate">خريج</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" id="btn-cancel-person" type="button">إلغاء</button>
+                <button class="btn btn-success" id="btn-save-person" type="button">حفظ</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Record Visitation Modal -->
+    <div class="modal-overlay" id="record-visitation-modal-bg">
+        <div class="modal glass" style="max-width: 500px;">
+            <div class="modal-header">
+                <h3><i class="ph ph-handshake"></i> تسجيل افتقاد</h3>
+                <button class="close-modal"><span style="font-size: 1.5rem; font-weight: bold; line-height: 1;">&times;</span></button>
+            </div>
+            <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+                <input type="hidden" id="visit-member-id">
+                <h4 id="visit-member-name" style="margin-bottom: 15px; color: var(--primary);"></h4>
+                <div class="form-group">
+                    <label>تاريخ الزيارة</label>
+                    <input type="date" min="2024-01-01" max="2030-12-31" id="visit-date" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label>الخدام اللي نزلوا/كلموه (اختر من الخدام)</label>
+                    <div id="visit-servants-checkboxes" style="display: flex; gap: 10px; flex-wrap: wrap; background: rgba(0,0,0,0.1); padding: 10px; border-radius: 8px;">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>طريقة الافتقاد</label>
+                    <select id="visit-method" class="form-control">
+                        <option value="تليفون / واتساب">تليفون / واتساب</option>
+                        <option value="زيارة منزلية">زيارة منزلية</option>
+                        <option value="مقابلة في الكنيسة">مقابلة في الكنيسة</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>إيجابيات (اهتمامات وحاجات بيحبها)</label>
+                    <textarea id="visit-positives" class="form-control" rows="3"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>مشاكل أو شكاوى</label>
+                    <textarea id="visit-problems" class="form-control" rows="3"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-success" id="btn-save-visit">حفظ الزيارة</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Record Bulk Visitation Modal -->
+    <div class="modal-overlay" id="record-bulk-visitation-modal-bg">
+        <div class="modal glass" style="max-width: 600px;">
+            <div class="modal-header">
+                <h3><i class="ph ph-users-three"></i> تسجيل افتقاد جماعي</h3>
+                <button class="close-modal"><span style="font-size: 1.5rem; font-weight: bold; line-height: 1;">&times;</span></button>
+            </div>
+            <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+                <div class="form-group">
+                    <label>تاريخ الزيارة</label>
+                    <input type="date" min="2024-01-01" max="2030-12-31" id="bulk-visit-date" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label>الخدام (اختر من الخدام)</label>
+                    <div id="bulk-visit-servants-checkboxes" style="display: flex; gap: 10px; flex-wrap: wrap; background: rgba(0,0,0,0.1); padding: 10px; border-radius: 8px;">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>طريقة الافتقاد</label>
+                    <select id="bulk-visit-method" class="form-control">
+                        <option value="تليفون / واتساب">تليفون / واتساب</option>
+                        <option value="زيارة منزلية">زيارة منزلية</option>
+                        <option value="مقابلة في الكنيسة">مقابلة في الكنيسة</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>المخدومين (اختر الأشخاص)</label>
+                    <input type="text" id="bulk-visit-search-members" class="form-control mb-2" placeholder="ابحث عن مخدوم...">
+                    <div id="bulk-visit-members-checkboxes" style="display: flex; flex-direction: column; gap: 10px; max-height: 200px; overflow-y: auto; background: rgba(0,0,0,0.1); padding: 10px; border-radius: 8px;">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>ملاحظات إيجابية (عامة للكل)</label>
+                    <textarea id="bulk-visit-positives" class="form-control" rows="2"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>مشاكل أو شكاوى (عامة للكل)</label>
+                    <textarea id="bulk-visit-problems" class="form-control" rows="2"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-success" id="btn-save-bulk-visit">حفظ الافتقاد الجماعي</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Member Profile Modal -->
+    <div class="modal-overlay" id="member-profile-modal-bg">
+        <div class="modal glass" style="max-width: 600px;">
+            <div class="modal-header">
+                <h3><i class="ph ph-user-circle"></i> بروفايل المخدوم</h3>
+                <button class="close-modal"><span style="font-size: 1.5rem; font-weight: bold; line-height: 1;">&times;</span></button>
+            </div>
+            <div class="modal-body" style="max-height: 75vh; overflow-y: auto;">
+                <h2 id="profile-name" style="color: var(--primary); margin-bottom: 5px;"></h2>
+                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;">
+                    <p id="profile-phone" style="color: var(--text-muted); margin: 0;"></p>
+                    <button class="btn btn-outline" id="btn-edit-phone" style="padding: 2px 8px; font-size: 0.8rem;"><i class="ph ph-pencil-simple"></i> تعديل</button>
+                    
+                    <span id="profile-gender" class="status-badge badge-warning" style="margin-right: auto; font-size: 0.8rem;"></span>
+                    <button class="btn btn-outline" id="btn-edit-gender" style="padding: 2px 8px; font-size: 0.8rem;"><i class="ph ph-arrows-left-right"></i> تغيير الجنس</button>
+                </div>
+                
+                <div class="stats-grid" style="grid-template-columns: 1fr 1fr; margin-bottom: 20px;">
+                    <div class="stat-card glass" style="padding: 15px;">
+                        <div class="stat-info">
+                            <h3 style="font-size: 0.9rem;">إحصائيات الحضور</h3>
+                            <p class="stat-value" id="profile-attendance-rate" style="font-size: 1.5rem;">0%</p>
+                            <p class="stat-subtext" id="profile-last-attend" style="color: var(--text-muted);">آخر حضور: --</p>
+                        </div>
+                    </div>
+                    <div class="stat-card glass" style="padding: 15px;">
+                        <div class="stat-info">
+                            <h3 style="font-size: 0.9rem;">تاريخ آخر افتقاد</h3>
+                            <p class="stat-value" id="profile-last-visit" style="font-size: 1.2rem; color: var(--warning);">--</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="profile-servant-stats" style="display: none; margin-bottom: 20px; padding: 15px; border-radius: 12px; background: rgba(245, 158, 11, 0.05); border: 1px solid rgba(245, 158, 11, 0.3);">
+                    <h4 style="margin-bottom: 15px; color: var(--warning);"><i class="ph ph-star"></i> إحصائيات الخدمة</h4>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                        <div>
+                            <p style="font-size: 0.85rem; color: var(--text-muted);">مرات تقديم فقرة</p>
+                            <p id="profile-servant-presented" style="font-size: 1.2rem; font-weight: bold;">0</p>
+                        </div>
+                        <div>
+                            <p style="font-size: 0.85rem; color: var(--text-muted);">مرات مسؤول اليوم</p>
+                            <p id="profile-servant-leader" style="font-size: 1.2rem; font-weight: bold;">0</p>
+                        </div>
+                        <div>
+                            <p style="font-size: 0.85rem; color: var(--text-muted);">إجمالي الافتقادات</p>
+                            <p id="profile-servant-visits" style="font-size: 1.2rem; font-weight: bold;">0</p>
+                        </div>
+                        <div style="grid-column: span 1;">
+                            <p style="font-size: 0.85rem; color: var(--text-muted);">ميعاد الحضور</p>
+                            <p id="profile-servant-arrival" style="font-size: 0.95rem; font-weight: 500;">--</p>
+                        </div>
+                    </div>
+                </div>
+
+                <h4 style="margin-bottom: 10px; border-bottom: 1px solid var(--glass-border); padding-bottom: 5px;">سجل الزيارات</h4>
+                <div id="profile-visits-list" style="display: flex; flex-direction: column; gap: 10px;">
+                    <!-- Visits will be populated here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- WhatsApp Task Modal -->
+    <div class="modal-overlay" id="whatsapp-task-modal-bg">
+        <div class="modal glass" style="max-width: 600px;">
+            <div class="modal-header">
+                <h3><i class="ph ph-whatsapp-logo"></i> تكليف افتقاد واتساب</h3>
+                <button class="close-modal"><span style="font-size: 1.5rem; font-weight: bold; line-height: 1;">&times;</span></button>
+            </div>
+            <div class="modal-body" style="max-height: 75vh; overflow-y: auto;">
+                <div class="form-group">
+                    <label>اختر الخادم:</label>
+                    <select id="wa-servant-select" class="form-control"></select>
+                </div>
+                
+                <div class="form-group mt-3">
+                    <label>المخدومين اللي غابوا آخر جمعة (اختر من هنا):</label>
+                    <div id="wa-absent-members-list" style="display: flex; flex-direction: column; gap: 8px; max-height: 200px; overflow-y: auto; background: rgba(0,0,0,0.1); padding: 10px; border-radius: 8px; margin-top: 5px;">
+                        <!-- Checkboxes populated by JS -->
+                    </div>
+                </div>
+
+                <div class="form-group mt-3">
+                    <label>معاينة الرسالة:</label>
+                    <textarea id="wa-message-preview" class="form-control" rows="6" style="resize: none;"></textarea>
+                </div>
+                
+                <button class="btn btn-success mt-3" id="btn-send-whatsapp" style="width: 100%; font-size: 1.1rem; padding: 10px;">
+                    <i class="ph ph-paper-plane-right"></i> إرسال عبر الواتساب
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Competition Modal -->
+    <div class="modal-overlay" id="create-competition-modal">
+        <div class="modal glass" style="max-width: 800px;">
+            <div class="modal-header">
+                <h3><i class="ph ph-trophy"></i> إنشاء مسابقة جديدة</h3>
+                <button class="close-modal"><span style="font-size: 1.5rem; font-weight: bold; line-height: 1;">&times;</span></button>
+            </div>
+            <div class="modal-body" style="max-height: 80vh; overflow-y: auto;">
+                <input type="hidden" id="edit-comp-id">
+                <div class="form-group">
+                    <label>اسم المسابقة</label>
+                    <input type="text" id="comp-name" class="form-control" placeholder="مثال: دوري الصيف 2024">
+                </div>
+                
+                <h4 class="mt-4 mb-2" style="border-bottom: 1px solid var(--glass-border); padding-bottom: 5px;">أسماء الـ 3 فرق</h4>
+                <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                    <div style="flex: 1;">
+                        <input type="text" id="comp-team1-name" class="form-control" placeholder="اسم الفريق 1 (مثال: أ)" value="فريق 1">
+                    </div>
+                    <div style="flex: 1;">
+                        <input type="text" id="comp-team2-name" class="form-control" placeholder="اسم الفريق 2 (مثال: ب)" value="فريق 2">
+                    </div>
+                    <div style="flex: 1;">
+                        <input type="text" id="comp-team3-name" class="form-control" placeholder="اسم الفريق 3 (مثال: ج)" value="فريق 3">
+                    </div>
+                </div>
+                
+                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--glass-border); padding-bottom: 5px;" class="mt-4 mb-2">
+                    <h4 style="margin: 0;">توزيع الأعضاء على الفرق</h4>
+                    <button class="btn btn-outline" id="btn-suggest-distribution" style="font-size: 0.85rem; padding: 4px 8px; border-color: var(--primary); color: var(--primary);" type="button">
+                        <i class="ph ph-magic-wand"></i> مقترح توزيع متكافئ
+                    </button>
+                </div>
+                <input type="text" id="comp-search-members" class="form-control mb-3" placeholder="ابحث بالاسم لتوزيعه...">
+                
+                <div id="comp-members-selection" style="display: flex; flex-direction: column; gap: 10px; max-height: 350px; overflow-y: auto; padding: 10px; background: rgba(0,0,0,0.1); border-radius: 8px;">
+                    <!-- Members List will be injected here via JS -->
+                </div>
+                
+                <div class="mt-4">
+                    <button class="btn btn-success" id="btn-save-competition" style="width: 100%;"><i class="ph ph-check-circle"></i> حفظ المسابقة وبدء الدوري</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Competition Details Modal -->
+    <div class="modal-overlay" id="competition-details-modal">
+        <div class="modal glass" style="max-width: 900px; width: 95%;">
+            <div class="modal-header">
+                <h3 id="comp-details-title"><i class="ph ph-medal"></i> تفاصيل المسابقة <span id="comp-status-badge" style="margin-right: 10px; font-size: 0.9rem; padding: 4px 8px; border-radius: 4px;"></span></h3>
+                <button class="close-modal"><span style="font-size: 1.5rem; font-weight: bold; line-height: 1;">&times;</span></button>
+            </div>
+            <div class="modal-body" style="max-height: 80vh; overflow-y: auto;">
+                <input type="hidden" id="current-comp-id">
+                
+                <div style="display: flex; gap: 15px; margin-bottom: 20px; flex-wrap: wrap;">
+                    <button class="btn btn-primary" id="btn-add-comp-round"><i class="ph ph-calendar-plus"></i> إضافة جولة/جمعة جديدة</button>
+                    <button class="btn btn-outline" id="btn-edit-comp" style="border-color: var(--primary); color: var(--primary);"><i class="ph ph-pencil"></i> تعديل بيانات المسابقة</button>
+                    <button class="btn btn-danger" id="btn-delete-comp"><i class="ph ph-trash"></i> حذف المسابقة</button>
+                    <button class="btn btn-success" id="btn-print-comp-result" style="margin-right: auto;"><i class="ph ph-copy"></i> طباعة النتيجة</button>
+                    <button class="btn btn-warning" id="btn-finish-comp"><i class="ph ph-flag-checkered"></i> انتهاء المسابقة نهائي</button>
+                </div>
+
+                <div class="stats-grid mt-4" style="grid-template-columns: repeat(3, 1fr);" id="comp-teams-summary">
+                    <!-- Teams summary will be injected here -->
+                </div>
+
+                <h4 class="mt-4 mb-3" style="border-bottom: 1px solid var(--glass-border); padding-bottom: 5px;">لوحة الشرف (ترتيب الأفراد)</h4>
+                
+                <div class="glass" style="padding: 15px; border-radius: 12px; margin-bottom: 20px;">
+                    <div style="overflow-x: auto;">
+                        <table style="width: 100%; border-collapse: collapse; min-width: 600px;" class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>الترتيب</th>
+                                    <th>الاسم</th>
+                                    <th>الفريق</th>
+                                    <th>درجات مركز الفريق</th>
+                                    <th>درجات الحضور (+1 لكل جمعة)</th>
+                                    <th>المجموع الكلي</th>
+                                </tr>
+                            </thead>
+                            <tbody id="comp-leaderboard-body">
+                                <!-- Populated by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <h4 class="mt-4 mb-3" style="border-bottom: 1px solid var(--glass-border); padding-bottom: 5px;">سجل الجولات</h4>
+                <div id="comp-rounds-list" style="display: flex; flex-direction: column; gap: 10px;">
+                    <!-- Rounds list populated by JS -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Round Modal -->
+    <div class="modal-overlay" id="add-round-modal">
+        <div class="modal glass" style="max-width: 500px;">
+            <div class="modal-header">
+                <h3><i class="ph ph-flag-checkered"></i> تسجيل نتيجة الجولة</h3>
+                <button class="close-modal"><span style="font-size: 1.5rem; font-weight: bold; line-height: 1;">&times;</span></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-3" style="font-size: 0.9rem; color: var(--text-muted);">
+                    النظام سيقوم تلقائياً بإضافة (1 درجة) إضافية لأي عضو حضر في تاريخ هذه الجولة.
+                </p>
+                <div class="form-group">
+                    <label>تاريخ الجولة (الجمعة)</label>
+                    <input type="date" id="round-date" class="form-control">
+                </div>
+                
+                <div class="form-group mt-3">
+                    <label id="label-team1-points" style="color: var(--primary);">نقاط فريق 1</label>
+                    <input type="number" id="round-team1-points" class="form-control" value="0">
+                </div>
+                
+                <div class="form-group mt-3">
+                    <label id="label-team2-points" style="color: var(--primary);">نقاط فريق 2</label>
+                    <input type="number" id="round-team2-points" class="form-control" value="0">
+                </div>
+                
+                <div class="form-group mt-3">
+                    <label id="label-team3-points" style="color: var(--primary);">نقاط فريق 3</label>
+                    <input type="number" id="round-team3-points" class="form-control" value="0">
+                </div>
+                
+                <button class="btn btn-success mt-4" id="btn-save-round" style="width: 100%;">حفظ نتيجة الجولة</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden Report Container for PDF Generation -->
+    <div id="pdf-report-container" style="display: none; background: white; color: black; padding: 20px; font-family: 'Cairo', sans-serif; direction: rtl;">
+        <!-- Content injected by JS -->
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- Custom Confirm Modal -->
+    <div class="modal-overlay" id="custom-confirm-modal" style="z-index: 10000;">
+        <div class="modal-content glass" style="max-width: 400px; text-align: center;">
+            <div class="modal-header" style="justify-content: center; border: none; padding-bottom: 0;">
+                <h2 id="confirm-title" style="color: var(--warning);">تأكيد</h2>
+            </div>
+            <div class="modal-body">
+                <p id="confirm-message" style="font-size: 1.1rem; margin-bottom: 20px;">هل أنت متأكد؟</p>
+                <div style="display: flex; gap: 10px; justify-content: center;">
+                    <button class="btn btn-primary" id="btn-confirm-yes">نعم</button>
+                    <button class="btn btn-outline" id="btn-confirm-no">إلغاء</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Prompt Modal -->
+    <div class="modal-overlay" id="custom-prompt-modal" style="z-index: 10000;">
+        <div class="modal-content glass" style="max-width: 400px; text-align: center;">
+            <div class="modal-header" style="justify-content: center; border: none; padding-bottom: 0;">
+                <h2 id="prompt-title" style="color: var(--primary);">إدخال بيانات</h2>
+            </div>
+            <div class="modal-body">
+                <p id="prompt-message" style="font-size: 1.1rem; margin-bottom: 15px;"></p>
+                <input type="text" id="prompt-input" class="form-control" style="margin-bottom: 20px; text-align: center;">
+                <div style="display: flex; gap: 10px; justify-content: center;">
+                    <button class="btn btn-primary" id="btn-prompt-save">حفظ</button>
+                    <button class="btn btn-outline" id="btn-prompt-cancel">إلغاء</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Suggest Distribution Modal -->
+    <div class="modal-overlay" id="suggest-distribution-modal" style="z-index: 9999;">
+        <div class="modal glass" style="max-width: 800px; width: 95%;">
+            <div class="modal-header">
+                <h3><i class="ph ph-magic-wand"></i> معاينة مقترح التوزيع</h3>
+                <button class="close-modal"><span style="font-size: 1.5rem; font-weight: bold; line-height: 1;">&times;</span></button>
+            </div>
+            <div class="modal-body" style="max-height: 75vh; overflow-y: auto;">
+                <div style="display: flex; gap: 15px; flex-wrap: wrap;" id="suggested-teams-container">
+                    <div style="flex: 1; min-width: 200px; background: rgba(0,0,0,0.1); border-radius: 8px; padding: 15px; border-top: 3px solid var(--primary);">
+                        <h4 style="text-align: center; color: var(--primary); margin-bottom: 10px;" id="preview-team1-name">الفريق 1</h4>
+                        <div id="preview-team1-list" style="display: flex; flex-direction: column; gap: 5px; font-size: 0.9rem;"></div>
+                    </div>
+                    <div style="flex: 1; min-width: 200px; background: rgba(0,0,0,0.1); border-radius: 8px; padding: 15px; border-top: 3px solid var(--success);">
+                        <h4 style="text-align: center; color: var(--success); margin-bottom: 10px;" id="preview-team2-name">الفريق 2</h4>
+                        <div id="preview-team2-list" style="display: flex; flex-direction: column; gap: 5px; font-size: 0.9rem;"></div>
+                    </div>
+                    <div style="flex: 1; min-width: 200px; background: rgba(0,0,0,0.1); border-radius: 8px; padding: 15px; border-top: 3px solid var(--warning);">
+                        <h4 style="text-align: center; color: var(--warning); margin-bottom: 10px;" id="preview-team3-name">الفريق 3</h4>
+                        <div id="preview-team3-list" style="display: flex; flex-direction: column; gap: 5px; font-size: 0.9rem;"></div>
+                    </div>
+                </div>
+                
+                <div class="mt-4" style="display: flex; gap: 10px;">
+                    <button class="btn btn-success" id="btn-apply-suggestion" style="flex: 2;"><i class="ph ph-check-circle"></i> تطبيق هذا التوزيع</button>
+                    <button class="btn btn-outline" id="btn-re-suggest" style="flex: 1;"><i class="ph ph-arrows-clockwise"></i> إعادة الخلط</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Login Modal (Full Screen Overlay) -->
+    <div class="modal-overlay" id="login-modal-bg" style="z-index: 20000; background: var(--bg-color);">
+        <div class="modal glass" style="max-width: 400px; text-align: center; padding: 30px;">
+            <div class="logo-container" style="margin: 0 auto 20px;">
+                <i class="ph ph-lock-key" style="font-size: 2.5rem; color: var(--primary);"></i>
+            </div>
+            <h2 style="margin-bottom: 20px;">تسجيل الدخول</h2>
+            <div class="form-group text-right" style="text-align: right;">
+                <label>الاسم</label>
+                <select id="login-username" class="form-control">
+                    <option value="admin">الأدمن (مدير النظام)</option>
+                    <option value="supervisor">المشرف</option>
+                    <!-- Servants populated by JS -->
+                </select>
+            </div>
+            <div class="form-group text-right mt-3" style="text-align: right;">
+                <label>كلمة المرور</label>
+                <input type="password" id="login-password" class="form-control" placeholder="أدخل كلمة المرور...">
+            </div>
+            <button class="btn btn-primary mt-4" id="btn-login" style="width: 100%;">دخول</button>
+        </div>
+    </div>
+
+    <!-- Manage Permissions Modal -->
+    <div class="modal-overlay" id="permissions-modal-bg" style="z-index: 10000;">
+        <div class="modal glass" style="max-width: 600px;">
+            <div class="modal-header">
+                <h3><i class="ph ph-shield-check"></i> إدارة صلاحيات الخدام</h3>
+                <button class="close-modal"><span style="font-size: 1.5rem; font-weight: bold; line-height: 1;">&times;</span></button>
+            </div>
+            <div class="modal-body" style="max-height: 75vh; overflow-y: auto;">
+                <div class="form-group">
+                    <label>اختر الخادم</label>
+                    <select id="perm-servant-select" class="form-control">
+                        <option value="supervisor">المشرف</option>
+                        <!-- Servants populated by JS -->
+                    </select>
+                </div>
+                
+                <div class="form-group mt-3">
+                    <label>كلمة المرور (لو سيبتها فاضية مش هيتغير القديم)</label>
+                    <input type="text" id="perm-password" class="form-control" placeholder="كلمة المرور الجديدة...">
+                </div>
+
+                <h4 class="mt-4 mb-2" style="border-bottom: 1px solid var(--glass-border); padding-bottom: 5px;">الشاشات المسموحة</h4>
+                <div id="perm-checkboxes" style="display: flex; flex-direction: column; gap: 10px; background: rgba(0,0,0,0.1); padding: 15px; border-radius: 8px;">
+                    <label><input type="checkbox" value="dashboard-view" class="perm-chk"> الشاشة الرئيسية</label>
+                    <label><input type="checkbox" value="attendance-view" class="perm-chk"> تسجيل الحضور</label>
+                    <label><input type="checkbox" value="followup-view" class="perm-chk"> المتابعة والافتقاد</label>
+                    <label><input type="checkbox" value="servants-dashboard-view" class="perm-chk"> متابعة الخدام</label>
+                    <label><input type="checkbox" value="competitions-view" class="perm-chk"> المسابقات</label>
+                    <label><input type="checkbox" value="summary-view" class="perm-chk"> الملخص</label>
+                    <label><input type="checkbox" value="admin-view" class="perm-chk"> قاعدة البيانات (الإدارة)</label>
+                    <label><input type="checkbox" value="settings-view" class="perm-chk"> الإعدادات (صلاحية خطيرة)</label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-success" id="btn-save-permissions">حفظ الصلاحيات</button>
+            </div>
+        </div>
+    </div>
+
+    
+    <!-- Script -->
+    <script src="app.js?v=9"></script>
+</body>
+</html>
