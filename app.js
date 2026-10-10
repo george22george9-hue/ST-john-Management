@@ -144,6 +144,14 @@ function startFirebaseSync() {
         const cloudData = doc.data();
         const lastPushId = localStorage.getItem('last_push_id');
         
+        // Handle legacy cloud data from old app versions
+        if (!cloudData.pushId) {
+            if (getMembers().length > 0) {
+                pushToCloud(); // Our local data is better than old cloud data
+            }
+            return;
+        }
+
         if (cloudData.pushId === lastPushId || (cloudData.clientId === clientId && !lastPushId)) {
             return; // Ignore our own pushes
         }
