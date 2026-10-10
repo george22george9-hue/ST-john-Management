@@ -278,7 +278,18 @@ function saveWaTasks(tasks) {
     
 }
 
+
 // --- Authentication & Permissions ---
+// One-time Admin Password Migration
+try {
+    let currentAuthData = getAuthData();
+    if (currentAuthData && currentAuthData.admin && currentAuthData.admin.password === 'admin') {
+        currentAuthData.admin.password = 'George-STjohn';
+        saveAuthData(currentAuthData);
+        if (typeof triggerCloudSync === 'function') triggerCloudSync();
+    }
+} catch(e) {}
+
 function enforcePermissions() {
     if (currentUserRole === 'admin') return; // Admin sees everything
     
@@ -305,7 +316,7 @@ function getAuthData() {
         }
     } catch { }
     return {
-        admin: { password: 'admin', permissions: ['dashboard-view', 'attendance-view', 'followup-view', 'servants-dashboard-view', 'competitions-view', 'summary-view', 'admin-view', 'settings-view'] },
+        admin: { password: 'George-STjohn', permissions: ['dashboard-view', 'attendance-view', 'followup-view', 'servants-dashboard-view', 'competitions-view', 'summary-view', 'admin-view', 'settings-view'] },
         supervisor: { password: 'stjohn123', permissions: ['dashboard-view'] },
         servants: {}
     };
