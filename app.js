@@ -3873,3 +3873,11 @@ window.copyCompetitionResultToClipboard = function (compId) {
         document.body.removeChild(textarea);
     }
 };
+
+// --- Mobile UI Responsiveness ---
+function toggleMobileMenu() {
+    const sidebar = document.querySelector('.sidebar');
+    const overlay = document.getElementById('mobile-sidebar-overlay');
+    if (sidebar) sidebar.classList.toggle('mobile-open');
+    if (overlay) overlay.classList.toggle('active');
+}

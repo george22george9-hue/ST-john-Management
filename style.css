@@ -1115,3 +1115,117 @@ body {
     color: var(--text-muted);
     margin-top: 2px;
 }
+
+
+/* --- Mobile Responsiveness --- */
+.mobile-header {
+    display: none;
+}
+.sidebar-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 9998;
+    display: none;
+    backdrop-filter: blur(3px);
+}
+.sidebar-overlay.active {
+    display: block;
+}
+
+@media (max-width: 900px) {
+    .sidebar {
+        position: fixed;
+        right: -300px;
+        top: 0;
+        bottom: 0;
+        width: 280px;
+        z-index: 9999;
+        transition: right 0.3s ease;
+        box-shadow: -5px 0 25px rgba(0,0,0,0.5);
+    }
+
+    .sidebar.mobile-open {
+        right: 0;
+    }
+
+    .mobile-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 15px 20px;
+        background: var(--sidebar-bg);
+        border-bottom: 1px solid var(--glass-border);
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+    
+    .mobile-header h2 {
+        font-size: 1.2rem;
+        margin: 0;
+        color: var(--primary);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .hamburger-btn {
+        background: none;
+        border: none;
+        color: var(--text-main);
+        font-size: 1.8rem;
+        cursor: pointer;
+    }
+
+    .main-content {
+        padding: 10px;
+        width: 100%;
+        overflow-y: auto;
+    }
+
+    .page-header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 15px;
+        text-align: center;
+    }
+    
+    .header-actions {
+        flex-direction: column;
+        width: 100%;
+    }
+    
+    .header-actions .btn, .header-actions .search-box {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .dashboard-stats, .grid-cards, .competitions-grid, .servants-grid, .wa-grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    .table-container, .table-responsive {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        margin-bottom: 15px;
+    }
+    
+    table {
+        min-width: 700px;
+    }
+    
+    .modal {
+        width: 95%;
+        margin: 10px;
+    }
+
+    .attendance-controls, .filters-bar {
+        flex-direction: column;
+    }
+    
+    .attendance-controls .btn, .filters-bar .btn, .filters-bar select, .filters-bar input {
+        width: 100%;
+    }
+}
