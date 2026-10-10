@@ -2990,8 +2990,15 @@ function setupAuth() {
             document.getElementById('perm-password').value = '';
             document.getElementById('perm-password').placeholder = data.password ? 'يوجد كلمة مرور، اترك فارغاً للإبقاء عليها' : 'أدخل كلمة مرور جديدة...';
 
-            document.querySelectorAll('.perm-chk').forEach(chk => {
-                chk.checked = data.permissions.includes(chk.value);
+            Array.from(document.querySelectorAll('.perm-select')).forEach(sel => {
+                const section = sel.getAttribute('data-section');
+                if (data.permissions.includes(section + '-edit')) {
+                    sel.value = 'edit';
+                } else if (data.permissions.includes(section + '-view')) {
+                    sel.value = 'view';
+                } else {
+                    sel.value = 'none';
+                }
             });
         });
     }
@@ -3003,7 +3010,17 @@ function setupAuth() {
             if (!id) return;
 
             const pass = document.getElementById('perm-password').value.trim();
-            const perms = Array.from(document.querySelectorAll('.perm-chk:checked')).map(chk => chk.value);
+            const perms = [];
+            Array.from(document.querySelectorAll('.perm-select')).forEach(sel => {
+                const val = sel.value;
+                const sec = sel.getAttribute('data-section');
+                if (val === 'view') {
+                    perms.push(sec + '-view');
+                } else if (val === 'edit') {
+                    perms.push(sec + '-view');
+                    perms.push(sec + '-edit');
+                }
+            });
 
             const authData = getAuthData();
 
