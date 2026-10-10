@@ -70,6 +70,7 @@ body {
     flex-direction: column;
     z-index: 10;
     box-shadow: 5px 0 25px rgba(0,0,0,0.2);
+    overflow-y: auto;
 }
 
 .sidebar-header {
@@ -1146,7 +1147,8 @@ body {
         z-index: 9999;
         transition: right 0.3s ease;
         box-shadow: -5px 0 25px rgba(0,0,0,0.5);
-    }
+        overflow-y: auto;
+}
 
     .sidebar.mobile-open {
         right: 0;
@@ -1297,4 +1299,13 @@ body {
         margin: 0 -10px !important; /* Make table touch screen edges */
         width: calc(100% + 20px) !important;
     }
+}
+
+/* Scrollbar for sidebar */
+.sidebar::-webkit-scrollbar {
+    width: 6px;
+}
+.sidebar::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 10px;
 }
