@@ -865,28 +865,7 @@ body {
     color: #fff;
 }
 
-/* ===== Toast ===== */
-.toast {
-    position: fixed;
-    bottom: 28px;
-    left: 50%;
-    transform: translate(-50%, 20px);
-    padding: 12px 22px;
-    border-radius: 12px;
-    font-weight: 700;
-    color: #fff;
-    background: #047857;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.25s ease, transform 0.25s ease;
-    z-index: 300;
-}
-.toast.show {
-    opacity: 1;
-    transform: translate(-50%, 0);
-}
-.toast-error { background: #b91c1c; }
+/* ===== Admin view ===== */
 
 /* ===== Admin view ===== */
 .admin-toolbar {
@@ -1005,49 +984,66 @@ body {
     border: 1px solid rgba(99, 102, 241, 0.4);
 }
 
-/* Toast Notifications */
+/* ===== Unified Centered Toast Notifications ===== */
 .toast-container {
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    z-index: 99999;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    pointer-events: none;
+    position: fixed !important;
+    top: 68px !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    width: 90% !important;
+    max-width: 420px !important;
+    z-index: 100005 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 8px !important;
+    pointer-events: none !important;
 }
 
 .toast {
-    min-width: 250px;
-    padding: 15px 20px;
-    border-radius: 8px;
-    color: white;
-    font-size: 1rem;
-    font-weight: bold;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    opacity: 0;
-    transform: translateX(100%);
-    animation: slideInToast 0.3s forwards;
-    pointer-events: auto;
+    position: relative !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    padding: 11px 16px !important;
+    border-radius: 12px !important;
+    color: #ffffff !important;
+    font-size: 0.85rem !important;
+    font-weight: 700 !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.45) !important;
+    backdrop-filter: blur(16px) !important;
+    -webkit-backdrop-filter: blur(16px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.15) !important;
+    animation: toastPopIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+    pointer-events: auto !important;
 }
 
-.toast.toast-success { background: var(--success); }
-.toast.toast-error { background: var(--danger); }
-.toast.toast-warning { background: var(--warning); color: #fff; }
+.toast.toast-success {
+    background: rgba(16, 185, 129, 0.95) !important;
+    border-color: rgba(52, 211, 153, 0.4) !important;
+}
+.toast.toast-error {
+    background: rgba(239, 68, 68, 0.95) !important;
+    border-color: rgba(248, 113, 113, 0.4) !important;
+}
+.toast.toast-warning {
+    background: rgba(245, 158, 11, 0.95) !important;
+    border-color: rgba(251, 191, 36, 0.4) !important;
+}
 
 .toast.hiding {
-    animation: slideOutToast 0.3s forwards;
+    animation: toastPopOut 0.25s forwards !important;
 }
 
-@keyframes slideInToast {
-    to { opacity: 1; transform: translateX(0); }
+@keyframes toastPopIn {
+    from { opacity: 0; transform: translateY(-16px) scale(0.95); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
-@keyframes slideOutToast {
-    to { opacity: 0; transform: translateX(100%); }
+@keyframes toastPopOut {
+    to { opacity: 0; transform: translateY(-12px) scale(0.95); }
 }
 
 /* Birthdays Section */
@@ -1746,9 +1742,13 @@ body {
         max-height: none !important;
         overflow-y: visible !important;
         padding-right: 0 !important;
-        display: flex !important;
         flex-direction: column !important;
         gap: 7px !important;
+    }
+
+    #attendance-members-list.tab-hidden,
+    #attendance-servants-list.tab-hidden {
+        display: none !important;
     }
 
     .member-attendance-row {
@@ -1863,6 +1863,106 @@ body {
         box-shadow: 0 2px 8px rgba(239, 68, 68, 0.4) !important;
     }
 
+    /* Servant Evaluation Cards (Stitch Design) */
+    .servant-eval-row {
+        background: #151c2f !important;
+        border: 1px solid #242e4c !important;
+        border-radius: 14px !important;
+        padding: 10px 12px !important;
+        margin: 0 !important;
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 9px !important;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15) !important;
+    }
+
+    .servant-eval-header {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+        padding-bottom: 7px !important;
+    }
+
+    .servant-eval-name {
+        font-size: 0.82rem !important;
+        font-weight: 700 !important;
+        color: #ffffff !important;
+        display: flex !important;
+        align-items: center !important;
+        gap: 6px !important;
+    }
+
+    .servant-eval-options {
+        display: flex !important;
+        gap: 7px !important;
+        flex-wrap: wrap !important;
+    }
+
+    .servant-eval-pill {
+        background: #0d121f !important;
+        border: 1px solid #222b44 !important;
+        border-radius: 8px !important;
+        padding: 5px 8px !important;
+        font-size: 0.72rem !important;
+        font-weight: 600 !important;
+        color: #cbd5e1 !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        gap: 5px !important;
+        cursor: pointer !important;
+        user-select: none !important;
+        transition: background 0.15s ease, border-color 0.15s ease !important;
+    }
+
+    .servant-eval-pill input[type="checkbox"] {
+        accent-color: #6366f1 !important;
+        width: 14px !important;
+        height: 14px !important;
+        cursor: pointer !important;
+        margin: 0 !important;
+    }
+
+    .servant-eval-arrival-wrap {
+        display: flex !important;
+        align-items: center !important;
+        gap: 7px !important;
+        font-size: 0.72rem !important;
+        color: #94a3b8 !important;
+        background: #0d121f !important;
+        border: 1px solid #222b44 !important;
+        border-radius: 8px !important;
+        padding: 4px 8px !important;
+    }
+
+    .servant-eval-arrival-wrap select.servant-arrival {
+        background: transparent !important;
+        border: none !important;
+        color: #f1f5f9 !important;
+        font-size: 0.72rem !important;
+        font-weight: 600 !important;
+        padding: 2px 4px !important;
+        outline: none !important;
+        cursor: pointer !important;
+    }
+
+    .servants-empty-notice {
+        text-align: center !important;
+        padding: 25px 15px !important;
+        background: #151c2f !important;
+        border-radius: 14px !important;
+        border: 1px dashed #283556 !important;
+        margin: 4px 0 !important;
+        box-sizing: border-box !important;
+    }
+
+    .servants-empty-notice i {
+        font-size: 2rem !important;
+        color: #818cf8 !important;
+        margin-bottom: 6px !important;
+        display: block !important;
+    }
+
     /* --- Dashboard (Home) 2x2 Grid --- */
     .stats-grid {
         display: grid !important;
@@ -1935,15 +2035,151 @@ body {
         border-color: rgba(245, 158, 11, 0.4) !important;
     }
 
-    /* Filter Bar Swipeable Pills */
-    .filters-bar, .filter-group, #admin-filters {
+    /* Follow-up View Header & Toolbar (Nocturne Ecclesia _4 Mobile Design) */
+    #followup-view .view-header {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 6px !important;
+        margin-bottom: 8px !important;
+    }
+
+    #followup-view .header-actions {
         display: flex !important;
         flex-direction: row !important;
         overflow-x: auto !important;
+        flex-wrap: nowrap !important;
         white-space: nowrap !important;
         gap: 6px !important;
-        padding-bottom: 4px !important;
+        padding: 2px 0 6px !important;
         -webkit-overflow-scrolling: touch !important;
+        scrollbar-width: none !important;
+        width: 100% !important;
+    }
+
+    #followup-view .header-actions::-webkit-scrollbar {
+        display: none !important;
+    }
+
+    #followup-view .header-actions .btn {
+        flex-shrink: 0 !important;
+        padding: 6px 10px !important;
+        font-size: 0.72rem !important;
+        font-weight: 700 !important;
+        border-radius: 9px !important;
+        white-space: nowrap !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        gap: 4px !important;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15) !important;
+    }
+
+    /* Distinct tint styles matching Nocturne Ecclesia _4 */
+    #btn-open-wa-task {
+        background: rgba(16, 185, 129, 0.18) !important;
+        color: #34d399 !important;
+        border: 1px solid rgba(16, 185, 129, 0.35) !important;
+    }
+    #btn-open-wa-task:active {
+        background: #10b981 !important;
+        color: #ffffff !important;
+    }
+
+    #btn-open-bulk-visit {
+        background: rgba(99, 102, 241, 0.18) !important;
+        color: #a5b4fc !important;
+        border: 1px solid rgba(99, 102, 241, 0.35) !important;
+    }
+    #btn-open-bulk-visit:active {
+        background: #6366f1 !important;
+        color: #ffffff !important;
+    }
+
+    #btn-copy-no-visit {
+        background: rgba(245, 158, 11, 0.15) !important;
+        color: #fbbf24 !important;
+        border: 1px solid rgba(245, 158, 11, 0.35) !important;
+    }
+    #btn-copy-no-visit:active {
+        background: #f59e0b !important;
+        color: #ffffff !important;
+    }
+
+    #btn-copy-absent-last {
+        background: rgba(239, 68, 68, 0.15) !important;
+        color: #f87171 !important;
+        border: 1px solid rgba(239, 68, 68, 0.35) !important;
+    }
+    #btn-copy-absent-last:active {
+        background: #ef4444 !important;
+        color: #ffffff !important;
+    }
+
+    /* Search & Region Combined Row */
+    .followup-search-row {
+        display: flex !important;
+        gap: 8px !important;
+        align-items: center !important;
+        margin-bottom: 8px !important;
+        width: 100% !important;
+    }
+
+    .followup-search-wrap {
+        flex: 1 !important;
+        min-width: 0 !important;
+        position: relative !important;
+    }
+
+    .followup-search-wrap .search-icon {
+        position: absolute !important;
+        right: 11px !important;
+        top: 50% !important;
+        transform: translateY(-50%) !important;
+        color: #64748b !important;
+        font-size: 0.95rem !important;
+        pointer-events: none !important;
+    }
+
+    .followup-search-wrap input {
+        width: 100% !important;
+        padding: 8px 34px 8px 10px !important;
+        font-size: 0.8rem !important;
+        border-radius: 11px !important;
+        background: #151c2f !important;
+        border: 1px solid #242e4c !important;
+        color: #f1f5f9 !important;
+        box-sizing: border-box !important;
+    }
+
+    .followup-search-row .region-select {
+        width: 110px !important;
+        flex-shrink: 0 !important;
+        padding: 8px 8px !important;
+        font-size: 0.78rem !important;
+        border-radius: 11px !important;
+        background: #151c2f !important;
+        border: 1px solid #242e4c !important;
+        color: #f1f5f9 !important;
+        box-sizing: border-box !important;
+    }
+
+    /* Filter Bar Swipeable Pills */
+    .filters-bar, .filter-group, #admin-filters, .filters-container {
+        display: flex !important;
+        flex-direction: row !important;
+        overflow-x: auto !important;
+        flex-wrap: nowrap !important;
+        white-space: nowrap !important;
+        gap: 6px !important;
+        padding: 2px 0 8px !important;
+        margin: 0 0 8px 0 !important;
+        -webkit-overflow-scrolling: touch !important;
+        scrollbar-width: none !important;
+    }
+
+    .filters-bar::-webkit-scrollbar,
+    .filters-container::-webkit-scrollbar {
+        display: none !important;
     }
 
     .filter-btn {
@@ -1955,6 +2191,10 @@ body {
         color: #cbd5e1 !important;
         flex-shrink: 0 !important;
         font-weight: 600 !important;
+        white-space: nowrap !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        gap: 4px !important;
     }
 
     .filter-btn.active {

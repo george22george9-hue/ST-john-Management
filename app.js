@@ -1298,10 +1298,13 @@ function setupSearchListeners() {
 
             // Servants list
             document.querySelectorAll('#attendance-servants-list .servant-eval-row').forEach(row => {
-                const name = row.querySelector('.member-name').textContent.toLowerCase();
+                const name = (row.querySelector('.servant-eval-name')?.textContent || row.querySelector('.member-name')?.textContent || '').toLowerCase();
                 const isAttended = row.getAttribute('data-attended') === 'true';
                 row.style.display = (name.includes(query) && isAttended) ? 'flex' : 'none';
             });
+            if (typeof updateServantsEvalNotice === 'function') {
+                updateServantsEvalNotice();
+            }
         });
     }
 
@@ -2613,8 +2616,16 @@ function setupAttendanceView() {
         document.getElementById('tab-attendance-servants').classList.add('btn-outline');
         document.getElementById('tab-attendance-servants').classList.remove('btn-primary');
 
-        document.getElementById('attendance-members-list').style.display = 'flex';
-        document.getElementById('attendance-servants-list').style.display = 'none';
+        const membersList = document.getElementById('attendance-members-list');
+        const servantsList = document.getElementById('attendance-servants-list');
+        if (membersList) {
+            membersList.classList.remove('tab-hidden');
+            membersList.style.setProperty('display', 'flex', 'important');
+        }
+        if (servantsList) {
+            servantsList.classList.add('tab-hidden');
+            servantsList.style.setProperty('display', 'none', 'important');
+        }
 
         // ensure live counter and KPI card are visible
         const kpiCard = document.getElementById('attendance-kpi-card');
@@ -2632,14 +2643,26 @@ function setupAttendanceView() {
         document.getElementById('tab-attendance-general').classList.add('btn-outline');
         document.getElementById('tab-attendance-general').classList.remove('btn-primary');
 
-        document.getElementById('attendance-servants-list').style.display = 'flex';
-        document.getElementById('attendance-members-list').style.display = 'none';
+        const membersList = document.getElementById('attendance-members-list');
+        const servantsList = document.getElementById('attendance-servants-list');
+        if (servantsList) {
+            servantsList.classList.remove('tab-hidden');
+            servantsList.style.setProperty('display', 'flex', 'important');
+        }
+        if (membersList) {
+            membersList.classList.add('tab-hidden');
+            membersList.style.setProperty('display', 'none', 'important');
+        }
 
         // hide live counter on this tab as it is for evaluation
         const kpiCard = document.getElementById('attendance-kpi-card');
         if (kpiCard) kpiCard.style.display = 'none';
         const liveCounter = document.getElementById('live-attendance-count');
         if (liveCounter && liveCounter.parentElement) liveCounter.parentElement.style.display = 'none';
+
+        if (typeof updateServantsEvalNotice === 'function') {
+            updateServantsEvalNotice();
+        }
     });
 
     // Mobile edit date toggle button
@@ -2887,9 +2910,10 @@ function updateAttendanceWorkspace() {
                 if (evalRow) {
                     evalRow.setAttribute('data-attended', 'true');
                     const query = (document.getElementById('search-attendance').value || '').toLowerCase();
-                    const evalName = evalRow.querySelector('.member-name').textContent.toLowerCase();
+                    const evalName = (evalRow.querySelector('.servant-eval-name')?.textContent || evalRow.querySelector('.member-name')?.textContent || '').toLowerCase();
                     evalRow.style.display = evalName.includes(query) ? 'flex' : 'none';
                 }
+                updateServantsEvalNotice();
             }
         });
 
@@ -2904,6 +2928,7 @@ function updateAttendanceWorkspace() {
                     evalRow.setAttribute('data-attended', 'false');
                     evalRow.style.display = 'none';
                 }
+                updateServantsEvalNotice();
             }
         });
 
@@ -2918,22 +2943,35 @@ function updateAttendanceWorkspace() {
             evalRow.className = 'servant-eval-row glass';
             evalRow.setAttribute('data-id', member.id);
             evalRow.setAttribute('data-attended', isAttending ? 'true' : 'false');
-            evalRow.style.flexDirection = 'column';
-            evalRow.style.gap = '15px';
 
             const query = (document.getElementById('search-attendance').value || '').toLowerCase();
             const nameMatch = member.name.toLowerCase().includes(query);
-            evalRow.style.display = (isAttending && nameMatch) ? 'flex' : 'none'; // Only show if attended and matches search
+            evalRow.style.display = (isAttending && nameMatch) ? 'flex' : 'none';
+
+            const initial = (member.name || '').trim().charAt(0) || 'خ';
 
             evalRow.innerHTML = `
-                <div class="member-name" style="color: var(--warning); border-bottom: 1px solid var(--glass-border); padding-bottom: 10px;">${member.name}</div>
-                <div style="display: flex; gap: 15px; flex-wrap: wrap;">
-                    <label><input type="checkbox" class="servant-presented" ${todayServantData.presented ? 'checked' : ''}> قدم فقرة النهاردة</label>
-                    <label><input type="checkbox" class="servant-leader" ${todayServantData.leader ? 'checked' : ''}> مسؤول اليوم</label>
+                <div class="servant-eval-header">
+                    <div class="servant-eval-name">
+                        <div class="member-avatar" style="width: 28px; height: 28px; font-size: 0.75rem; background: linear-gradient(135deg, #f59e0b, #d97706);">${initial}</div>
+                        <span>${esc(member.name)}</span>
+                    </div>
+                    <span class="status-badge badge-warning" style="font-size: 0.65rem; padding: 2px 7px;">خادم حاضر</span>
                 </div>
-                <div style="display: flex; gap: 15px; align-items: center;">
+                <div class="servant-eval-options">
+                    <label class="servant-eval-pill">
+                        <input type="checkbox" class="servant-presented" ${todayServantData.presented ? 'checked' : ''}>
+                        <span>قدم فقرة النهاردة</span>
+                    </label>
+                    <label class="servant-eval-pill">
+                        <input type="checkbox" class="servant-leader" ${todayServantData.leader ? 'checked' : ''}>
+                        <span>مسؤول اليوم</span>
+                    </label>
+                </div>
+                <div class="servant-eval-arrival-wrap">
+                    <i class="ph ph-clock"></i>
                     <span>ميعاد الحضور:</span>
-                    <select class="form-control servant-arrival" style="width: auto; padding: 5px 10px;">
+                    <select class="form-control servant-arrival">
                         <option value="null" ${!todayServantData.arrival || todayServantData.arrival === 'null' ? 'selected' : ''}>غير محدد</option>
                         <option value="early" ${todayServantData.arrival === 'early' ? 'selected' : ''}>في الأول</option>
                         <option value="middle" ${todayServantData.arrival === 'middle' ? 'selected' : ''}>في النص</option>
@@ -2945,7 +2983,38 @@ function updateAttendanceWorkspace() {
         }
     });
 
+    // Empty notice when no servant attended yet
+    let emptyNotice = document.getElementById('servants-eval-empty-notice');
+    if (!emptyNotice) {
+        emptyNotice = document.createElement('div');
+        emptyNotice.id = 'servants-eval-empty-notice';
+        emptyNotice.className = 'servants-empty-notice';
+        emptyNotice.innerHTML = `
+            <i class="ph ph-user-check"></i>
+            <div style="font-weight: 700; color: #ffffff; font-size: 0.92rem; margin-bottom: 4px;">لم يتم تسجيل حضور أي خادم حتى الآن</div>
+            <div style="color: #94a3b8; font-size: 0.75rem;">قم بتسجيل حضور الخدام أولاً من تبويب «غياب وحضور» لتتمكن من تقييمهم هنا.</div>
+        `;
+    }
+    servantsListContainer.appendChild(emptyNotice);
+    updateServantsEvalNotice();
+
     updateLiveCounter();
+}
+
+function updateServantsEvalNotice() {
+    const servantsList = document.getElementById('attendance-servants-list');
+    const emptyNotice = document.getElementById('servants-eval-empty-notice');
+    if (!servantsList || !emptyNotice) return;
+    const query = (document.getElementById('search-attendance')?.value || '').toLowerCase();
+    let visibleCount = 0;
+    servantsList.querySelectorAll('.servant-eval-row').forEach(row => {
+        const isAttended = row.getAttribute('data-attended') === 'true';
+        const name = (row.querySelector('.servant-eval-name')?.textContent || '').toLowerCase();
+        if (isAttended && (!query || name.includes(query))) {
+            visibleCount++;
+        }
+    });
+    emptyNotice.style.display = (visibleCount === 0) ? 'block' : 'none';
 }
 
 function updateLiveCounter() {

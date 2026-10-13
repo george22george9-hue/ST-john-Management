@@ -17,7 +17,7 @@
     <!-- SheetJS for Excel generation -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <!-- Styles -->
-    <link rel="stylesheet" href="style.css?v=14">
+    <link rel="stylesheet" href="style.css?v=15">
 </head>
 <body>
     <!-- Mobile Top Header (Fixed at top on Mobile) -->
@@ -283,9 +283,12 @@
                     </div>
                 </header>
 
-                <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
-                    <input type="text" id="search-followup" class="form-control" placeholder="بحث بالاسم..." style="max-width: 300px; margin-bottom: 0;">
-                    <select id="filter-region-followup" class="form-control" style="max-width: 200px;">
+                <div class="followup-search-row">
+                    <div class="followup-search-wrap">
+                        <i class="ph ph-magnifying-glass search-icon"></i>
+                        <input type="text" id="search-followup" class="form-control" placeholder="بحث بالاسم أو الهاتف...">
+                    </div>
+                    <select id="filter-region-followup" class="form-control region-select">
                         <option value="">كل المناطق</option>
                     </select>
                 </div>
@@ -1440,6 +1443,6 @@
     <script src="firebase-firestore.js"></script>
     
     <!-- Script -->
-    <script src="app.js?v=14"></script>
+    <script src="app.js?v=15"></script>
 </body>
 </html>
