@@ -1337,19 +1337,22 @@ function setupSearchListeners() {
     const searchAttendance = document.getElementById('search-attendance');
     if (searchAttendance) {
         searchAttendance.addEventListener('input', (e) => {
-            const query = e.target.value.toLowerCase();
+            const rawQuery = (e.target.value || '').trim();
+            const normQuery = typeof normalizeAr === 'function' ? normalizeAr(rawQuery) : rawQuery.toLowerCase();
 
             // Members list
             document.querySelectorAll('#attendance-members-list .member-attendance-row').forEach(row => {
-                const name = row.querySelector('.member-name').textContent.toLowerCase();
-                row.style.display = name.includes(query) ? 'flex' : 'none';
+                const nameText = row.querySelector('.member-name')?.textContent || '';
+                const normName = typeof normalizeAr === 'function' ? normalizeAr(nameText) : nameText.toLowerCase();
+                row.style.display = (!normQuery || normName.includes(normQuery)) ? 'flex' : 'none';
             });
 
             // Servants list
             document.querySelectorAll('#attendance-servants-list .servant-eval-row').forEach(row => {
-                const name = (row.querySelector('.servant-eval-name')?.textContent || row.querySelector('.member-name')?.textContent || '').toLowerCase();
+                const nameText = (row.querySelector('.servant-eval-name')?.textContent || row.querySelector('.member-name')?.textContent || '');
+                const normName = typeof normalizeAr === 'function' ? normalizeAr(nameText) : nameText.toLowerCase();
                 const isAttended = row.getAttribute('data-attended') === 'true';
-                row.style.display = (name.includes(query) && isAttended) ? 'flex' : 'none';
+                row.style.display = ((!normQuery || normName.includes(normQuery)) && isAttended) ? 'flex' : 'none';
             });
             if (typeof updateServantsEvalNotice === 'function') {
                 updateServantsEvalNotice();
@@ -1361,10 +1364,12 @@ function setupSearchListeners() {
     const searchServants = document.getElementById('search-servants');
     if (searchServants) {
         searchServants.addEventListener('input', (e) => {
-            const query = e.target.value.toLowerCase();
+            const rawQuery = (e.target.value || '').trim();
+            const normQuery = typeof normalizeAr === 'function' ? normalizeAr(rawQuery) : rawQuery.toLowerCase();
             document.querySelectorAll('#servants-dashboard-list tr').forEach(row => {
-                const name = row.cells[0].textContent.toLowerCase();
-                row.style.display = name.includes(query) ? 'table-row' : 'none';
+                const nameText = row.cells[0]?.textContent || '';
+                const normName = typeof normalizeAr === 'function' ? normalizeAr(nameText) : nameText.toLowerCase();
+                row.style.display = (!normQuery || normName.includes(normQuery)) ? 'table-row' : 'none';
             });
         });
     }
@@ -3212,9 +3217,13 @@ function refreshFollowUp() {
     const regionSelect = document.getElementById('filter-region-followup');
     if (regionSelect) {
         const currentVal = regionSelect.value;
-        const uniqueRegions = [...new Set(members.map(m => m.address).filter(Boolean))].sort();
+        const uniqueRegions = [...new Set(members.map(m => (m.address || '').trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'ar'));
         regionSelect.innerHTML = '<option value="">كل المناطق</option>' + uniqueRegions.map(r => `<option value="${r}">${r}</option>`).join('');
-        regionSelect.value = currentVal;
+        if (uniqueRegions.includes(currentVal)) {
+            regionSelect.value = currentVal;
+        } else {
+            regionSelect.value = '';
+        }
     }
 
     const oneMonthAgo = new Date();
@@ -3303,6 +3312,9 @@ function refreshFollowUp() {
         const card = document.createElement('div');
         card.className = `member-card ${statusClass}`;
         card.setAttribute('data-filters', filterAttr);
+        card.setAttribute('data-region', (member.address || '').trim());
+        card.setAttribute('data-name', (member.name || '').trim());
+        card.setAttribute('data-phone', (member.phone || '').trim());
 
         card.innerHTML = `
             <div class="followup-card-header">
@@ -3369,39 +3381,84 @@ function refreshFollowUp() {
 
         grid.appendChild(card);
     });
+
+    if (typeof window.applyFollowupFilters === 'function') {
+        window.applyFollowupFilters();
+    }
     if (typeof enforcePermissions === 'function') enforcePermissions();
 }
 
 function setupViewFilters(viewId, gridSelector, searchId) {
     const filters = document.querySelectorAll(`${viewId} .filter-btn`);
     const searchInput = document.getElementById(searchId);
+    const regionSelect = document.getElementById('filter-region-followup');
 
     const applyFilters = () => {
         const activeFilter = document.querySelector(`${viewId} .filter-btn.active`);
         const filterValue = activeFilter ? activeFilter.getAttribute('data-filter') : 'all';
-        const query = searchInput ? searchInput.value.toLowerCase() : '';
-        const regionSelect = document.getElementById('filter-region-followup');
-        const regionQuery = (viewId === '#followup-view' && regionSelect) ? regionSelect.value.toLowerCase() : '';
+        const rawQuery = (searchInput ? searchInput.value : '').trim();
+        const normQuery = typeof normalizeAr === 'function' ? normalizeAr(rawQuery) : rawQuery.toLowerCase();
+        const cleanPhoneQuery = rawQuery.replace(/[^0-9]/g, '');
 
+        const selectedRegion = (viewId === '#followup-view' && regionSelect) ? regionSelect.value.trim() : '';
+        const normSelectedRegion = typeof normalizeAr === 'function' ? normalizeAr(selectedRegion) : selectedRegion.toLowerCase();
+
+        let visibleCount = 0;
         document.querySelectorAll(`${gridSelector} .member-card`).forEach(card => {
-            const name = card.querySelector('h3').textContent.toLowerCase();
-            const matchesSearch = name.includes(query);
-            const cardFilters = card.getAttribute('data-filters').split(' ');
-            const matchesFilter = filterValue === 'all' || cardFilters.includes(filterValue);
-            
-            let matchesRegion = true;
-            if (regionQuery) {
-                // Find anything containing the map pin icon which is usually the address
-                const regionEl = Array.from(card.querySelectorAll('p')).find(p => p.innerHTML.includes('ph-map-pin'));
-                const cardRegion = regionEl ? regionEl.textContent.toLowerCase() : '';
-                matchesRegion = cardRegion.includes(regionQuery);
+            const cardName = card.getAttribute('data-name') || card.querySelector('h3')?.textContent || '';
+            const cardPhone = card.getAttribute('data-phone') || '';
+            const cardRegion = (card.getAttribute('data-region') || '').trim();
+            const cardFilters = (card.getAttribute('data-filters') || '').split(/\s+/);
+
+            const normName = typeof normalizeAr === 'function' ? normalizeAr(cardName) : cardName.toLowerCase();
+            const cleanCardPhone = cardPhone.replace(/[^0-9]/g, '');
+
+            // 1. Search Match (by Name or by Phone)
+            let matchesSearch = true;
+            if (rawQuery) {
+                const nameMatches = normName.includes(normQuery);
+                const phoneMatches = Boolean(cleanPhoneQuery && cleanCardPhone.includes(cleanPhoneQuery));
+                matchesSearch = nameMatches || phoneMatches;
             }
 
-            card.style.display = (matchesSearch && matchesFilter && matchesRegion) ? 'block' : 'none';
+            // 2. Status Filter Match
+            const matchesFilter = (filterValue === 'all') || cardFilters.includes(filterValue);
+
+            // 3. Region Filter Match
+            let matchesRegion = true;
+            if (selectedRegion) {
+                const normCardRegion = typeof normalizeAr === 'function' ? normalizeAr(cardRegion) : cardRegion.toLowerCase();
+                matchesRegion = (normCardRegion === normSelectedRegion) || normCardRegion.includes(normSelectedRegion);
+            }
+
+            const isVisible = Boolean(matchesSearch && matchesFilter && matchesRegion);
+            card.style.display = isVisible ? 'block' : 'none';
+            if (isVisible) visibleCount++;
         });
+
+        // Empty state message when no results match
+        let emptyMsg = document.getElementById('followup-filter-empty-msg');
+        if (visibleCount === 0) {
+            if (!emptyMsg) {
+                emptyMsg = document.createElement('div');
+                emptyMsg.id = 'followup-filter-empty-msg';
+                emptyMsg.className = 'empty-state';
+                emptyMsg.style.gridColumn = '1 / -1';
+                emptyMsg.style.textAlign = 'center';
+                emptyMsg.style.padding = '40px 20px';
+                emptyMsg.innerHTML = '<i class="ph ph-magnifying-glass" style="font-size: 2.5rem; color: var(--text-muted); margin-bottom: 10px; display: block;"></i><h3 style="color: var(--text-muted); font-size: 1.1rem; margin-bottom: 5px;">لا توجد نتائج مطابقة</h3><p style="color: var(--text-muted); font-size: 0.88rem;">جرّب اختيار منطقة أخرى أو مسح نص البحث</p>';
+                const grid = document.querySelector(gridSelector);
+                if (grid) grid.appendChild(emptyMsg);
+            } else {
+                emptyMsg.style.display = 'block';
+            }
+        } else if (emptyMsg) {
+            emptyMsg.style.display = 'none';
+        }
     };
-    
-    const regionSelect = document.getElementById('filter-region-followup');
+
+    window.applyFollowupFilters = applyFilters;
+
     if (viewId === '#followup-view' && regionSelect) {
         regionSelect.addEventListener('change', applyFilters);
     }
