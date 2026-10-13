@@ -747,7 +747,7 @@ function setupNavigation() {
                 const mobileSaveBar = document.getElementById('attendance-mobile-save-bar');
                 if (mobileSaveBar) {
                     const canEditAttendance = currentUserRole === 'admin' || currentPermissions.includes('attendance-edit');
-                    mobileSaveBar.style.display = (targetId === 'attendance-view' && canEditAttendance) ? 'flex' : 'none';
+                    mobileSaveBar.style.display = (targetId === 'attendance-view' && canEditAttendance && currentAttendanceDate) ? 'flex' : 'none';
                 }
 
                 // View specific logic
@@ -2597,33 +2597,77 @@ function setupAttendanceView() {
     // Set today as default in date picker
     document.getElementById('attendance-date').value = todayLocal();
 
-    // Tab switching
+    // Tab switching (Stitch _5 Nocturne Ecclesia Layout)
     document.getElementById('tab-attendance-general').addEventListener('click', (e) => {
-        document.getElementById('tab-attendance-general').classList.replace('btn-outline', 'btn-primary');
-        document.getElementById('tab-attendance-servants').classList.replace('btn-primary', 'btn-outline');
+        document.getElementById('tab-attendance-general').classList.add('active');
+        document.getElementById('tab-attendance-general').classList.remove('btn-outline');
+        document.getElementById('tab-attendance-general').classList.add('btn-primary');
+
+        document.getElementById('tab-attendance-servants').classList.remove('active');
+        document.getElementById('tab-attendance-servants').classList.add('btn-outline');
+        document.getElementById('tab-attendance-servants').classList.remove('btn-primary');
 
         document.getElementById('attendance-members-list').style.display = 'flex';
         document.getElementById('attendance-servants-list').style.display = 'none';
 
-        // ensure live counter is visible
-        document.getElementById('live-attendance-count').parentElement.style.display = 'flex';
+        // ensure live counter and KPI card are visible
+        const kpiCard = document.getElementById('attendance-kpi-card');
+        if (kpiCard) kpiCard.style.display = 'flex';
+        const liveCounter = document.getElementById('live-attendance-count');
+        if (liveCounter && liveCounter.parentElement) liveCounter.parentElement.style.display = 'flex';
     });
 
     document.getElementById('tab-attendance-servants').addEventListener('click', (e) => {
-        document.getElementById('tab-attendance-servants').classList.replace('btn-outline', 'btn-primary');
-        document.getElementById('tab-attendance-general').classList.replace('btn-primary', 'btn-outline');
+        document.getElementById('tab-attendance-servants').classList.add('active');
+        document.getElementById('tab-attendance-servants').classList.remove('btn-outline');
+        document.getElementById('tab-attendance-servants').classList.add('btn-primary');
+
+        document.getElementById('tab-attendance-general').classList.remove('active');
+        document.getElementById('tab-attendance-general').classList.add('btn-outline');
+        document.getElementById('tab-attendance-general').classList.remove('btn-primary');
 
         document.getElementById('attendance-servants-list').style.display = 'flex';
         document.getElementById('attendance-members-list').style.display = 'none';
 
         // hide live counter on this tab as it is for evaluation
-        document.getElementById('live-attendance-count').parentElement.style.display = 'none';
+        const kpiCard = document.getElementById('attendance-kpi-card');
+        if (kpiCard) kpiCard.style.display = 'none';
+        const liveCounter = document.getElementById('live-attendance-count');
+        if (liveCounter && liveCounter.parentElement) liveCounter.parentElement.style.display = 'none';
     });
+
+    // Mobile edit date toggle button
+    const btnEditDateMobile = document.getElementById('btn-edit-date-mobile');
+    if (btnEditDateMobile) {
+        btnEditDateMobile.addEventListener('click', () => {
+            const setupHeader = document.getElementById('attendance-setup-header');
+            if (setupHeader) setupHeader.classList.toggle('mobile-open');
+        });
+    }
+
+    // Day type change listener
+    const dayTypeSelect = document.getElementById('attendance-day-type');
+    if (dayTypeSelect) {
+        dayTypeSelect.addEventListener('change', () => {
+            const dayTypeMap = {
+                'normal': 'يوم عادي',
+                'party': 'حفلة',
+                'evening': 'أمسية',
+                'funday': 'Fun Day',
+                'trip': 'رحلة',
+                'conference': 'مؤتمر',
+                'holiday': 'إجازة'
+            };
+            const labelEl = document.getElementById('current-day-type-label');
+            if (labelEl) labelEl.innerText = dayTypeMap[dayTypeSelect.value] || 'يوم عادي';
+        });
+    }
 
     document.getElementById('btn-start-day').addEventListener('click', () => {
         const dateInput = document.getElementById('attendance-date').value;
         if (!dateInput) return alert('اختر تاريخاً أولاً');
         currentAttendanceDate = dateInput;
+        document.getElementById('attendance-setup-header')?.classList.remove('mobile-open');
         updateAttendanceWorkspace();
     });
 
@@ -2733,23 +2777,56 @@ function setupAttendanceView() {
 function updateAttendanceWorkspace() {
     const ws = document.getElementById('attendance-workspace');
     const empty = document.getElementById('attendance-empty-state');
+    const attView = document.getElementById('attendance-view');
+    const mobileSaveBar = document.getElementById('attendance-mobile-save-bar');
 
     if (!currentAttendanceDate) {
         ws.style.display = 'none';
         empty.style.display = 'block';
+        if (attView) attView.classList.remove('has-active-workspace');
+        if (mobileSaveBar) mobileSaveBar.style.display = 'none';
         return;
     }
 
     ws.style.display = 'block';
     empty.style.display = 'none';
+    if (attView) attView.classList.add('has-active-workspace');
 
+    // Show mobile save bar if user has permission
+    if (mobileSaveBar) {
+        const canEditAttendance = currentUserRole === 'admin' || currentPermissions.includes('attendance-edit');
+        mobileSaveBar.style.display = canEditAttendance ? 'flex' : 'none';
+    }
+
+    // Format Arabic date cleanly without hyphen wrap
     const dObj = new Date(currentAttendanceDate);
     const dayNameAr = !isNaN(dObj) ? dObj.toLocaleDateString('ar-EG', { weekday: 'long' }) : '';
-    document.getElementById('current-recording-date').innerText = dayNameAr ? `${dayNameAr} (${currentAttendanceDate})` : currentAttendanceDate;
+    const formatted = formatDate(currentAttendanceDate);
+    const fullDateDisplay = dayNameAr ? `${dayNameAr} (${formatted})` : formatted;
 
+    const desktopDateEl = document.getElementById('current-recording-date');
+    if (desktopDateEl) desktopDateEl.innerText = fullDateDisplay;
+
+    const pillDateEl = document.getElementById('current-recording-date-text');
+    if (pillDateEl) pillDateEl.innerText = fullDateDisplay;
+
+    // Day type mapping & badge
     const dayTypes = getDayTypes();
+    const curDayType = dayTypes[currentAttendanceDate] || 'normal';
     const dayTypeSelect = document.getElementById('attendance-day-type');
-    if (dayTypeSelect) dayTypeSelect.value = dayTypes[currentAttendanceDate] || 'normal';
+    if (dayTypeSelect) dayTypeSelect.value = curDayType;
+
+    const dayTypeMap = {
+        'normal': 'يوم عادي',
+        'party': 'حفلة',
+        'evening': 'أمسية',
+        'funday': 'Fun Day',
+        'trip': 'رحلة',
+        'conference': 'مؤتمر',
+        'holiday': 'إجازة'
+    };
+    const dayTypeLabel = document.getElementById('current-day-type-label');
+    if (dayTypeLabel) dayTypeLabel.innerText = dayTypeMap[curDayType] || 'يوم عادي';
 
     const members = getMembers();
     const records = getAttendanceRecords();
@@ -2768,7 +2845,7 @@ function updateAttendanceWorkspace() {
         const isAttending = todayAttendees.includes(member.id);
         const isServant = member.role === 'servant';
 
-        // --- General Attendance Row (Stitch Design) ---
+        // --- General Attendance Row (Nocturne Ecclesia _5 Mobile Design) ---
         const row = document.createElement('div');
         row.className = 'member-attendance-row glass';
         row.setAttribute('data-id', member.id);
@@ -2780,8 +2857,8 @@ function updateAttendanceWorkspace() {
         row.innerHTML = `
             <div class="member-info-wrap">
                 <div class="member-avatar">${initial}</div>
-                <div>
-                    <div class="member-name">${esc(member.name)} ${isServant ? '<span class="status-badge badge-warning" style="font-size: 0.7rem; margin-right:5px; padding: 2px 8px;">خادم</span>' : ''}</div>
+                <div style="min-width: 0; overflow: hidden; flex: 1;">
+                    <div class="member-name">${esc(member.name)} ${isServant ? '<span class="status-badge badge-warning" style="font-size: 0.65rem; margin-right:4px; padding: 1px 6px;">خادم</span>' : ''}</div>
                     <div class="member-subtext">${esc(subtext)}</div>
                 </div>
             </div>
@@ -2866,8 +2943,18 @@ function updateAttendanceWorkspace() {
 }
 
 function updateLiveCounter() {
-    const count = document.querySelectorAll('.btn-attend.active').length;
-    document.getElementById('live-attendance-count').innerText = count;
+    const count = document.querySelectorAll('#attendance-members-list .btn-attend.active').length;
+    const total = getMembers().length;
+    const ratio = total > 0 ? Math.round((count / total) * 100) : 0;
+
+    const countEl = document.getElementById('live-attendance-count');
+    if (countEl) countEl.innerText = count;
+
+    const totalEl = document.getElementById('attendance-total-members');
+    if (totalEl) totalEl.innerText = total;
+
+    const ratioEl = document.getElementById('live-attendance-ratio');
+    if (ratioEl) ratioEl.innerText = `${ratio}%`;
 }
 
 

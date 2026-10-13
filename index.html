@@ -4,10 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
     <title>اجتماع القديس يوحنا الحبيب</title>
-    <!-- Fonts: Cairo -->
+    <!-- Fonts: Cairo & Rubik -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&family=Rubik:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <!-- Icons: Phosphor Icons -->
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <!-- Chart.js -->
@@ -17,9 +17,30 @@
     <!-- SheetJS for Excel generation -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <!-- Styles -->
-    <link rel="stylesheet" href="style.css?v=12">
+    <link rel="stylesheet" href="style.css?v=13">
 </head>
 <body>
+    <!-- Mobile Top Header (Fixed at top on Mobile) -->
+    <header class="mobile-header" id="mobile-header">
+        <div class="mobile-header-branding">
+            <div class="mobile-header-logo">
+                <i class="ph ph-church"></i>
+            </div>
+            <div class="mobile-header-title-wrap">
+                <h2>اجتماع القديس يوحنا الحبيب</h2>
+                <span class="mobile-header-badge">الشباب والخدام</span>
+            </div>
+        </div>
+        <div class="mobile-header-actions">
+            <button class="mobile-header-btn" id="btn-mobile-sync" onclick="if(typeof triggerCloudSync === 'function') triggerCloudSync()" title="مزامنة فورية">
+                <i class="ph ph-arrows-clockwise"></i>
+            </button>
+            <button class="hamburger-btn" onclick="toggleMobileMenu()" title="القائمة">
+                <i class="ph ph-list"></i>
+            </button>
+        </div>
+    </header>
+
     <div class="app-container">
         <!-- Sidebar Navigation -->
         <aside class="sidebar">
@@ -66,33 +87,11 @@
             </div>
         </aside>
 
-
         <!-- Mobile Sidebar Overlay -->
         <div class="sidebar-overlay" id="mobile-sidebar-overlay" onclick="toggleMobileMenu()"></div>
 
         <!-- Main Content Area -->
         <main class="main-content">
-            
-            <!-- Mobile Header (Stitch Design) -->
-            <div class="mobile-header">
-                <div class="mobile-header-branding">
-                    <div class="mobile-header-logo">
-                        <i class="ph ph-church"></i>
-                    </div>
-                    <div>
-                        <h2>اجتماع القديس يوحنا الحبيب</h2>
-                        <span class="mobile-header-badge">الشباب والخدام</span>
-                    </div>
-                </div>
-                <div class="mobile-header-actions">
-                    <button class="mobile-header-btn" id="btn-mobile-sync" onclick="if(typeof triggerCloudSync === 'function') triggerCloudSync()" title="مزامنة فورية">
-                        <i class="ph ph-arrows-clockwise"></i>
-                    </button>
-                    <button class="hamburger-btn" onclick="toggleMobileMenu()" title="القائمة">
-                        <i class="ph ph-list"></i>
-                    </button>
-                </div>
-            </div>
 
             
             <!-- Dashboard View -->
@@ -158,13 +157,14 @@
 
             <!-- Attendance View -->
             <section id="attendance-view" class="view-section">
-                <header class="view-header flex-between">
+                <!-- Date Setup Bar (collapsible on mobile, always visible on desktop) -->
+                <header class="view-header flex-between attendance-setup-header" id="attendance-setup-header">
                     <div>
-                        <h1>تسجيل حضور الجمعة</h1>
-                        <p class="subtitle">قم بتسجيل حضور اليوم</p>
+                        <h1>تسجيل حضور الاجتماع</h1>
+                        <p class="subtitle">قم باختيار تاريخ اليوم ونوع اللقاء</p>
                     </div>
                     <div class="header-actions">
-                        <select id="attendance-day-type" class="form-control" style="width: auto; display: inline-block; margin-left: 10px;">
+                        <select id="attendance-day-type" class="form-control" style="width: auto; display: inline-block;">
                             <option value="normal">يوم عادي</option>
                             <option value="party">حفلة</option>
                             <option value="evening">أمسية</option>
@@ -181,19 +181,61 @@
                 </header>
 
                 <div class="attendance-workspace glass" id="attendance-workspace" style="display: none;">
-                    <div class="workspace-header">
-                        <h2>تسجيل يوم: <span id="current-recording-date"></span></h2>
-                        <div class="live-counter">
-                            <i class="ph ph-users"></i> إجمالي الحضور: <span id="live-attendance-count">0</span>
+                    <!-- Sleek Date & Day Status Pill (Nocturne Ecclesia _5 Design) -->
+                    <div class="attendance-date-pill" id="attendance-date-pill">
+                        <div class="date-pill-right">
+                            <i class="ph ph-calendar-blank"></i>
+                            <span id="current-recording-date-text">--</span>
+                        </div>
+                        <div class="date-pill-left">
+                            <span class="day-type-badge" id="current-day-type-badge">
+                                <i class="ph ph-tag"></i> <span id="current-day-type-label">يوم عادي</span>
+                            </span>
+                            <button class="btn-change-date-mobile" id="btn-edit-date-mobile" type="button" title="تغيير التاريخ أو النوع">
+                                <i class="ph ph-pencil-simple"></i> فتح / تعديل
+                            </button>
                         </div>
                     </div>
+
+                    <!-- Attendance KPI Metrics Banner (Exact Stitch _5 Design) -->
+                    <div class="attendance-kpi-card" id="attendance-kpi-card">
+                        <div class="kpi-info-group">
+                            <div class="kpi-icon-box">
+                                <i class="ph ph-users"></i>
+                            </div>
+                            <div>
+                                <div class="kpi-label">إجمالي الحضور الآن</div>
+                                <div class="kpi-count-wrap">
+                                    <span class="kpi-count-bold" id="live-attendance-count">0</span>
+                                    <span class="kpi-count-total">/ <span id="attendance-total-members">0</span> مخدوم</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="kpi-ratio-box">
+                            <span class="kpi-ratio-sub">نسبة الحضور</span>
+                            <span class="kpi-ratio-val" id="live-attendance-ratio">0%</span>
+                        </div>
+                    </div>
+
+                    <!-- Desktop workspace header (hidden on mobile) -->
+                    <div class="workspace-header desktop-only-flex" style="display: none;">
+                        <h2>تسجيل يوم: <span id="current-recording-date"></span></h2>
+                    </div>
                     
-                    <input type="text" id="search-attendance" class="form-control" placeholder="بحث بالاسم..." style="margin-bottom: 15px;">
-                    
-                    <!-- Attendance Tabs -->
-                    <div class="attendance-tabs" style="display: flex; gap: 10px; margin-bottom: 20px;">
-                        <button class="btn btn-primary active" id="tab-attendance-general" style="flex: 1;">غياب وحضور</button>
-                        <button class="btn btn-outline" id="tab-attendance-servants" style="flex: 1;">إحصائيات الخدام اليومية</button>
+                    <!-- Mode Switch Segmented Tabs (Exact Stitch _5 Design) -->
+                    <div class="attendance-tabs">
+                        <button class="btn btn-primary active" id="tab-attendance-general">
+                            <i class="ph ph-user-check"></i> غياب وحضور
+                        </button>
+                        <button class="btn btn-outline" id="tab-attendance-servants">
+                            <i class="ph ph-chart-pie"></i> إحصائيات الخدام
+                        </button>
+                    </div>
+
+                    <!-- Search Bar with Search Icon -->
+                    <div class="attendance-search-wrap">
+                        <i class="ph ph-magnifying-glass search-icon"></i>
+                        <input type="text" id="search-attendance" class="form-control" placeholder="بحث سريع بالاسم...">
                     </div>
 
                     <div class="members-list-attendance" id="attendance-members-list">
@@ -204,8 +246,10 @@
                         <!-- Servants will be injected here via JS -->
                     </div>
                     
-                    <div class="workspace-footer">
-                        <button class="btn btn-success" id="btn-save-attendance">حفظ الحضور</button>
+                    <div class="workspace-footer desktop-only-flex">
+                        <button class="btn btn-success" id="btn-save-attendance">
+                            <i class="ph ph-floppy-disk"></i> حفظ الحضور
+                        </button>
                     </div>
                 </div>
                 
@@ -1396,6 +1440,6 @@
     <script src="firebase-firestore.js"></script>
     
     <!-- Script -->
-    <script src="app.js?v=12"></script>
+    <script src="app.js?v=13"></script>
 </body>
 </html>

@@ -1122,16 +1122,23 @@ body {
 .mobile-header {
     display: none;
 }
+.attendance-date-pill {
+    display: none;
+}
+.attendance-kpi-card {
+    display: none;
+}
 .sidebar-overlay {
     position: fixed;
     top: 0;
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0,0,0,0.5);
+    background: rgba(0, 0, 0, 0.6);
     z-index: 9998;
     display: none;
-    backdrop-filter: blur(3px);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
 }
 .sidebar-overlay.active {
     display: block;
@@ -1148,12 +1155,17 @@ body {
 }
 
 @media (max-width: 900px) {
-    /* --- Base Mobile Shell --- */
+    /* --- Base Mobile Shell & Nocturne Palette --- */
     body {
+        font-family: 'Rubik', 'Cairo', system-ui, -apple-system, sans-serif !important;
         font-size: 13px !important;
-        background-color: #0b111e !important;
+        background-color: #0b0f19 !important;
+        color: #dae2fd !important;
         -webkit-tap-highlight-color: transparent !important;
         user-select: none !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow-x: hidden !important;
     }
 
     /* Hide ugly scrollbars on mobile */
@@ -1167,163 +1179,167 @@ body {
 
     /* Off-canvas Mobile Drawer */
     .sidebar {
-        position: fixed;
-        right: -310px;
-        top: 0;
-        bottom: 0;
-        width: 290px;
-        z-index: 10005;
+        position: fixed !important;
+        right: -310px !important;
+        top: 0 !important;
+        bottom: 0 !important;
+        width: 285px !important;
+        z-index: 10005 !important;
         background: rgba(13, 19, 34, 0.98) !important;
         backdrop-filter: blur(25px) !important;
         -webkit-backdrop-filter: blur(25px) !important;
         border-left: 1px solid rgba(255, 255, 255, 0.08) !important;
-        transition: right 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-        box-shadow: -8px 0 35px rgba(0, 0, 0, 0.65);
-        overflow-y: auto;
-    }
-
-    .sidebar.mobile-open {
-        right: 0;
-    }
-
-    .sidebar-overlay {
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: rgba(0, 0, 0, 0.65);
-        backdrop-filter: blur(6px);
-        -webkit-backdrop-filter: blur(6px);
-        z-index: 10002;
-        display: none;
-    }
-
-    .sidebar-overlay.active {
-        display: block;
-    }
-
-    /* --- Mobile Header (Stitch Design) --- */
-    .mobile-header {
-        display: flex !important;
-        justify-content: space-between !important;
-        align-items: center !important;
-        padding: 12px 16px !important;
-        background: rgba(11, 17, 30, 0.94) !important;
-        backdrop-filter: blur(20px) !important;
-        -webkit-backdrop-filter: blur(20px) !important;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.07) !important;
-        position: sticky !important;
-        top: 0 !important;
-        z-index: 990 !important;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25) !important;
-    }
-
-    .mobile-header-branding {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-    }
-
-    .mobile-header-logo {
-        width: 38px;
-        height: 38px;
-        border-radius: 12px;
-        background: linear-gradient(135deg, #6366f1, #a855f7);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        box-shadow: 0 4px 12px rgba(99, 102, 241, 0.35);
-        flex-shrink: 0;
-    }
-
-    .mobile-header-logo i {
-        font-size: 1.35rem;
-        color: #ffffff;
-    }
-
-    .mobile-header-branding h2 {
-        font-size: 1.05rem !important;
-        font-weight: 800 !important;
-        color: #ffffff !important;
-        margin: 0 !important;
-        line-height: 1.2 !important;
-    }
-
-    .mobile-header-badge {
-        display: inline-block;
-        font-size: 0.68rem;
-        font-weight: 600;
-        color: #818cf8;
-        background: rgba(99, 102, 241, 0.15);
-        border: 1px solid rgba(99, 102, 241, 0.3);
-        padding: 1px 7px;
-        border-radius: 10px;
-        margin-top: 2px;
-    }
-
-    .mobile-header-actions {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-    }
-
-    .mobile-header-btn, .hamburger-btn {
-        width: 36px;
-        height: 36px;
-        border-radius: 10px;
-        background: #142037;
-        border: 1px solid #213254;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: #cbd5e1;
-        cursor: pointer;
-        font-size: 1.15rem;
-        transition: transform 0.15s ease, background 0.15s ease;
-    }
-
-    .mobile-header-btn:active, .hamburger-btn:active {
-        transform: scale(0.92);
-        background: #1e2f52;
-    }
-
-    /* --- Mobile Main Content --- */
-    .main-content {
-        padding: 12px 14px calc(85px + env(safe-area-inset-bottom, 20px)) !important;
-        width: 100% !important;
+        transition: right 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+        box-shadow: -8px 0 35px rgba(0, 0, 0, 0.7) !important;
         overflow-y: auto !important;
     }
 
-    .page-header {
-        flex-direction: column !important;
-        align-items: stretch !important;
-        gap: 12px !important;
-        text-align: right !important;
-        padding: 0 4px !important;
-        margin-bottom: 14px !important;
+    .sidebar.mobile-open {
+        right: 0 !important;
     }
 
-    .page-header h1 {
-        font-size: 1.45rem !important;
-        font-weight: 800 !important;
+    /* --- Fixed Top Mobile Header (Stitch Design) --- */
+    .mobile-header {
+        display: flex !important;
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        height: 56px !important;
+        background: rgba(11, 15, 25, 0.98) !important;
+        backdrop-filter: blur(25px) !important;
+        -webkit-backdrop-filter: blur(25px) !important;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+        z-index: 10000 !important;
+        padding: 0 14px !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        box-sizing: border-box !important;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35) !important;
+    }
+
+    .mobile-header-branding {
+        display: flex !important;
+        align-items: center !important;
+        gap: 9px !important;
+    }
+
+    .mobile-header-logo {
+        width: 34px !important;
+        height: 34px !important;
+        border-radius: 10px !important;
+        background: linear-gradient(135deg, #6366f1, #8b5cf6) !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        color: #ffffff !important;
+        font-size: 1.15rem !important;
+        flex-shrink: 0 !important;
+        box-shadow: 0 3px 10px rgba(99, 102, 241, 0.35) !important;
+    }
+
+    .mobile-header-title-wrap {
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: center !important;
+        text-align: right !important;
+    }
+
+    .mobile-header-branding h2 {
+        font-size: 0.9rem !important;
+        font-weight: 700 !important;
+        color: #ffffff !important;
+        margin: 0 !important;
+        line-height: 1.2 !important;
+        white-space: nowrap !important;
+    }
+
+    .mobile-header-badge {
+        display: inline-block !important;
+        font-size: 0.62rem !important;
+        font-weight: 600 !important;
+        color: #818cf8 !important;
+        background: rgba(99, 102, 241, 0.15) !important;
+        border: 1px solid rgba(99, 102, 241, 0.25) !important;
+        padding: 0 5px !important;
+        border-radius: 6px !important;
+        margin-top: 1px !important;
+        align-self: flex-start !important;
+        line-height: 1.3 !important;
+    }
+
+    .mobile-header-actions {
+        display: flex !important;
+        align-items: center !important;
+        gap: 6px !important;
+    }
+
+    .mobile-header-btn, .hamburger-btn {
+        width: 34px !important;
+        height: 34px !important;
+        border-radius: 10px !important;
+        background: #141f36 !important;
+        border: 1px solid #233355 !important;
+        color: #94a3b8 !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        font-size: 1.1rem !important;
+        cursor: pointer !important;
+        transition: transform 0.15s ease, background 0.15s ease !important;
+    }
+
+    .mobile-header-btn:active, .hamburger-btn:active {
+        transform: scale(0.92) !important;
+        background: #1e2f52 !important;
         color: #ffffff !important;
     }
 
-    .page-header .subtitle {
-        font-size: 0.82rem !important;
+    /* --- Root Containers & Scrollable Area --- */
+    .app-container {
+        display: block !important;
+        height: 100vh !important;
+        height: 100dvh !important;
+        overflow: hidden !important;
+        background: #0b0f19 !important;
+    }
+
+    .main-content {
+        margin-top: 56px !important;
+        height: calc(100vh - 56px) !important;
+        height: calc(100dvh - 56px) !important;
+        padding: 10px 12px calc(80px + env(safe-area-inset-bottom, 20px)) !important;
+        overflow-y: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+        box-sizing: border-box !important;
+        width: 100% !important;
+    }
+
+    /* Generic Typography Scaling */
+    h1 {
+        font-size: 1.25rem !important;
+        font-weight: 800 !important;
+        color: #ffffff !important;
+        margin: 0 0 2px 0 !important;
+        line-height: 1.2 !important;
+    }
+    h2 {
+        font-size: 1.05rem !important;
+        font-weight: 700 !important;
+        color: #ffffff !important;
+    }
+    h3 {
+        font-size: 0.95rem !important;
+        font-weight: 700 !important;
+    }
+    .view-header {
+        margin-bottom: 10px !important;
+        padding: 0 !important;
+    }
+    .subtitle {
+        font-size: 0.75rem !important;
         color: #94a3b8 !important;
-        margin-top: 3px !important;
-    }
-
-    .header-actions {
-        flex-direction: column !important;
-        width: 100% !important;
-        gap: 8px !important;
-    }
-
-    .header-actions .btn, .header-actions .search-box {
-        width: 100% !important;
+        margin: 0 !important;
     }
 
     /* --- Mobile Bottom Navigation (Stitch Design) --- */
@@ -1333,16 +1349,16 @@ body {
         bottom: 0 !important;
         left: 0 !important;
         right: 0 !important;
-        height: 64px !important;
-        background: rgba(11, 17, 30, 0.94) !important;
-        backdrop-filter: blur(20px) !important;
-        -webkit-backdrop-filter: blur(20px) !important;
+        height: 60px !important;
+        background: rgba(11, 15, 25, 0.98) !important;
+        backdrop-filter: blur(25px) !important;
+        -webkit-backdrop-filter: blur(25px) !important;
         border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
         z-index: 10000 !important;
         justify-content: space-around !important;
         align-items: center !important;
         padding-bottom: env(safe-area-inset-bottom, 0px) !important;
-        box-shadow: 0 -4px 25px rgba(0, 0, 0, 0.45) !important;
+        box-shadow: 0 -4px 25px rgba(0, 0, 0, 0.5) !important;
     }
 
     .mobile-nav-item {
@@ -1358,16 +1374,16 @@ body {
         font-size: 0.68rem;
         font-weight: 600;
         gap: 3px;
-        padding: 6px 0;
+        padding: 5px 0;
         cursor: pointer;
         position: relative;
-        transition: color 0.2s ease, transform 0.15s ease;
+        transition: color 0.15s ease, transform 0.15s ease;
         -webkit-tap-highlight-color: transparent;
     }
 
     .mobile-nav-item i {
-        font-size: 1.35rem;
-        transition: transform 0.2s ease;
+        font-size: 1.3rem;
+        transition: transform 0.15s ease;
     }
 
     .mobile-nav-item:active {
@@ -1386,7 +1402,7 @@ body {
 
     .mobile-nav-item .active-dot {
         position: absolute;
-        top: 4px;
+        top: 3px;
         width: 5px;
         height: 5px;
         border-radius: 50%;
@@ -1402,10 +1418,10 @@ body {
     /* Floating Mobile Save Attendance Button */
     .attendance-mobile-save-bar {
         position: fixed !important;
-        bottom: 72px !important;
+        bottom: 68px !important;
         left: 0 !important;
         right: 0 !important;
-        padding: 8px 16px !important;
+        padding: 6px 14px !important;
         z-index: 9990 !important;
         display: flex;
         justify-content: center;
@@ -1415,16 +1431,16 @@ body {
     .btn-save-mobile {
         pointer-events: auto !important;
         width: 100% !important;
-        max-width: 480px !important;
+        max-width: 440px !important;
         background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
         color: #ffffff !important;
         font-family: inherit !important;
-        font-weight: 800 !important;
-        font-size: 0.95rem !important;
-        padding: 13px 20px !important;
-        border-radius: 16px !important;
-        border: 1px solid rgba(255, 255, 255, 0.2) !important;
-        box-shadow: 0 8px 24px -2px rgba(16, 185, 129, 0.5) !important;
+        font-weight: 700 !important;
+        font-size: 0.92rem !important;
+        padding: 12px 18px !important;
+        border-radius: 14px !important;
+        border: 1px solid rgba(255, 255, 255, 0.25) !important;
+        box-shadow: 0 8px 24px -2px rgba(16, 185, 129, 0.45) !important;
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
@@ -1438,18 +1454,427 @@ body {
         box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4) !important;
     }
 
-    /* --- Dashboard (Home) 2x2 Grid (Stitch Design) --- */
+    /* ===================================================
+       ATTENDANCE VIEW (Stitch _5 Nocturne Ecclesia Layout)
+       =================================================== */
+    /* Attendance Setup Card */
+    .attendance-setup-header {
+        background: #151c2f !important;
+        border: 1px solid #242e4c !important;
+        border-radius: 14px !important;
+        padding: 10px 12px !important;
+        margin-bottom: 10px !important;
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 8px !important;
+    }
+
+    #attendance-view.has-active-workspace .attendance-setup-header:not(.mobile-open) {
+        display: none !important;
+    }
+
+    .attendance-setup-header h1 {
+        font-size: 1.05rem !important;
+        font-weight: 700 !important;
+        color: #ffffff !important;
+        margin: 0 !important;
+    }
+
+    .attendance-setup-header .subtitle {
+        font-size: 0.72rem !important;
+        color: #94a3b8 !important;
+        margin: 2px 0 0 !important;
+    }
+
+    .attendance-setup-header .header-actions {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 6px !important;
+        width: 100% !important;
+    }
+
+    .attendance-setup-header select,
+    .attendance-setup-header input.date-picker {
+        width: 100% !important;
+        font-size: 0.82rem !important;
+        padding: 8px 10px !important;
+        background: #0d121f !important;
+        border: 1px solid #222b44 !important;
+        border-radius: 10px !important;
+        color: #f1f5f9 !important;
+        box-sizing: border-box !important;
+    }
+
+    .attendance-setup-header .btn-primary {
+        width: 100% !important;
+        padding: 9px !important;
+        font-size: 0.85rem !important;
+        font-weight: 700 !important;
+        border-radius: 10px !important;
+    }
+
+    /* Date & Day Status Pill (Exact Stitch _5 Design) */
+    .attendance-date-pill {
+        background: #192136 !important;
+        border: 1px solid #242e4c !important;
+        border-radius: 12px !important;
+        padding: 8px 12px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        margin-bottom: 9px !important;
+    }
+
+    .date-pill-right {
+        display: flex !important;
+        align-items: center !important;
+        gap: 7px !important;
+        color: #e2e8f0 !important;
+        font-size: 0.8rem !important;
+        font-weight: 700 !important;
+    }
+
+    .date-pill-right i {
+        color: #6366f1 !important;
+        font-size: 1rem !important;
+    }
+
+    .date-pill-left {
+        display: flex !important;
+        align-items: center !important;
+        gap: 6px !important;
+    }
+
+    .day-type-badge {
+        background: rgba(99, 102, 241, 0.14) !important;
+        border: 1px solid rgba(99, 102, 241, 0.28) !important;
+        color: #818cf8 !important;
+        font-size: 0.68rem !important;
+        font-weight: 700 !important;
+        padding: 2px 7px !important;
+        border-radius: 6px !important;
+        display: flex !important;
+        align-items: center !important;
+        gap: 3px !important;
+        white-space: nowrap !important;
+    }
+
+    .btn-change-date-mobile {
+        background: rgba(255, 255, 255, 0.07) !important;
+        border: 1px solid rgba(255, 255, 255, 0.12) !important;
+        color: #94a3b8 !important;
+        font-size: 0.68rem !important;
+        font-weight: 600 !important;
+        padding: 3px 8px !important;
+        border-radius: 6px !important;
+        cursor: pointer !important;
+        display: flex !important;
+        align-items: center !important;
+        gap: 3px !important;
+        white-space: nowrap !important;
+    }
+
+    .btn-change-date-mobile:active {
+        background: #6366f1 !important;
+        color: #ffffff !important;
+    }
+
+    /* Attendance KPI Metrics Banner (Exact Stitch _5 Design) */
+    .attendance-kpi-card {
+        background: linear-gradient(135deg, #132c25 0%, #14233c 100%) !important;
+        border: 1px solid rgba(16, 185, 129, 0.25) !important;
+        border-radius: 14px !important;
+        padding: 10px 14px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        margin-bottom: 9px !important;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.25) !important;
+    }
+
+    .kpi-info-group {
+        display: flex !important;
+        align-items: center !important;
+        gap: 10px !important;
+    }
+
+    .kpi-icon-box {
+        width: 36px !important;
+        height: 36px !important;
+        border-radius: 10px !important;
+        background: rgba(16, 185, 129, 0.18) !important;
+        border: 1px solid rgba(16, 185, 129, 0.3) !important;
+        color: #34d399 !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        font-size: 1.15rem !important;
+        flex-shrink: 0 !important;
+    }
+
+    .kpi-label {
+        font-size: 0.68rem !important;
+        color: #94a3b8 !important;
+        font-weight: 600 !important;
+        margin-bottom: 2px !important;
+    }
+
+    .kpi-count-wrap {
+        display: flex !important;
+        align-items: baseline !important;
+        gap: 4px !important;
+    }
+
+    .kpi-count-bold {
+        font-size: 1.3rem !important;
+        font-weight: 800 !important;
+        color: #ffffff !important;
+        line-height: 1 !important;
+    }
+
+    .kpi-count-total {
+        font-size: 0.72rem !important;
+        color: #cbd5e1 !important;
+        font-weight: 600 !important;
+    }
+
+    .kpi-ratio-box {
+        background: rgba(0, 0, 0, 0.25) !important;
+        border: 1px solid rgba(255, 255, 255, 0.06) !important;
+        border-radius: 8px !important;
+        padding: 5px 10px !important;
+        text-align: center !important;
+    }
+
+    .kpi-ratio-sub {
+        font-size: 0.62rem !important;
+        color: #94a3b8 !important;
+        display: block !important;
+        margin-bottom: 1px !important;
+    }
+
+    .kpi-ratio-val {
+        font-size: 0.85rem !important;
+        font-weight: 800 !important;
+        color: #34d399 !important;
+    }
+
+    /* Attendance Workspace Container */
+    .attendance-workspace {
+        padding: 0 !important;
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+    }
+
+    .desktop-only-flex {
+        display: none !important;
+    }
+
+    /* Mode Switch Segmented Tabs */
+    .attendance-tabs {
+        background: #141b2d !important;
+        border: 1px solid #222c47 !important;
+        border-radius: 12px !important;
+        padding: 3px !important;
+        display: flex !important;
+        gap: 3px !important;
+        margin-bottom: 9px !important;
+    }
+
+    .attendance-tabs .btn {
+        flex: 1 !important;
+        padding: 7px 10px !important;
+        font-size: 0.75rem !important;
+        font-weight: 700 !important;
+        border-radius: 9px !important;
+        border: none !important;
+        background: transparent !important;
+        color: #94a3b8 !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 5px !important;
+        transition: all 0.2s ease !important;
+    }
+
+    .attendance-tabs .btn.active {
+        background: #5d5fef !important;
+        color: #ffffff !important;
+        box-shadow: 0 2px 8px rgba(93, 95, 239, 0.4) !important;
+    }
+
+    /* Search Bar */
+    .attendance-search-wrap {
+        position: relative !important;
+        margin-bottom: 9px !important;
+        width: 100% !important;
+    }
+
+    .attendance-search-wrap .search-icon {
+        position: absolute !important;
+        right: 12px !important;
+        top: 50% !important;
+        transform: translateY(-50%) !important;
+        color: #64748b !important;
+        font-size: 0.95rem !important;
+        pointer-events: none !important;
+    }
+
+    .attendance-search-wrap input, #search-attendance {
+        width: 100% !important;
+        background: #151c2f !important;
+        border: 1px solid #252f4c !important;
+        border-radius: 12px !important;
+        padding: 8px 36px 8px 12px !important;
+        color: #f8fafc !important;
+        font-size: 0.78rem !important;
+        box-sizing: border-box !important;
+    }
+
+    .attendance-search-wrap input::placeholder, #search-attendance::placeholder {
+        color: #64748b !important;
+    }
+
+    .attendance-search-wrap input:focus, #search-attendance:focus {
+        border-color: #5d5fef !important;
+        outline: none !important;
+    }
+
+    /* Attendance Member Rows (Stitch _5 Card Design) */
+    .members-list-attendance {
+        max-height: none !important;
+        overflow-y: visible !important;
+        padding-right: 0 !important;
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 7px !important;
+    }
+
+    .member-attendance-row {
+        background: #151c2f !important;
+        border: 1px solid #222b44 !important;
+        border-radius: 14px !important;
+        padding: 8px 10px !important;
+        margin: 0 !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        gap: 8px !important;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15) !important;
+    }
+
+    .member-info-wrap {
+        display: flex !important;
+        align-items: center !important;
+        gap: 8px !important;
+        flex: 1 !important;
+        min-width: 0 !important;
+    }
+
+    .member-avatar {
+        width: 32px !important;
+        height: 32px !important;
+        border-radius: 50% !important;
+        background: linear-gradient(135deg, #6366f1, #8b5cf6) !important;
+        color: #ffffff !important;
+        font-weight: 700 !important;
+        font-size: 0.8rem !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        flex-shrink: 0 !important;
+        box-shadow: 0 2px 6px rgba(99, 102, 241, 0.3) !important;
+    }
+
+    .member-name {
+        font-size: 0.82rem !important;
+        font-weight: 700 !important;
+        color: #ffffff !important;
+        display: flex !important;
+        align-items: center !important;
+        gap: 4px !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        line-height: 1.2 !important;
+    }
+
+    .member-name .badge-warning {
+        font-size: 0.6rem !important;
+        padding: 1px 4px !important;
+        border-radius: 4px !important;
+        background: rgba(245, 158, 11, 0.15) !important;
+        border: 1px solid rgba(245, 158, 11, 0.3) !important;
+        color: #fbbf24 !important;
+        font-weight: 700 !important;
+        line-height: 1.1 !important;
+    }
+
+    .member-subtext {
+        font-size: 0.68rem !important;
+        color: #94a3b8 !important;
+        margin-top: 1px !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+    }
+
+    .toggle-group {
+        background: #0d121f !important;
+        border: 1px solid #1e293b !important;
+        border-radius: 10px !important;
+        padding: 2px !important;
+        display: flex !important;
+        gap: 2px !important;
+        flex-shrink: 0 !important;
+    }
+
+    .toggle-btn {
+        padding: 5px 8px !important;
+        font-size: 0.72rem !important;
+        font-weight: 700 !important;
+        border-radius: 7px !important;
+        border: none !important;
+        background: transparent !important;
+        color: #64748b !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 2px !important;
+        min-width: 44px !important;
+        cursor: pointer !important;
+        transition: all 0.15s ease !important;
+    }
+
+    .toggle-btn i {
+        font-size: 0.7rem !important;
+    }
+
+    .toggle-btn.active.attend {
+        background: #10b981 !important;
+        color: #ffffff !important;
+        box-shadow: 0 2px 8px rgba(16, 185, 129, 0.4) !important;
+    }
+
+    .toggle-btn.active.absent {
+        background: #ef4444 !important;
+        color: #ffffff !important;
+        box-shadow: 0 2px 8px rgba(239, 68, 68, 0.4) !important;
+    }
+
+    /* --- Dashboard (Home) 2x2 Grid --- */
     .stats-grid {
         display: grid !important;
         grid-template-columns: repeat(2, 1fr) !important;
-        gap: 10px !important;
+        gap: 8px !important;
     }
 
     .stat-card {
         background: linear-gradient(135deg, rgba(22, 30, 49, 0.95) 0%, rgba(17, 24, 39, 0.98) 100%) !important;
         border: 1px solid rgba(255, 255, 255, 0.08) !important;
-        border-radius: 16px !important;
-        padding: 14px !important;
+        border-radius: 14px !important;
+        padding: 12px !important;
         display: flex !important;
         flex-direction: column !important;
         justify-content: space-between !important;
@@ -1458,141 +1883,47 @@ body {
     }
 
     .stat-card .stat-icon {
-        width: 34px !important;
-        height: 34px !important;
-        border-radius: 10px !important;
+        width: 30px !important;
+        height: 30px !important;
+        border-radius: 8px !important;
         background: rgba(99, 102, 241, 0.15) !important;
         color: #818cf8 !important;
-        font-size: 1.15rem !important;
+        font-size: 1rem !important;
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
         align-self: flex-start !important;
-        margin-bottom: 8px !important;
+        margin-bottom: 6px !important;
     }
 
     .stat-card .stat-info h3 {
-        font-size: 0.78rem !important;
+        font-size: 0.72rem !important;
         color: #94a3b8 !important;
         font-weight: 600 !important;
-        margin-bottom: 4px !important;
+        margin-bottom: 3px !important;
     }
 
     .stat-card .stat-value {
-        font-size: 1.45rem !important;
+        font-size: 1.3rem !important;
         font-weight: 800 !important;
         color: #ffffff !important;
         line-height: 1.1 !important;
         margin: 0 !important;
     }
 
-    /* --- Attendance Cards (Stitch Design) --- */
-    .member-attendance-row {
-        background: #151c2f !important;
-        border: 1px solid #222b44 !important;
-        border-radius: 16px !important;
-        padding: 11px 14px !important;
-        margin-bottom: 9px !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: space-between !important;
-        gap: 10px !important;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18) !important;
-        transition: transform 0.15s ease, border-color 0.15s ease !important;
-    }
-
-    .member-attendance-row:active {
-        transform: scale(0.99) !important;
-    }
-
-    .member-info-wrap {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        flex: 1;
-        min-width: 0;
-    }
-
-    .member-avatar {
-        width: 36px;
-        height: 36px;
-        border-radius: 50%;
-        background: linear-gradient(135deg, #6366f1, #8b5cf6);
-        color: #ffffff;
-        font-weight: 700;
-        font-size: 0.9rem;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        flex-shrink: 0;
-        box-shadow: 0 2px 8px rgba(99, 102, 241, 0.35);
-    }
-
-    .member-name {
-        font-size: 0.92rem !important;
-        font-weight: 700 !important;
-        color: #f8fafc !important;
-        white-space: nowrap !important;
-        overflow: hidden !important;
-        text-overflow: ellipsis !important;
-    }
-
-    .member-subtext {
-        font-size: 0.72rem;
-        color: #94a3b8;
-        margin-top: 2px;
-    }
-
-    .toggle-group {
-        background: #0d121f !important;
-        padding: 3px !important;
-        border-radius: 12px !important;
-        border: 1px solid rgba(255, 255, 255, 0.07) !important;
-        display: flex !important;
-        gap: 4px !important;
-        flex-shrink: 0 !important;
-    }
-
-    .toggle-btn {
-        padding: 7px 13px !important;
-        border-radius: 9px !important;
-        font-size: 0.8rem !important;
-        font-weight: 700 !important;
-        border: none !important;
-        background: transparent !important;
-        color: #94a3b8 !important;
-        display: flex !important;
-        align-items: center !important;
-        gap: 3px !important;
-        transition: all 0.2s ease !important;
-        cursor: pointer !important;
-    }
-
-    .toggle-btn.active.attend {
-        background: #10b981 !important;
-        color: #ffffff !important;
-        box-shadow: 0 2px 10px rgba(16, 185, 129, 0.45) !important;
-    }
-
-    .toggle-btn.active.absent {
-        background: #ef4444 !important;
-        color: #ffffff !important;
-        box-shadow: 0 2px 10px rgba(239, 68, 68, 0.45) !important;
-    }
-
-    /* --- Follow-up Pastoral Cards (Stitch Design) --- */
+    /* --- Follow-up Pastoral Cards (Stitch _4 Design) --- */
     .member-card {
         background: #151726 !important;
         border: 1px solid #2a2e4c !important;
-        border-radius: 18px !important;
-        padding: 14px 15px !important;
-        margin-bottom: 12px !important;
+        border-radius: 16px !important;
+        padding: 12px 14px !important;
+        margin-bottom: 10px !important;
         box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2) !important;
-        transition: transform 0.15s ease, border-color 0.15s ease !important;
     }
 
-    .member-card:active {
-        transform: scale(0.99) !important;
+    .member-card h3 {
+        font-size: 0.95rem !important;
+        font-weight: 700 !important;
     }
 
     .member-card.status-danger {
@@ -1604,11 +1935,6 @@ body {
         border-color: rgba(245, 158, 11, 0.4) !important;
     }
 
-    .member-card h3 {
-        font-size: 1.05rem !important;
-        font-weight: 700 !important;
-    }
-
     /* Filter Bar Swipeable Pills */
     .filters-bar, .filter-group, #admin-filters {
         display: flex !important;
@@ -1616,14 +1942,14 @@ body {
         overflow-x: auto !important;
         white-space: nowrap !important;
         gap: 6px !important;
-        padding-bottom: 6px !important;
+        padding-bottom: 4px !important;
         -webkit-overflow-scrolling: touch !important;
     }
 
     .filter-btn {
-        padding: 6px 12px !important;
-        font-size: 0.75rem !important;
-        border-radius: 20px !important;
+        padding: 5px 11px !important;
+        font-size: 0.72rem !important;
+        border-radius: 16px !important;
         border: 1px solid rgba(255, 255, 255, 0.1) !important;
         background: #11192d !important;
         color: #cbd5e1 !important;
@@ -1640,18 +1966,14 @@ body {
 
     /* Buttons & Inputs */
     .btn {
-        padding: 9px 14px !important;
-        font-size: 0.82rem !important;
+        padding: 8px 12px !important;
+        font-size: 0.78rem !important;
         border-radius: 10px !important;
     }
 
-    .btn:active {
-        transform: scale(0.97) !important;
-    }
-
     .form-control, .search-box input {
-        padding: 9px 12px !important;
-        font-size: 0.85rem !important;
+        padding: 8px 10px !important;
+        font-size: 0.8rem !important;
         border-radius: 10px !important;
         background: #11192d !important;
         border-color: #1e2d4a !important;
@@ -1659,11 +1981,11 @@ body {
 
     /* Modals on Mobile */
     .modal {
-        padding: 16px !important;
-        width: 96% !important;
+        padding: 14px !important;
+        width: 94% !important;
         margin: 10px auto !important;
-        max-height: 88vh !important;
-        border-radius: 20px !important;
+        max-height: 85vh !important;
+        border-radius: 18px !important;
         background: rgba(13, 19, 34, 0.98) !important;
         backdrop-filter: blur(25px) !important;
         -webkit-backdrop-filter: blur(25px) !important;
@@ -1679,7 +2001,7 @@ body {
     /* Grids */
     .grid-cards, .competitions-grid, .servants-grid, .wa-grid {
         grid-template-columns: 1fr !important;
-        gap: 12px !important;
+        gap: 10px !important;
     }
 }
 
