@@ -3796,9 +3796,12 @@ function refreshSummaryView() {
             <td style="padding: 15px; text-align: center; font-size: 1.1rem; font-weight: bold; color: var(--primary);">${sCount}</td>
             <td style="padding: 15px; text-align: center; font-size: 1.1rem; font-weight: bold; color: var(--success);">${attendanceCount}</td>
             <td style="padding: 15px; text-align: center; font-size: 1.1rem; font-weight: bold; color: var(--warning);">${segmentsCount}</td>
-            <td style="padding: 15px; text-align: center;">
+            <td style="padding: 15px; text-align: center; white-space: nowrap;">
                 <button class="btn btn-outline btn-sm" onclick="editDayAttendance('${date}')" style="padding: 5px 10px; font-size: 0.8rem;">
                     <i class="ph ph-pencil-simple"></i> تعديل
+                </button>
+                <button class="btn btn-outline btn-sm" onclick="deleteDayAttendance('${date}')" style="padding: 5px 8px; font-size: 0.8rem; border-color: var(--danger); color: var(--danger); margin-right: 5px;" title="حذف سجل اليوم">
+                    <i class="ph ph-trash"></i>
                 </button>
             </td>
         `;
@@ -3806,6 +3809,38 @@ function refreshSummaryView() {
     });
 }
 
+window.deleteDayAttendance = async function (date) {
+    if (currentUserRole !== 'admin' && !currentPermissions.includes('attendance-edit')) {
+        alert('عفواً، لا تملك صلاحية حذف سجلات الأيام (المشاهدة فقط).');
+        return;
+    }
+    const dObj = new Date(date);
+    const dayNameAr = !isNaN(dObj) ? dObj.toLocaleDateString('ar-EG', { weekday: 'long' }) : '';
+    const label = dayNameAr ? `${dayNameAr} (${date})` : date;
+
+    if (await customConfirm(`هل أنت متأكد من حذف سجل يوم ${label} نهائياً؟`)) {
+        const records = getAttendanceRecords();
+        delete records[date];
+        saveAttendanceRecords(records);
+
+        const dayTypes = getDayTypes();
+        delete dayTypes[date];
+        saveDayTypes(dayTypes);
+
+        const servantRecords = getServantRecords();
+        delete servantRecords[date];
+        saveServantRecords(servantRecords);
+
+        // Clean up auto notes for that day
+        const notes = getServantNotes().filter(n => !(n.source === 'auto_presented' && n.date === date));
+        saveServantNotes(notes);
+
+        if (typeof triggerCloudSync === 'function') triggerCloudSync();
+        showToast(`تم حذف سجل يوم ${label} بنجاح!`, 'success');
+        refreshSummaryView();
+        refreshDashboard();
+    }
+};
 
 window.editDayAttendance = function (date) {
     document.getElementById('attendance-date').value = date;
