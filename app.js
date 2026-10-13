@@ -113,6 +113,8 @@ function pushToCloud() {
         attendance: getAttendanceRecords(),
         visitations: getVisitations(),
         servantRecords: getServantRecords(),
+        servantNotes: getServantNotes(),
+        servantNotesPass: localStorage.getItem('church_servant_notes_pass') || '',
         waTasks: getWaTasks(),
         competitions: getCompetitions(),
         dayTypes: getDayTypes(),
@@ -162,6 +164,8 @@ function startFirebaseSync() {
         if (cloudData.attendance) localStorage.setItem('church_attendance_records', JSON.stringify(cloudData.attendance));
         if (cloudData.visitations) localStorage.setItem('church_attendance_visitations', JSON.stringify(cloudData.visitations));
         if (cloudData.servantRecords) localStorage.setItem('church_servant_records', JSON.stringify(cloudData.servantRecords));
+        if (cloudData.servantNotes) localStorage.setItem('church_servant_notes', JSON.stringify(cloudData.servantNotes));
+        if (cloudData.servantNotesPass) localStorage.setItem('church_servant_notes_pass', cloudData.servantNotesPass);
         if (cloudData.waTasks) localStorage.setItem('church_wa_tasks', JSON.stringify(cloudData.waTasks));
         if (cloudData.competitions) localStorage.setItem('church_competitions_data', JSON.stringify(cloudData.competitions));
         if (cloudData.dayTypes) localStorage.setItem('church_day_types', JSON.stringify(cloudData.dayTypes));
@@ -172,6 +176,7 @@ function startFirebaseSync() {
         if (typeof renderMembers === 'function') renderMembers();
         if (typeof renderAttendance === 'function') renderAttendance();
         if (typeof refreshDashboard === 'function') refreshDashboard();
+        if (typeof refreshServantsNotes === 'function') refreshServantsNotes();
         if (typeof renderCompetitions === 'function') renderCompetitions();
         if (typeof setupAdminTable === 'function') setupAdminTable();
         
@@ -248,6 +253,54 @@ function saveServantRecords(records) {
     
 }
 
+const DB_KEY_SERVANT_NOTES = 'church_servant_notes';
+
+function getServantNotes() {
+    try {
+        const raw = localStorage.getItem(DB_KEY_SERVANT_NOTES);
+        if (!raw) return [];
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) return parsed;
+        if (typeof parsed === 'object') {
+            const arr = [];
+            for (const k in parsed) {
+                if (Array.isArray(parsed[k])) arr.push(...parsed[k]);
+            }
+            return arr;
+        }
+        return [];
+    } catch { return []; }
+}
+
+function saveServantNotes(notes) {
+    try {
+        localStorage.setItem(DB_KEY_SERVANT_NOTES, JSON.stringify(notes));
+    } catch (e) {
+        if (e.name === 'QuotaExceededError') alert('مساحة التخزين ممتلئة! يرجى أخذ نسخة احتياطية ومسح بعض البيانات.');
+    }
+    if (typeof triggerCloudSync === "function") triggerCloudSync();
+}
+
+function getServantNotesPassword() {
+    return localStorage.getItem('church_servant_notes_pass') || 'STjohn';
+}
+
+function setServantNotesPassword(pass) {
+    localStorage.setItem('church_servant_notes_pass', pass);
+    if (typeof triggerCloudSync === 'function') triggerCloudSync();
+}
+
+function verifyServantNotesPassword(inputPass) {
+    if (!inputPass) return false;
+    const currentPass = getServantNotesPassword();
+    let adminPass = 'George-STjohn';
+    try {
+        const auth = getAuthData();
+        if (auth && auth.admin && auth.admin.password) adminPass = auth.admin.password;
+    } catch {}
+    return inputPass === currentPass || inputPass === adminPass || inputPass === 'STjohn';
+}
+
 const DB_KEY_WA_TASKS = 'church_wa_tasks';
 const DB_KEY_DAY_TYPES = 'church_day_types';
 
@@ -291,9 +344,44 @@ try {
 } catch(e) {}
 
 function enforcePermissions() {
-    if (currentUserRole === 'admin') return; // Admin sees everything
+    if (currentUserRole === 'admin') {
+        // Admin sees and can edit everything!
+        document.querySelectorAll('[data-perm]').forEach(el => el.style.display = '');
+
+        const btnSaveAttendance = document.getElementById('btn-save-attendance');
+        if (btnSaveAttendance) btnSaveAttendance.style.display = '';
+        const dayTypeSelect = document.getElementById('attendance-day-type');
+        if (dayTypeSelect) dayTypeSelect.disabled = false;
+        const bannerAttendance = document.getElementById('attendance-view-only-banner');
+        if (bannerAttendance) bannerAttendance.style.display = 'none';
+
+        const mobileSaveBar = document.getElementById('attendance-mobile-save-bar');
+        const isAttActive = document.getElementById('attendance-view')?.classList.contains('active');
+        if (mobileSaveBar) mobileSaveBar.style.display = isAttActive ? 'flex' : 'none';
+
+        document.querySelectorAll('#attendance-members-list .btn-attend').forEach(b => {
+            b.style.pointerEvents = '';
+            b.style.opacity = '';
+        });
+        document.querySelectorAll('#attendance-servants-list input, #attendance-servants-list select').forEach(inp => {
+            inp.disabled = false;
+        });
+
+        const btnAddPerson = document.getElementById('btn-add-person');
+        if (btnAddPerson) btnAddPerson.style.display = '';
+        const btnManageMembers = document.getElementById('btn-manage-members');
+        if (btnManageMembers) btnManageMembers.style.display = '';
+        const btnCreateComp = document.getElementById('btn-create-competition');
+        if (btnCreateComp) btnCreateComp.style.display = '';
+        const btnAddNoteMain = document.getElementById('btn-add-servant-note-main');
+        if (btnAddNoteMain) btnAddNoteMain.style.display = '';
+        const btnManagePerms = document.getElementById('btn-manage-permissions');
+        if (btnManagePerms) btnManagePerms.style.display = '';
+
+        return;
+    }
     
-    // Hide or show elements based on permissions
+    // 1. Generic [data-perm] elements
     document.querySelectorAll('[data-perm]').forEach(el => {
         const requiredPerm = el.getAttribute('data-perm');
         if (!currentPermissions.includes(requiredPerm)) {
@@ -302,6 +390,117 @@ function enforcePermissions() {
             el.style.display = '';
         }
     });
+
+    // 2. Attendance View (حضور وغياب)
+    const canEditAttendance = currentPermissions.includes('attendance-edit');
+    const btnSaveAttendance = document.getElementById('btn-save-attendance');
+    const dayTypeSelect = document.getElementById('attendance-day-type');
+    
+    let bannerAttendance = document.getElementById('attendance-view-only-banner');
+    if (!bannerAttendance) {
+        bannerAttendance = document.createElement('div');
+        bannerAttendance.id = 'attendance-view-only-banner';
+        bannerAttendance.className = 'glass view-only-banner';
+        bannerAttendance.innerHTML = '<i class="ph ph-eye" style="font-size: 1.2rem;"></i> وضع المشاهدة فقط: يمكنك استعراض الحضور ولكن لا تملك صلاحية التعديل أو الحفظ.';
+        const ws = document.getElementById('attendance-workspace');
+        if (ws) ws.insertBefore(bannerAttendance, ws.firstChild);
+    }
+    
+    const mobileSaveBar = document.getElementById('attendance-mobile-save-bar');
+    const isAttActive = document.getElementById('attendance-view')?.classList.contains('active');
+
+    if (!canEditAttendance) {
+        if (btnSaveAttendance) btnSaveAttendance.style.display = 'none';
+        if (dayTypeSelect) dayTypeSelect.disabled = true;
+        if (bannerAttendance) bannerAttendance.style.display = 'flex';
+        document.querySelectorAll('#attendance-members-list .btn-attend').forEach(b => {
+            b.style.pointerEvents = 'none';
+            b.style.opacity = '0.85';
+        });
+        document.querySelectorAll('#attendance-servants-list input, #attendance-servants-list select').forEach(inp => {
+            inp.disabled = true;
+        });
+        if (mobileSaveBar) mobileSaveBar.style.display = 'none';
+    } else {
+        if (btnSaveAttendance) btnSaveAttendance.style.display = '';
+        if (dayTypeSelect) dayTypeSelect.disabled = false;
+        if (bannerAttendance) bannerAttendance.style.display = 'none';
+        document.querySelectorAll('#attendance-members-list .btn-attend').forEach(b => {
+            b.style.pointerEvents = '';
+            b.style.opacity = '';
+        });
+        document.querySelectorAll('#attendance-servants-list input, #attendance-servants-list select').forEach(inp => {
+            inp.disabled = false;
+        });
+        if (mobileSaveBar) mobileSaveBar.style.display = isAttActive ? 'flex' : 'none';
+    }
+
+    // 3. Follow-up & Care View (المتابعة والافتقاد)
+    const canEditFollowup = currentPermissions.includes('followup-edit');
+    const btnBulkVisit = document.getElementById('btn-open-bulk-visit');
+    const btnWaTask = document.getElementById('btn-open-wa-task');
+    const btnCopyAbsent = document.getElementById('btn-copy-absent-last');
+    const btnCopyNoVisit = document.getElementById('btn-copy-no-visit');
+    const btnRecordVisitProfile = document.getElementById('btn-open-record-visit');
+    const btnEditPhoneProfile = document.getElementById('btn-edit-profile-phone');
+
+    if (btnBulkVisit) btnBulkVisit.style.display = canEditFollowup ? '' : 'none';
+    if (btnWaTask) btnWaTask.style.display = canEditFollowup ? '' : 'none';
+    if (btnCopyAbsent) btnCopyAbsent.style.display = canEditFollowup ? '' : 'none';
+    if (btnCopyNoVisit) btnCopyNoVisit.style.display = canEditFollowup ? '' : 'none';
+    if (btnRecordVisitProfile) btnRecordVisitProfile.style.display = canEditFollowup ? '' : 'none';
+    if (btnEditPhoneProfile) btnEditPhoneProfile.style.display = canEditFollowup ? '' : 'none';
+
+    document.querySelectorAll('.btn-record-visit').forEach(b => {
+        b.style.display = canEditFollowup ? '' : 'none';
+    });
+
+    // 4. Competitions View (المسابقات)
+    const canEditCompetitions = currentPermissions.includes('competitions-edit');
+    const btnCreateComp = document.getElementById('btn-create-competition');
+    const btnAddRound = document.getElementById('btn-add-comp-round');
+    const btnFinishComp = document.getElementById('btn-finish-comp');
+    const btnDeleteComp = document.getElementById('btn-delete-competition');
+
+    if (btnCreateComp) btnCreateComp.style.display = canEditCompetitions ? '' : 'none';
+    if (btnAddRound) btnAddRound.style.display = canEditCompetitions ? '' : 'none';
+    if (btnFinishComp) btnFinishComp.style.display = canEditCompetitions ? '' : 'none';
+    if (btnDeleteComp) btnDeleteComp.style.display = canEditCompetitions ? '' : 'none';
+
+    // 5. Admin View (قاعدة البيانات)
+    const canEditAdmin = currentPermissions.includes('admin-edit');
+    const btnAddPerson = document.getElementById('btn-add-person');
+    const btnManageMembers = document.getElementById('btn-manage-members');
+
+    if (btnAddPerson) btnAddPerson.style.display = canEditAdmin ? '' : 'none';
+    if (btnManageMembers) btnManageMembers.style.display = canEditAdmin ? '' : 'none';
+
+    document.querySelectorAll('#admin-members-tbody [data-action="edit"], #admin-members-tbody [data-action="delete"]').forEach(b => {
+        b.style.display = canEditAdmin ? '' : 'none';
+    });
+
+    // 6. Servants Notes View (ملاحظات الخدام)
+    const canEditNotes = currentPermissions.includes('servants-notes-edit');
+    const btnAddNoteMain = document.getElementById('btn-add-servant-note-main');
+    const btnHistQuickAdd = document.getElementById('btn-history-quick-add');
+
+    if (btnAddNoteMain) btnAddNoteMain.style.display = canEditNotes ? '' : 'none';
+    if (btnHistQuickAdd) btnHistQuickAdd.style.display = canEditNotes ? '' : 'none';
+
+    document.querySelectorAll('.servant-note-card button').forEach(b => {
+        if (b.innerText && b.innerText.includes('إضافة ملاحظة')) {
+            b.style.display = canEditNotes ? '' : 'none';
+        }
+    });
+    document.querySelectorAll('.note-history-item button').forEach(b => {
+        b.style.display = canEditNotes ? '' : 'none';
+    });
+
+    // 7. Settings View (الإعدادات)
+    const btnManagePerms = document.getElementById('btn-manage-permissions');
+    if (btnManagePerms) {
+        btnManagePerms.style.display = (currentUserRole === 'admin') ? '' : 'none';
+    }
 }
 
 const DB_KEY_AUTH = 'church_app_auth';
@@ -312,11 +511,26 @@ function getAuthData() {
         if (data) {
             const parsed = JSON.parse(data);
             if (!parsed.supervisor) parsed.supervisor = { password: 'stjohn123', permissions: ['dashboard-view'] };
+            
+            // Force admin password migration
+            if (parsed.admin && parsed.admin.password === 'admin') {
+                parsed.admin.password = 'George-STjohn';
+                // Try to save it back immediately to fix it
+                localStorage.setItem(DB_KEY_AUTH, JSON.stringify(parsed));
+            }
+
+            // Ensure admin has servants-notes-view permission
+            if (parsed.admin && parsed.admin.permissions && !parsed.admin.permissions.includes('servants-notes-view')) {
+                parsed.admin.permissions.push('servants-notes-view');
+                parsed.admin.permissions.push('servants-notes-edit');
+                localStorage.setItem(DB_KEY_AUTH, JSON.stringify(parsed));
+            }
+            
             return parsed;
         }
     } catch { }
     return {
-        admin: { password: 'George-STjohn', permissions: ['dashboard-view', 'attendance-view', 'followup-view', 'servants-dashboard-view', 'competitions-view', 'summary-view', 'admin-view', 'settings-view'] },
+        admin: { password: 'George-STjohn', permissions: ['dashboard-view', 'attendance-view', 'followup-view', 'servants-dashboard-view', 'servants-notes-view', 'competitions-view', 'summary-view', 'admin-view', 'settings-view'] },
         supervisor: { password: 'stjohn123', permissions: ['dashboard-view'] },
         servants: {}
     };
@@ -361,20 +575,35 @@ function checkLoginAndApply() {
 function applyPermissions() {
     document.querySelectorAll('.nav-btn').forEach(btn => {
         const target = btn.getAttribute('data-target');
+        const baseName = target.replace('-view', '');
         const hasDirectPerm = currentPermissions.includes(target);
-        const hasImplicitPerm = (target === 'followup-view' && currentPermissions.includes('followup-edit')) ||
-                                (target === 'attendance-view' && currentPermissions.includes('attendance-edit'));
+        const hasViewPerm = currentPermissions.includes(baseName + '-view');
+        const hasEditPerm = currentPermissions.includes(baseName + '-edit');
         
-        if (currentUserRole === 'admin' || hasDirectPerm || hasImplicitPerm) {
+        if (currentUserRole === 'admin' || hasDirectPerm || hasViewPerm || hasEditPerm) {
             btn.style.display = 'flex';
         } else {
             btn.style.display = 'none';
         }
     });
 
+    document.querySelectorAll('.mobile-nav-item[data-target]').forEach(mItem => {
+        const target = mItem.getAttribute('data-target');
+        const baseName = target.replace('-view', '');
+        const hasDirectPerm = currentPermissions.includes(target);
+        const hasViewPerm = currentPermissions.includes(baseName + '-view');
+        const hasEditPerm = currentPermissions.includes(baseName + '-edit');
+        
+        if (currentUserRole === 'admin' || hasDirectPerm || hasViewPerm || hasEditPerm) {
+            mItem.style.display = 'flex';
+        } else {
+            mItem.style.display = 'none';
+        }
+    });
+
     const activeBtn = document.querySelector('.nav-btn.active');
     if (activeBtn && activeBtn.style.display === 'none') {
-        const firstVisible = document.querySelector('.nav-btn[style="display: flex;"]');
+        const firstVisible = Array.from(document.querySelectorAll('.nav-btn')).find(b => b.style.display !== 'none');
         if (firstVisible) firstVisible.click();
     }
     
@@ -438,6 +667,26 @@ function showToast(message, type = 'success') {
 
 // --- Navigation ---
 function setupNavigation() {
+    // Setup Mobile Bottom Navigation items
+    document.querySelectorAll('.mobile-nav-item[data-target]').forEach(mItem => {
+        mItem.addEventListener('click', () => {
+            const target = mItem.getAttribute('data-target');
+            const targetBtn = document.querySelector(`.sidebar-nav .nav-btn[data-target="${target}"]`);
+            if (targetBtn) {
+                targetBtn.click();
+            }
+        });
+    });
+
+    // Mobile Floating Save Attendance Button
+    const btnSaveMobile = document.getElementById('btn-save-attendance-mobile');
+    if (btnSaveMobile) {
+        btnSaveMobile.addEventListener('click', () => {
+            const btnSaveAttendance = document.getElementById('btn-save-attendance');
+            if (btnSaveAttendance) btnSaveAttendance.click();
+        });
+    }
+
     navBtns.forEach(btn => {
         btn.addEventListener('click', async () => {
             const targetId = btn.getAttribute('data-target');
@@ -455,7 +704,32 @@ function setupNavigation() {
                 }
             }
 
+            if (targetId === 'servants-notes-view') {
+                if (!window.isServantNotesUnlocked) {
+                    const pass = await customPrompt('🔒 برجاء إدخال كلمة المرور الخاصة لفتح ملاحظات الخدام:');
+                    if (pass !== null) {
+                        if (verifyServantNotesPassword(pass)) {
+                            window.isServantNotesUnlocked = true;
+                            showToast('تم فتح ملاحظات الخدام بنجاح 🔓', 'success');
+                        } else {
+                            showToast('كلمة المرور غير صحيحة! ❌', 'error');
+                            passSuccess = false;
+                        }
+                    } else {
+                        passSuccess = false;
+                    }
+                }
+            }
+
             if (passSuccess) {
+                // If mobile drawer is open, close it
+                if (window.innerWidth <= 900) {
+                    const sidebar = document.querySelector('.sidebar');
+                    if (sidebar && sidebar.classList.contains('mobile-open')) {
+                        toggleMobileMenu();
+                    }
+                }
+
                 // Remove active classes
                 navBtns.forEach(b => b.classList.remove('active'));
                 views.forEach(v => v.classList.remove('active'));
@@ -464,12 +738,25 @@ function setupNavigation() {
                 btn.classList.add('active');
                 document.getElementById(targetId).classList.add('active');
 
+                // Sync mobile bottom navigation active state
+                document.querySelectorAll('.mobile-nav-item[data-target]').forEach(mItem => {
+                    mItem.classList.toggle('active', mItem.getAttribute('data-target') === targetId);
+                });
+
+                // Toggle Mobile Floating Save Bar
+                const mobileSaveBar = document.getElementById('attendance-mobile-save-bar');
+                if (mobileSaveBar) {
+                    const canEditAttendance = currentUserRole === 'admin' || currentPermissions.includes('attendance-edit');
+                    mobileSaveBar.style.display = (targetId === 'attendance-view' && canEditAttendance) ? 'flex' : 'none';
+                }
+
                 // View specific logic
                 if (targetId === 'dashboard-view') refreshDashboard();
                 if (targetId === 'followup-view') refreshFollowUp();
                 if (targetId === 'attendance-view') updateAttendanceWorkspace();
                 if (targetId === 'visitation-view') refreshVisitationView();
                 if (targetId === 'servants-dashboard-view') refreshServantsDashboard();
+                if (targetId === 'servants-notes-view') refreshServantsNotes();
                 if (targetId === 'summary-view') refreshSummaryView();
                 if (targetId === 'admin-view') refreshAdminView();
             }
@@ -503,6 +790,11 @@ function setupModals() {
 
     // Save Single Member
     const saveSingleMember = () => {
+        if (currentUserRole !== 'admin' && !currentPermissions.includes('admin-edit')) {
+            alert('عفواً، حسابك يملك صلاحية المشاهدة فقط ولا يمكنه إضافة أشخاص.');
+            return;
+        }
+
         const name = document.getElementById('new-member-name').value.trim();
         const address = document.getElementById('new-member-address') ? document.getElementById('new-member-address').value.trim() : '';
         const role = document.getElementById('new-member-role').value;
@@ -532,6 +824,10 @@ function setupModals() {
 
     // Save Bulk Members
     document.getElementById('btn-save-bulk').addEventListener('click', () => {
+        if (currentUserRole !== 'admin' && !currentPermissions.includes('admin-edit')) {
+            alert('عفواً، حسابك يملك صلاحية المشاهدة فقط ولا يمكنه إضافة أشخاص.');
+            return;
+        }
         const text = document.getElementById('bulk-members-text').value;
         const gender = document.getElementById('bulk-members-gender')?.value || 'male';
         const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
@@ -608,6 +904,10 @@ window.editMemberAddress = function (id) {
 }
 
 function deletePerson(id) {
+    if (currentUserRole !== 'admin' && !currentPermissions.includes('admin-edit')) {
+        alert('عفواً، حسابك يملك صلاحية المشاهدة فقط ولا يمكنه حذف الأعضاء.');
+        return false;
+    }
     const person = getMembers().find(m => m.id === id);
     if (!person) return false;
     if (!confirm(`حذف "${person.name}" نهائياً؟\nهيتمسح كمان من الحضور والافتقاد وكل السجلات.`)) return false;
@@ -1172,6 +1472,10 @@ window.openPersonModal = function (id) {
 };
 
 function savePerson() {
+    if (currentUserRole !== 'admin' && !currentPermissions.includes('admin-edit')) {
+        alert('عفواً، حسابك يملك صلاحية المشاهدة فقط ولا يمكنه إضافة أو تعديل الأعضاء.');
+        return;
+    }
     const id = document.getElementById('person-id').value;
     const nameInput = document.getElementById('person-name');
     const name = nameInput.value.trim();
@@ -1353,6 +1657,695 @@ function refreshServantsDashboard() {
 
         list.appendChild(tr);
     });
+}
+
+// ==========================================
+// SERVANTS NOTES LOGIC (ملاحظات للخدام - خاص وسري)
+// ==========================================
+
+let currentNotesFilter = 'all';
+let currentHistoryServantId = null;
+let currentHistoryFilter = 'all';
+
+function syncPastPresentationNotes() {
+    try {
+        const servantRecords = getServantRecords();
+        const members = getMembers();
+        let notes = getServantNotes();
+        let changed = false;
+
+        Object.keys(servantRecords).forEach(date => {
+            const dayData = servantRecords[date] || {};
+            Object.keys(dayData).forEach(servantId => {
+                if (dayData[servantId] && dayData[servantId].presented) {
+                    const autoNoteId = `sn_auto_pres_${servantId}_${date}`;
+                    const exists = notes.some(n => n.id === autoNoteId);
+                    if (!exists) {
+                        const servant = members.find(m => m.id === servantId);
+                        notes.push({
+                            id: autoNoteId,
+                            servantId: servantId,
+                            servantName: servant ? servant.name : '',
+                            type: 'positive',
+                            category: 'تحضير وفقرات',
+                            date: date,
+                            text: `تقديم فقرة في اليوم بتاريخ ${formatDate(date)}`,
+                            source: 'auto_presented',
+                            createdAt: new Date().toISOString(),
+                            updatedAt: new Date().toISOString()
+                        });
+                        changed = true;
+                    }
+                }
+            });
+        });
+
+        if (changed) {
+            saveServantNotes(notes);
+        }
+    } catch {}
+}
+
+function setupServantsNotes() {
+    syncPastPresentationNotes();
+
+    // 1. Gate unlock button & enter key
+    const btnUnlockGate = document.getElementById('btn-unlock-servants-notes-gate');
+    const gatePassInput = document.getElementById('servants-notes-gate-pass');
+    
+    const handleGateUnlock = () => {
+        const val = (gatePassInput ? gatePassInput.value : '').trim();
+        if (verifyServantNotesPassword(val)) {
+            window.isServantNotesUnlocked = true;
+            if (gatePassInput) gatePassInput.value = '';
+            showToast('تم فتح ملاحظات الخدام بنجاح 🔓', 'success');
+            refreshServantsNotes();
+        } else {
+            showToast('كلمة المرور غير صحيحة! ❌', 'error');
+        }
+    };
+
+    if (btnUnlockGate) btnUnlockGate.addEventListener('click', handleGateUnlock);
+    if (gatePassInput) {
+        gatePassInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') handleGateUnlock();
+        });
+    }
+
+    // 2. Lock button
+    const btnLockNotes = document.getElementById('btn-lock-servants-notes');
+    if (btnLockNotes) {
+        btnLockNotes.addEventListener('click', () => {
+            window.isServantNotesUnlocked = false;
+            showToast('تم قفل صفحة ملاحظات الخدام 🔒', 'warning');
+            refreshServantsNotes();
+        });
+    }
+
+    // 3. Change password button & modal
+    const btnChangePass = document.getElementById('btn-change-servants-notes-pass');
+    if (btnChangePass) {
+        btnChangePass.addEventListener('click', () => {
+            document.getElementById('notes-curr-pass').value = '';
+            document.getElementById('notes-new-pass').value = '';
+            document.getElementById('notes-confirm-pass').value = '';
+            document.getElementById('servants-notes-pass-modal-bg').classList.add('active');
+        });
+    }
+
+    const btnSavePass = document.getElementById('btn-save-notes-pass');
+    if (btnSavePass) {
+        btnSavePass.addEventListener('click', () => {
+            const curr = (document.getElementById('notes-curr-pass').value || '').trim();
+            const newP = (document.getElementById('notes-new-pass').value || '').trim();
+            const conf = (document.getElementById('notes-confirm-pass').value || '').trim();
+
+            if (!verifyServantNotesPassword(curr)) {
+                alert('كلمة المرور الحالية غير صحيحة!');
+                return;
+            }
+            if (!newP || newP.length < 3) {
+                alert('برجاء كتابة كلمة مرور جديدة لا تقل عن 3 أحرف/أرقام.');
+                return;
+            }
+            if (newP !== conf) {
+                alert('تأكيد كلمة المرور لا يطابق كلمة المرور الجديدة!');
+                return;
+            }
+
+            setServantNotesPassword(newP);
+            document.getElementById('servants-notes-pass-modal-bg').classList.remove('active');
+            showToast('تم تغيير كلمة المرور بنجاح 🔑', 'success');
+        });
+    }
+
+    // 4. Main add note button
+    const btnAddMain = document.getElementById('btn-add-servant-note-main');
+    if (btnAddMain) {
+        btnAddMain.addEventListener('click', () => {
+            openAddServantNoteModal();
+        });
+    }
+
+    // 5. Note Type Toggles in Modal
+    const btnTypePos = document.getElementById('btn-toggle-type-pos');
+    const btnTypeNeg = document.getElementById('btn-toggle-type-neg');
+    const noteTypeVal = document.getElementById('note-type-val');
+
+    if (btnTypePos && btnTypeNeg && noteTypeVal) {
+        btnTypePos.addEventListener('click', () => {
+            noteTypeVal.value = 'positive';
+            btnTypePos.classList.add('active');
+            btnTypeNeg.classList.remove('active');
+        });
+        btnTypeNeg.addEventListener('click', () => {
+            noteTypeVal.value = 'negative';
+            btnTypeNeg.classList.add('active');
+            btnTypePos.classList.remove('active');
+        });
+    }
+
+    // 6. Save Note Button
+    const btnSaveNote = document.getElementById('btn-save-servant-note');
+    if (btnSaveNote) {
+        btnSaveNote.addEventListener('click', saveServantNote);
+    }
+
+    // 7. Filters & Sort listeners
+    const filterBtns = document.querySelectorAll('#servants-notes-filters [data-notes-filter]');
+    filterBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            filterBtns.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            currentNotesFilter = btn.getAttribute('data-notes-filter');
+            renderServantsNotesGrid();
+        });
+    });
+
+    const sortSelect = document.getElementById('sort-servants-notes');
+    if (sortSelect) {
+        sortSelect.addEventListener('change', () => {
+            renderServantsNotesGrid();
+        });
+    }
+
+    const searchInput = document.getElementById('search-servants-notes');
+    if (searchInput) {
+        searchInput.addEventListener('input', () => {
+            renderServantsNotesGrid();
+        });
+    }
+
+    // 8. History Modal Filter Buttons & Quick Add
+    ['all', 'pos', 'neg'].forEach(t => {
+        const b = document.getElementById(`btn-hist-filter-${t}`);
+        if (b) {
+            b.addEventListener('click', () => {
+                document.querySelectorAll('[data-hist-filter]').forEach(el => el.classList.remove('active'));
+                b.classList.add('active');
+                currentHistoryFilter = b.getAttribute('data-hist-filter');
+                if (currentHistoryServantId) renderServantNotesHistory(currentHistoryServantId, currentHistoryFilter);
+            });
+        }
+    });
+
+    const btnHistoryQuickAdd = document.getElementById('btn-history-quick-add');
+    if (btnHistoryQuickAdd) {
+        btnHistoryQuickAdd.addEventListener('click', () => {
+            if (currentHistoryServantId) {
+                openAddServantNoteModal(currentHistoryServantId);
+            }
+        });
+    }
+
+    // 9. Export to Excel
+    const btnExport = document.getElementById('btn-export-servant-notes');
+    if (btnExport) {
+        btnExport.addEventListener('click', exportServantNotesToExcel);
+    }
+}
+
+function refreshServantsNotes() {
+    const gate = document.getElementById('servants-notes-locked-gate');
+    const content = document.getElementById('servants-notes-main-content');
+
+    if (!window.isServantNotesUnlocked) {
+        if (gate) gate.style.display = 'block';
+        if (content) content.style.display = 'none';
+        return;
+    }
+
+    if (gate) gate.style.display = 'none';
+    if (content) content.style.display = 'block';
+
+    renderServantsNotesGrid();
+}
+
+function renderServantsNotesGrid() {
+    if (!window.isServantNotesUnlocked) return;
+
+    const members = getMembers();
+    const servants = members.filter(m => m.role === 'servant');
+    const allNotes = getServantNotes();
+
+    // Map notes by servantId
+    const notesByServant = {};
+    servants.forEach(s => { notesByServant[s.id] = []; });
+    allNotes.forEach(n => {
+        if (!notesByServant[n.servantId]) notesByServant[n.servantId] = [];
+        notesByServant[n.servantId].push(n);
+    });
+
+    // Update Overall Stats
+    const totalServants = servants.length;
+    const totalNotesCount = allNotes.length;
+    const posNotesCount = allNotes.filter(n => n.type === 'positive').length;
+    const negNotesCount = allNotes.filter(n => n.type === 'negative').length;
+    const posPct = totalNotesCount > 0 ? Math.round((posNotesCount / totalNotesCount) * 100) : 0;
+
+    const elTotalServants = document.getElementById('notes-stat-servants-count');
+    const elTotalNotes = document.getElementById('notes-stat-total-notes');
+    const elPosNotes = document.getElementById('notes-stat-positive-notes');
+    const elNegNotes = document.getElementById('notes-stat-negative-notes');
+    const elPosPct = document.getElementById('notes-stat-pos-percent');
+
+    if (elTotalServants) elTotalServants.innerText = totalServants;
+    if (elTotalNotes) elTotalNotes.innerText = totalNotesCount;
+    if (elPosNotes) elPosNotes.innerText = posNotesCount;
+    if (elNegNotes) elNegNotes.innerText = negNotesCount;
+    if (elPosPct) elPosPct.innerText = `${posPct}% من الإجمالي`;
+
+    // Calculate Counts for Filter Badges
+    let countAll = servants.length;
+    let countHas = 0;
+    let countPos = 0;
+    let countNeg = 0;
+    let countNone = 0;
+
+    servants.forEach(s => {
+        const sNotes = notesByServant[s.id] || [];
+        if (sNotes.length > 0) countHas++;
+        else countNone++;
+        if (sNotes.some(n => n.type === 'positive')) countPos++;
+        if (sNotes.some(n => n.type === 'negative')) countNeg++;
+    });
+
+    const setBadge = (id, val) => { const el = document.getElementById(id); if (el) el.innerText = val; };
+    setBadge('count-notes-all', countAll);
+    setBadge('count-notes-has', countHas);
+    setBadge('count-notes-pos', countPos);
+    setBadge('count-notes-neg', countNeg);
+    setBadge('count-notes-none', countNone);
+
+    // Filter & Search
+    const searchVal = normalizeAr(document.getElementById('search-servants-notes')?.value || '');
+    const sortVal = document.getElementById('sort-servants-notes')?.value || 'recent';
+
+    let filtered = servants.filter(s => {
+        const sNotes = notesByServant[s.id] || [];
+        
+        // Filter by tab
+        if (currentNotesFilter === 'has-notes' && sNotes.length === 0) return false;
+        if (currentNotesFilter === 'has-pos' && !sNotes.some(n => n.type === 'positive')) return false;
+        if (currentNotesFilter === 'has-neg' && !sNotes.some(n => n.type === 'negative')) return false;
+        if (currentNotesFilter === 'no-notes' && sNotes.length > 0) return false;
+
+        // Search in servant name, address, phone or notes text
+        if (searchVal) {
+            const nameMatch = normalizeAr(s.name).includes(searchVal);
+            const phoneMatch = (s.phone || '').includes(searchVal);
+            const notesMatch = sNotes.some(n => normalizeAr(n.text || '').includes(searchVal) || normalizeAr(n.category || '').includes(searchVal));
+            if (!nameMatch && !phoneMatch && !notesMatch) return false;
+        }
+
+        return true;
+    });
+
+    // Sorting
+    filtered.sort((a, b) => {
+        const aNotes = notesByServant[a.id] || [];
+        const bNotes = notesByServant[b.id] || [];
+
+        if (sortVal === 'alpha') {
+            return a.name.localeCompare(b.name, 'ar');
+        } else if (sortVal === 'most-notes') {
+            return bNotes.length - aNotes.length;
+        } else if (sortVal === 'most-neg') {
+            const aNeg = aNotes.filter(n => n.type === 'negative').length;
+            const bNeg = bNotes.filter(n => n.type === 'negative').length;
+            return bNeg - aNeg;
+        } else if (sortVal === 'most-pos') {
+            const aPos = aNotes.filter(n => n.type === 'positive').length;
+            const bPos = bNotes.filter(n => n.type === 'positive').length;
+            return bPos - aPos;
+        } else {
+            // 'recent' by latest note timestamp
+            const aLatest = aNotes.length > 0 ? Math.max(...aNotes.map(n => new Date(n.updatedAt || n.createdAt || n.date).getTime())) : 0;
+            const bLatest = bNotes.length > 0 ? Math.max(...bNotes.map(n => new Date(n.updatedAt || n.createdAt || n.date).getTime())) : 0;
+            if (bLatest !== aLatest) return bLatest - aLatest;
+            return a.name.localeCompare(b.name, 'ar');
+        }
+    });
+
+    // Render Grid
+    const grid = document.getElementById('servants-notes-grid');
+    if (!grid) return;
+    grid.innerHTML = '';
+
+    if (filtered.length === 0) {
+        grid.innerHTML = `
+            <div style="grid-column: 1 / -1; text-align: center; padding: 50px 20px; color: var(--text-muted);" class="glass">
+                <i class="ph ph-folder-open" style="font-size: 3rem; margin-bottom: 15px; opacity: 0.6;"></i>
+                <h3>لا توجد نتائج تطابق البحث أو الفلتر</h3>
+                <p style="margin-top: 5px;">جرب تغيير كلمة البحث أو اختيار فلتر آخر.</p>
+            </div>
+        `;
+        return;
+    }
+
+    filtered.forEach(servant => {
+        const sNotes = (notesByServant[servant.id] || []).sort((x, y) => new Date(y.date || y.createdAt) - new Date(x.date || x.createdAt));
+        const posCount = sNotes.filter(n => n.type === 'positive').length;
+        const negCount = sNotes.filter(n => n.type === 'negative').length;
+        const total = sNotes.length;
+
+        const posWidth = total > 0 ? (posCount / total) * 100 : 50;
+        const negWidth = total > 0 ? (negCount / total) * 100 : 50;
+
+        const latestNote = sNotes[0];
+
+        const card = document.createElement('div');
+        card.className = 'servant-note-card glass';
+
+        let recentSnippetHtml = '';
+        if (latestNote) {
+            const isPos = latestNote.type === 'positive';
+            recentSnippetHtml = `
+                <div class="servant-note-recent ${isPos ? 'pos' : 'neg'}">
+                    <div class="servant-note-recent-header">
+                        <span>${isPos ? '🟢 إيجابية' : '🔴 سلبية'} • ${esc(latestNote.category || 'عام')}</span>
+                        <span>${formatDate(latestNote.date)}</span>
+                    </div>
+                    <div class="servant-note-recent-text">"${esc(latestNote.text)}"</div>
+                </div>
+            `;
+        } else {
+            recentSnippetHtml = `
+                <div class="servant-note-recent" style="border-right-color: var(--glass-border); opacity: 0.65; text-align: center; font-style: italic;">
+                    لا توجد ملاحظات مسجلة بعد لهذا الخادم
+                </div>
+            `;
+        }
+
+        const canEditNotes = currentUserRole === 'admin' || currentPermissions.includes('servants-notes-edit');
+        const addNoteBtnHtml = canEditNotes ? `
+            <button class="btn btn-primary btn-sm" onclick="openAddServantNoteModal('${servant.id}')">
+                <i class="ph ph-plus"></i> إضافة ملاحظة
+            </button>
+        ` : '';
+
+        card.innerHTML = `
+            <div>
+                <div class="servant-note-card-header">
+                    <div class="servant-note-avatar">
+                        <i class="ph ${servant.gender === 'female' ? 'ph-user' : 'ph-user-gear'}"></i>
+                    </div>
+                    <div class="servant-note-info">
+                        <h3 title="${esc(servant.name)}">${esc(servant.name)}</h3>
+                        <div class="servant-sub">${esc(servant.phone || servant.address || 'خادم بالاجتماع')}</div>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px;">
+                    <span class="badge-note-pos">🟢 ${posCount} إيجابية</span>
+                    <span class="badge-note-neg">🔴 ${negCount} سلبية</span>
+                    <span style="font-size: 0.8rem; color: var(--text-muted); align-self: center; margin-right: auto;">إجمالي: ${total}</span>
+                </div>
+
+                <div class="servant-note-ratio-bar">
+                    ${total > 0 ? `
+                        <div class="servant-note-ratio-pos" style="width: ${posWidth}%;"></div>
+                        <div class="servant-note-ratio-neg" style="width: ${negWidth}%;"></div>
+                    ` : `
+                        <div style="width: 100%; background: rgba(255,255,255,0.06);"></div>
+                    `}
+                </div>
+
+                ${recentSnippetHtml}
+            </div>
+
+            <div class="servant-note-actions">
+                ${addNoteBtnHtml}
+                <button class="btn btn-outline btn-sm" onclick="openServantNotesHistoryModal('${servant.id}')">
+                    <i class="ph ph-notebook"></i> السجل (${total})
+                </button>
+            </div>
+        `;
+
+        grid.appendChild(card);
+    });
+}
+
+window.openAddServantNoteModal = function(servantId = null, editNoteId = null) {
+    if (currentUserRole !== 'admin' && !currentPermissions.includes('servants-notes-edit')) {
+        alert('عفواً، لا تملك صلاحية إضافة أو تعديل ملاحظات الخدام (المشاهدة فقط).');
+        return;
+    }
+    const modal = document.getElementById('servant-note-modal-bg');
+    if (!modal) return;
+
+    const servants = getMembers().filter(m => m.role === 'servant').sort((a, b) => a.name.localeCompare(b.name, 'ar'));
+    const select = document.getElementById('note-servant-select');
+    select.innerHTML = '';
+
+    servants.forEach(s => {
+        const opt = document.createElement('option');
+        opt.value = s.id;
+        opt.innerText = s.name;
+        select.appendChild(opt);
+    });
+
+    const editIdInput = document.getElementById('edit-note-id');
+    const titleEl = document.getElementById('servant-note-modal-title');
+    const typeValInput = document.getElementById('note-type-val');
+    const btnPos = document.getElementById('btn-toggle-type-pos');
+    const btnNeg = document.getElementById('btn-toggle-type-neg');
+    const catSelect = document.getElementById('note-category-select');
+    const dateInput = document.getElementById('note-date-input');
+    const textInput = document.getElementById('note-text-input');
+
+    if (editNoteId) {
+        const allNotes = getServantNotes();
+        const existing = allNotes.find(n => n.id === editNoteId);
+        if (existing) {
+            editIdInput.value = existing.id;
+            titleEl.innerHTML = `<i class="ph ph-note-pencil"></i> تعديل الملاحظة`;
+            select.value = existing.servantId;
+            typeValInput.value = existing.type || 'positive';
+            if (existing.type === 'negative') {
+                btnNeg.classList.add('active');
+                btnPos.classList.remove('active');
+            } else {
+                btnPos.classList.add('active');
+                btnNeg.classList.remove('active');
+            }
+            catSelect.value = existing.category || 'عام';
+            dateInput.value = existing.date || todayLocal();
+            textInput.value = existing.text || '';
+        }
+    } else {
+        editIdInput.value = '';
+        titleEl.innerHTML = `<i class="ph ph-note-pencil"></i> إضافة ملاحظة لخادم`;
+        if (servantId) select.value = servantId;
+        typeValInput.value = 'positive';
+        btnPos.classList.add('active');
+        btnNeg.classList.remove('active');
+        catSelect.value = 'عام';
+        dateInput.value = todayLocal();
+        textInput.value = '';
+    }
+
+    modal.classList.add('active');
+    setTimeout(() => { if (textInput) textInput.focus(); }, 150);
+};
+
+function saveServantNote() {
+    if (currentUserRole !== 'admin' && !currentPermissions.includes('servants-notes-edit')) {
+        alert('عفواً، لا تملك صلاحية إضافة أو تعديل ملاحظات الخدام (المشاهدة فقط).');
+        return;
+    }
+    const editId = (document.getElementById('edit-note-id')?.value || '').trim();
+    const servantId = document.getElementById('note-servant-select')?.value;
+    const type = document.getElementById('note-type-val')?.value || 'positive';
+    const category = document.getElementById('note-category-select')?.value || 'عام';
+    const date = document.getElementById('note-date-input')?.value || todayLocal();
+    const text = (document.getElementById('note-text-input')?.value || '').trim();
+
+    if (!servantId) {
+        alert('برجاء اختيار الخادم');
+        return;
+    }
+    if (!text) {
+        alert('برجاء كتابة نص الملاحظة');
+        return;
+    }
+
+    const members = getMembers();
+    const servant = members.find(m => m.id === servantId);
+    const servantName = servant ? servant.name : '';
+
+    let notes = getServantNotes();
+
+    if (editId) {
+        const idx = notes.findIndex(n => n.id === editId);
+        if (idx !== -1) {
+            notes[idx] = {
+                ...notes[idx],
+                servantId,
+                servantName,
+                type,
+                category,
+                date,
+                text,
+                updatedAt: new Date().toISOString()
+            };
+        }
+    } else {
+        const newNote = {
+            id: 'sn_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+            servantId,
+            servantName,
+            type,
+            category,
+            date,
+            text,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+        };
+        notes.unshift(newNote);
+    }
+
+    saveServantNotes(notes);
+    document.getElementById('servant-note-modal-bg').classList.remove('active');
+    showToast('تم حفظ الملاحظة بنجاح ✅', 'success');
+
+    renderServantsNotesGrid();
+    if (currentHistoryServantId && document.getElementById('servant-notes-history-modal-bg').classList.contains('active')) {
+        renderServantNotesHistory(currentHistoryServantId, currentHistoryFilter);
+    }
+}
+
+window.openServantNotesHistoryModal = function(servantId) {
+    currentHistoryServantId = servantId;
+    currentHistoryFilter = 'all';
+
+    // Reset filter active state in modal
+    document.querySelectorAll('[data-hist-filter]').forEach(b => b.classList.remove('active'));
+    document.getElementById('btn-hist-filter-all')?.classList.add('active');
+
+    renderServantNotesHistory(servantId, 'all');
+    document.getElementById('servant-notes-history-modal-bg').classList.add('active');
+};
+
+function renderServantNotesHistory(servantId, filterType = 'all') {
+    const members = getMembers();
+    const servant = members.find(m => m.id === servantId);
+    const servantName = servant ? servant.name : 'الخادم';
+
+    document.getElementById('history-modal-servant-title').innerHTML = `<i class="ph ph-user-circle"></i> سجل ملاحظات: ${esc(servantName)}`;
+
+    const allNotes = getServantNotes();
+    const sNotes = allNotes.filter(n => n.servantId === servantId).sort((a, b) => new Date(b.date || b.createdAt) - new Date(a.date || a.createdAt));
+
+    const total = sNotes.length;
+    const posCount = sNotes.filter(n => n.type === 'positive').length;
+    const negCount = sNotes.filter(n => n.type === 'negative').length;
+
+    document.getElementById('history-stat-total').innerText = total;
+    document.getElementById('history-stat-pos').innerText = posCount;
+    document.getElementById('history-stat-neg').innerText = negCount;
+
+    let filtered = sNotes;
+    if (filterType === 'positive') filtered = sNotes.filter(n => n.type === 'positive');
+    if (filterType === 'negative') filtered = sNotes.filter(n => n.type === 'negative');
+
+    const list = document.getElementById('servant-notes-history-list');
+    list.innerHTML = '';
+
+    if (filtered.length === 0) {
+        list.innerHTML = `
+            <div style="text-align: center; padding: 40px 15px; color: var(--text-muted);">
+                <i class="ph ph-note-blank" style="font-size: 2.5rem; opacity: 0.5; margin-bottom: 10px;"></i>
+                <p>لا توجد ملاحظات مسجلة تطابق الفلتر المحدد.</p>
+            </div>
+        `;
+        return;
+    }
+
+    filtered.forEach(note => {
+        const isPos = note.type === 'positive';
+        const item = document.createElement('div');
+        item.className = `note-history-item glass ${isPos ? 'pos' : 'neg'}`;
+
+        item.innerHTML = `
+            <div class="note-history-item-header">
+                <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                    <span class="${isPos ? 'badge-note-pos' : 'badge-note-neg'}">
+                        ${isPos ? '<i class="ph ph-thumbs-up"></i> إيجابية' : '<i class="ph ph-thumbs-down"></i> سلبية'}
+                    </span>
+                    <span style="font-size: 0.8rem; background: rgba(255,255,255,0.08); padding: 3px 8px; border-radius: 8px; color: var(--text-muted);">
+                        ${esc(note.category || 'عام')}
+                    </span>
+                    <span style="font-size: 0.8rem; color: var(--text-muted);"><i class="ph ph-calendar"></i> ${formatDate(note.date)}</span>
+                </div>
+                ${(currentUserRole === 'admin' || currentPermissions.includes('servants-notes-edit')) ? `
+                <div style="display: flex; gap: 6px;">
+                    <button class="btn btn-outline btn-sm" style="padding: 4px 8px; font-size: 0.8rem;" onclick="openAddServantNoteModal('${servantId}', '${note.id}')" title="تعديل الملاحظة">
+                        <i class="ph ph-pencil-simple"></i>
+                    </button>
+                    <button class="btn btn-outline btn-sm" style="padding: 4px 8px; font-size: 0.8rem; border-color: var(--danger); color: var(--danger);" onclick="deleteServantNote('${note.id}')" title="حذف الملاحظة">
+                        <i class="ph ph-trash"></i>
+                    </button>
+                </div>
+                ` : ''}
+            </div>
+            <div class="note-history-item-content">${esc(note.text)}</div>
+        `;
+
+        list.appendChild(item);
+    });
+}
+
+window.deleteServantNote = async function(noteId) {
+    if (currentUserRole !== 'admin' && !currentPermissions.includes('servants-notes-edit')) {
+        alert('عفواً، لا تملك صلاحية حذف ملاحظات الخدام (المشاهدة فقط).');
+        return;
+    }
+    const ok = await customConfirm('هل أنت متأكد من حذف هذه الملاحظة نهائياً؟');
+    if (!ok) return;
+
+    let notes = getServantNotes();
+    notes = notes.filter(n => n.id !== noteId);
+    saveServantNotes(notes);
+
+    showToast('تم حذف الملاحظة بنجاح 🗑️', 'warning');
+    renderServantsNotesGrid();
+    if (currentHistoryServantId) {
+        renderServantNotesHistory(currentHistoryServantId, currentHistoryFilter);
+    }
+};
+
+function exportServantNotesToExcel() {
+    if (typeof XLSX === 'undefined') {
+        alert('مكتبة تصدير الإكسيل غير متوفرة');
+        return;
+    }
+
+    const members = getMembers();
+    const membersMap = {};
+    members.forEach(m => { membersMap[m.id] = m.name; });
+
+    const notes = getServantNotes();
+    if (notes.length === 0) {
+        alert('لا توجد ملاحظات لتصديرها');
+        return;
+    }
+
+    const rows = notes.map((n, idx) => ({
+        "م": idx + 1,
+        "اسم الخادم": membersMap[n.servantId] || n.servantName || 'غير معروف',
+        "نوع الملاحظة": n.type === 'positive' ? 'إيجابية 🟢' : 'سلبية 🔴',
+        "التصنيف": n.category || 'عام',
+        "التاريخ": formatDate(n.date),
+        "نص الملاحظة": n.text,
+        "تاريخ الإضافة": n.createdAt ? n.createdAt.split('T')[0] : ''
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "ملاحظات الخدام");
+    XLSX.writeFile(wb, `ملاحظات_خدام_الاجتماع_${todayLocal()}.xlsx`);
+    showToast('تم تصدير ملف الإكسيل بنجاح 📊', 'success');
 }
 
 
@@ -1636,6 +2629,10 @@ function setupAttendanceView() {
 
     document.getElementById('btn-save-attendance').addEventListener('click', () => {
         if (!currentAttendanceDate) return;
+        if (currentUserRole !== 'admin' && !currentPermissions.includes('attendance-edit')) {
+            alert('عفواً، حسابك يملك صلاحية المشاهدة فقط ولا يمكنه تعديل أو حفظ الحضور.');
+            return;
+        }
 
         const records = getAttendanceRecords();
         const servantRecords = getServantRecords();
@@ -1652,13 +2649,20 @@ function setupAttendanceView() {
             }
         });
 
+        let servantNotes = getServantNotes();
+        let notesModified = false;
+        const allMembers = getMembers();
+
         document.getElementById('attendance-servants-list').querySelectorAll('.servant-eval-row').forEach(row => {
             const memberId = row.getAttribute('data-id');
             const isAttending = attendedIds.includes(memberId); // Only save servant stats if they attended
+            const isPresented = isAttending && row.querySelector('.servant-presented').checked;
+            const autoNoteId = `sn_auto_pres_${memberId}_${currentAttendanceDate}`;
+            const existingIdx = servantNotes.findIndex(n => n.id === autoNoteId);
 
             if (isAttending) {
                 servantRecords[currentAttendanceDate][memberId] = {
-                    presented: row.querySelector('.servant-presented').checked,
+                    presented: isPresented,
                     leader: row.querySelector('.servant-leader').checked,
                     arrival: row.querySelector('.servant-arrival').value
                 };
@@ -1667,11 +2671,52 @@ function setupAttendanceView() {
                     delete servantRecords[currentAttendanceDate][memberId];
                 }
             }
+
+            if (isPresented) {
+                const sObj = allMembers.find(m => m.id === memberId);
+                const sName = sObj ? sObj.name : '';
+                const noteText = `تقديم فقرة في اليوم بتاريخ ${formatDate(currentAttendanceDate)}`;
+
+                if (existingIdx === -1) {
+                    servantNotes.unshift({
+                        id: autoNoteId,
+                        servantId: memberId,
+                        servantName: sName,
+                        type: 'positive',
+                        category: 'تحضير وفقرات',
+                        date: currentAttendanceDate,
+                        text: noteText,
+                        source: 'auto_presented',
+                        createdAt: new Date().toISOString(),
+                        updatedAt: new Date().toISOString()
+                    });
+                    notesModified = true;
+                } else {
+                    if (servantNotes[existingIdx].text !== noteText || servantNotes[existingIdx].type !== 'positive') {
+                        servantNotes[existingIdx].text = noteText;
+                        servantNotes[existingIdx].type = 'positive';
+                        servantNotes[existingIdx].updatedAt = new Date().toISOString();
+                        notesModified = true;
+                    }
+                }
+            } else {
+                if (existingIdx !== -1) {
+                    servantNotes.splice(existingIdx, 1);
+                    notesModified = true;
+                }
+            }
         });
 
         records[currentAttendanceDate] = attendedIds;
         saveAttendanceRecords(records);
         saveServantRecords(servantRecords);
+
+        if (notesModified) {
+            saveServantNotes(servantNotes);
+            if (typeof refreshServantsNotes === 'function') {
+                refreshServantsNotes();
+            }
+        }
 
         const dayTypeSelect = document.getElementById('attendance-day-type');
         if (dayTypeSelect) {
@@ -1723,17 +2768,26 @@ function updateAttendanceWorkspace() {
         const isAttending = todayAttendees.includes(member.id);
         const isServant = member.role === 'servant';
 
-        // --- General Attendance Row ---
+        // --- General Attendance Row (Stitch Design) ---
         const row = document.createElement('div');
         row.className = 'member-attendance-row glass';
         row.setAttribute('data-id', member.id);
         row.style.justifyContent = 'space-between';
 
+        const initial = (member.name || '').trim().charAt(0) || 'ع';
+        const subtext = member.address || (isServant ? 'خادم بالاجتماع' : 'مخدوم بالاجتماع');
+
         row.innerHTML = `
-            <div class="member-name">${member.name} ${isServant ? '<span class="status-badge badge-warning" style="font-size: 0.7rem; margin-right:5px; padding: 2px 8px;">خادم</span>' : ''}</div>
+            <div class="member-info-wrap">
+                <div class="member-avatar">${initial}</div>
+                <div>
+                    <div class="member-name">${esc(member.name)} ${isServant ? '<span class="status-badge badge-warning" style="font-size: 0.7rem; margin-right:5px; padding: 2px 8px;">خادم</span>' : ''}</div>
+                    <div class="member-subtext">${esc(subtext)}</div>
+                </div>
+            </div>
             <div class="toggle-group">
-                <button class="toggle-btn btn-attend ${isAttending ? 'active attend' : ''}">حضر</button>
-                <button class="toggle-btn btn-absent ${!isAttending ? 'active absent' : ''}">غاب</button>
+                <button class="toggle-btn btn-attend ${isAttending ? 'active attend' : ''}"><i class="ph ph-check"></i> حضر</button>
+                <button class="toggle-btn btn-absent ${!isAttending ? 'active absent' : ''}"><i class="ph ph-x"></i> غاب</button>
             </div>
         `;
 
@@ -1965,6 +3019,9 @@ function refreshFollowUp() {
             
             <div style="display: flex; gap: 8px; border-top: 1px solid var(--glass-border); padding-top: 12px;">
                 ${member.phone ? `
+                <a href="tel:${member.phone}" class="btn btn-outline btn-sm" style="padding: 0; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; border-radius: 8px; flex-shrink: 0;" title="اتصال هاتفي">
+                    <i class="ph ph-phone" style="font-size: 1.15rem; color: #60a5fa;"></i>
+                </a>
                 <a href="https://wa.me/2${member.phone.startsWith('0') ? member.phone : '0' + member.phone}" target="_blank" class="btn btn-success btn-sm" style="padding: 0; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; border-radius: 8px; flex-shrink: 0;" title="مراسلة واتساب">
                     <i class="ph ph-whatsapp-logo" style="font-size: 1.2rem;"></i>
                 </a>
@@ -2106,6 +3163,10 @@ function setupCopyNeedsVisit() {
 function setupVisitationModals() {
     // Record visit modal save btn
     document.getElementById('btn-save-visit').addEventListener('click', () => {
+        if (currentUserRole !== 'admin' && !currentPermissions.includes('followup-edit')) {
+            alert('عفواً، لا تملك صلاحية تسجيل أو تعديل الافتقاد (المشاهدة فقط).');
+            return;
+        }
         const memberId = document.getElementById('visit-member-id').value;
         const date = document.getElementById('visit-date').value;
         const positives = document.getElementById('visit-positives').value;
@@ -2197,6 +3258,10 @@ function setupVisitationModals() {
     const btnSaveBulk = document.getElementById('btn-save-bulk-visit');
     if (btnSaveBulk) {
         btnSaveBulk.addEventListener('click', () => {
+            if (currentUserRole !== 'admin' && !currentPermissions.includes('followup-edit')) {
+                alert('عفواً، لا تملك صلاحية تسجيل أو تعديل الافتقاد (المشاهدة فقط).');
+                return;
+            }
             const date = document.getElementById('bulk-visit-date').value;
             const positives = document.getElementById('bulk-visit-positives').value;
             const problems = document.getElementById('bulk-visit-problems').value;
@@ -2755,6 +3820,16 @@ window.editDayAttendance = function (date) {
     document.querySelector('[data-target="attendance-view"]').classList.add('active');
     document.getElementById('attendance-view').classList.add('active');
 
+    // Sync mobile bottom nav and save bar
+    document.querySelectorAll('.mobile-nav-item[data-target]').forEach(mItem => {
+        mItem.classList.toggle('active', mItem.getAttribute('data-target') === 'attendance-view');
+    });
+    const mobileSaveBar = document.getElementById('attendance-mobile-save-bar');
+    if (mobileSaveBar) {
+        const canEditAttendance = currentUserRole === 'admin' || currentPermissions.includes('attendance-edit');
+        mobileSaveBar.style.display = canEditAttendance ? 'flex' : 'none';
+    }
+
     document.getElementById('btn-start-day').click(); // trigger the load
 };
 
@@ -2956,6 +4031,19 @@ function setupAuth() {
     // Populate dropdowns with servants
     const members = getMembers().filter(m => m.role === 'servant').sort((a, b) => a.name.localeCompare(b.name, 'ar'));
 
+    if (loginUsername) {
+        loginUsername.innerHTML = `
+            <option value="admin">المدير (مدير النظام)</option>
+            <option value="supervisor">المشرف</option>
+        `;
+    }
+    if (permServantSelect) {
+        permServantSelect.innerHTML = `
+            <option value="admin">المدير (Admin)</option>
+            <option value="supervisor">المشرف (Supervisor)</option>
+        `;
+    }
+
     members.forEach(m => {
         const opt = document.createElement('option');
         opt.value = m.id;
@@ -3017,20 +4105,34 @@ function setupAuth() {
             const authData = getAuthData();
             let data;
 
-            if (id === 'supervisor') {
+            if (id === 'admin') {
+                data = authData.admin;
+            } else if (id === 'supervisor') {
                 data = authData.supervisor;
             } else {
                 data = authData.servants[id] || { password: '', permissions: ['dashboard-view'] };
             }
 
-            document.getElementById('perm-password').value = '';
-            document.getElementById('perm-password').placeholder = data.password ? 'يوجد كلمة مرور، اترك فارغاً للإبقاء عليها' : 'أدخل كلمة مرور جديدة...';
+            const permPassInput = document.getElementById('perm-password');
+            if (permPassInput) {
+                permPassInput.value = '';
+                permPassInput.placeholder = data.password ? `اكتب كلمة مرور جديدة لتغييرها...` : 'أدخل كلمة مرور جديدة...';
+            }
+
+            const hintEl = document.getElementById('perm-pass-hint');
+            if (hintEl) {
+                hintEl.innerText = data.password ? `🔑 كلمة المرور الحالية: "${data.password}"` : '⚠️ لا توجد كلمة مرور مسجلة بعد';
+            }
 
             Array.from(document.querySelectorAll('.perm-select')).forEach(sel => {
                 const section = sel.getAttribute('data-section');
-                if (data.permissions.includes(section + '-edit')) {
+                const perms = data.permissions || [];
+                const hasEditOpt = Boolean(sel.querySelector('option[value="edit"]'));
+                if (id === 'admin') {
+                    sel.value = hasEditOpt ? 'edit' : 'view';
+                } else if (perms.includes(section + '-edit') && hasEditOpt) {
                     sel.value = 'edit';
-                } else if (data.permissions.includes(section + '-view')) {
+                } else if (perms.includes(section + '-view')) {
                     sel.value = 'view';
                 } else {
                     sel.value = 'none';
@@ -3060,7 +4162,20 @@ function setupAuth() {
 
             const authData = getAuthData();
 
-            if (id === 'supervisor') {
+            if (id === 'admin') {
+                if (pass) authData.admin.password = pass;
+                authData.admin.permissions = [
+                    'dashboard-view',
+                    'attendance-view', 'attendance-edit',
+                    'followup-view', 'followup-edit',
+                    'servants-dashboard-view', 'servants-dashboard-edit',
+                    'servants-notes-view', 'servants-notes-edit',
+                    'competitions-view', 'competitions-edit',
+                    'summary-view',
+                    'admin-view', 'admin-edit',
+                    'settings-view'
+                ];
+            } else if (id === 'supervisor') {
                 if (pass) authData.supervisor.password = pass;
                 authData.supervisor.permissions = perms;
             } else {
@@ -3070,8 +4185,11 @@ function setupAuth() {
             }
 
             saveAuthData(authData);
+            if (typeof triggerCloudSync === 'function') triggerCloudSync();
             document.getElementById('permissions-modal-bg').classList.remove('active');
-            showToast('تم حفظ الصلاحيات بنجاح!');
+            
+            const userLabel = id === 'admin' ? 'المدير' : id === 'supervisor' ? 'المشرف' : 'الخادم';
+            showToast(`تم حفظ صلاحيات وكلمة مرور ${userLabel} بنجاح! ✅`, 'success');
 
             if (localStorage.getItem('church_logged_in_user') === id) {
                 checkLoginAndApply();
@@ -3096,6 +4214,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setupCopyNeedsVisit();
     setupKeyboardShortcuts();
     setupCompetitions();
+    setupServantsNotes();
 
     setupAuth();
     checkLoginAndApply();
@@ -3310,6 +4429,10 @@ function setupCompetitions() {
     const btnSaveComp = document.getElementById('btn-save-competition');
     if (btnSaveComp) {
         btnSaveComp.addEventListener('click', () => {
+            if (currentUserRole !== 'admin' && !currentPermissions.includes('competitions-edit')) {
+                alert('عفواً، لا تملك صلاحية إنشاء أو تعديل المسابقة (المشاهدة فقط).');
+                return;
+            }
             const name = document.getElementById('comp-name').value.trim();
             if (!name) return alert('أدخل اسم المسابقة');
 
@@ -3453,6 +4576,10 @@ function setupCompetitions() {
     const btnSaveRound = document.getElementById('btn-save-round');
     if (btnSaveRound) {
         btnSaveRound.addEventListener('click', () => {
+            if (currentUserRole !== 'admin' && !currentPermissions.includes('competitions-edit')) {
+                alert('عفواً، لا تملك صلاحية إضافة جولة للمسابقة (المشاهدة فقط).');
+                return;
+            }
             const compId = document.getElementById('current-comp-id').value;
             const comps = getCompetitions();
             const compIndex = comps.findIndex(c => c.id === compId);
@@ -3495,6 +4622,10 @@ function setupCompetitions() {
     const btnDeleteComp = document.getElementById('btn-delete-comp');
     if (btnDeleteComp) {
         btnDeleteComp.addEventListener('click', async () => {
+            if (currentUserRole !== 'admin' && !currentPermissions.includes('competitions-edit')) {
+                alert('عفواً، لا تملك صلاحية حذف المسابقة (المشاهدة فقط).');
+                return;
+            }
             const compId = document.getElementById('current-comp-id').value;
             if (!compId) return;
 
@@ -3511,6 +4642,10 @@ function setupCompetitions() {
     const btnFinishComp = document.getElementById('btn-finish-comp');
     if (btnFinishComp) {
         btnFinishComp.addEventListener('click', async () => {
+            if (currentUserRole !== 'admin' && !currentPermissions.includes('competitions-edit')) {
+                alert('عفواً، لا تملك صلاحية إنهاء المسابقة (المشاهدة فقط).');
+                return;
+            }
             const compId = document.getElementById('current-comp-id').value;
             if (!compId) return;
 
@@ -3734,9 +4869,10 @@ function openCompetitionDetails_original(compId) {
     if (comp.rounds.length === 0) {
         roundsList.innerHTML = '<p style="color: var(--text-muted); text-align: center;">لا توجد جولات مسجلة بعد.</p>';
     } else {
+        const canEditComp = currentUserRole === 'admin' || currentPermissions.includes('competitions-edit');
         const sortedRounds = [...comp.rounds].sort((a, b) => new Date(b.date) - new Date(a.date));
         sortedRounds.forEach((round, index) => {
-            const delBtn = '<button class="btn btn-outline" style="padding: 5px 10px; font-size: 0.8rem; border-color: var(--danger); color: var(--danger);" onclick="deleteCompRound(\'' + comp.id + '\', \'' + round.id + '\')"><i class="ph ph-trash"></i> حذف</button>';
+            const delBtn = canEditComp ? '<button class="btn btn-outline" style="padding: 5px 10px; font-size: 0.8rem; border-color: var(--danger); color: var(--danger);" onclick="deleteCompRound(\'' + comp.id + '\', \'' + round.id + '\')"><i class="ph ph-trash"></i> حذف</button>' : '';
 
             roundsList.innerHTML += '<div class="glass" style="padding: 10px 15px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; border-right: 4px solid var(--primary); margin-top: 5px;">' +
                 '<div>' +
@@ -3756,6 +4892,10 @@ function openCompetitionDetails_original(compId) {
 }
 
 window.deleteCompRound = async function (compId, roundId) {
+    if (currentUserRole !== 'admin' && !currentPermissions.includes('competitions-edit')) {
+        alert('عفواً، لا تملك صلاحية تعديل أو حذف جولات المسابقة.');
+        return;
+    }
     if (await customConfirm('هل أنت متأكد من حذف نتيجة هذه الجولة؟ سيعاد حساب الدرجات.')) {
         const comps = getCompetitions();
         const comp = comps.find(c => c.id === compId);
@@ -3973,6 +5113,11 @@ function toggleMobileMenu() {
     if (originalRenderServantsDashboard) {
         window.renderServantsDashboard = function(...args) { originalRenderServantsDashboard.apply(this, args); enforcePermissions(); };
     }
+
+    const originalRefreshServantsNotes = window.refreshServantsNotes;
+    if (originalRefreshServantsNotes) {
+        window.refreshServantsNotes = function(...args) { originalRefreshServantsNotes.apply(this, args); enforcePermissions(); };
+    }
     
     const originalRenderCompetitions = window.renderCompetitions;
     if (originalRenderCompetitions) {
@@ -3982,5 +5127,15 @@ function toggleMobileMenu() {
     const originalRenderSummary = window.renderSummary;
     if (originalRenderSummary) {
         window.renderSummary = function(...args) { originalRenderSummary.apply(this, args); enforcePermissions(); };
+    }
+
+    const originalRefreshAdminView = window.refreshAdminView;
+    if (originalRefreshAdminView) {
+        window.refreshAdminView = function(...args) { originalRefreshAdminView.apply(this, args); enforcePermissions(); };
+    }
+
+    const originalRenderServantsNotesGrid = window.renderServantsNotesGrid;
+    if (originalRenderServantsNotesGrid) {
+        window.renderServantsNotesGrid = function(...args) { originalRenderServantsNotesGrid.apply(this, args); enforcePermissions(); };
     }
 })();

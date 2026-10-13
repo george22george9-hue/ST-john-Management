@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+
+<html dir="rtl" lang="ar"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/>
+<title>المتابعة والافتقاد</title>
+<!-- Tailwind CSS v3 CDN with plugins -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Google Fonts: Cairo for crisp Arabic typography -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<!-- Lucide Icons -->
+<script src="https://unpkg.com/lucide@latest"></script>
+<!-- Custom Configuration for Tailwind -->
+<script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Cairo', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              dark: '#0c0e18',
+              surface: '#151726',
+              card: '#1c1f34',
+              cardHover: '#232742',
+              border: '#2a2e4c',
+              purple: '#5e43f3',
+              purpleLight: '#7862f6',
+              accentGreen: '#10b981',
+              accentRed: '#ef4444',
+              accentAmber: '#f59e0b',
+              accentCyan: '#06b6d4',
+            }
+          }
+        }
+      }
+    }
+  </script>
+<!-- Style adjustments for iOS status bar safe areas & custom scrollbars -->
+<style data-purpose="mobile-layout-styles">
+    body {
+      -webkit-tap-highlight-color: transparent;
+      padding-top: env(safe-area-inset-top);
+      padding-bottom: env(safe-area-inset-bottom);
+      background-color: #0c0e18;
+    }
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+  </style>
+</head>
+<body class="font-sans text-gray-100 min-h-screen bg-brand-dark flex flex-col selection:bg-brand-purple selection:text-white">
+<!-- BEGIN: AppHeader -->
+<header class="sticky top-0 z-30 bg-brand-dark/95 backdrop-blur-md border-b border-brand-border/60 px-4 pt-3 pb-3">
+<!-- Top Bar with Community Brand & Quick Settings -->
+<div class="flex items-center justify-between gap-3 mb-2">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-purple to-indigo-500 flex items-center justify-center shadow-lg shadow-brand-purple/20 border border-white/10">
+<i class="w-5 h-5 text-white" data-lucide="cross"></i>
+</div>
+<div>
+<h1 class="text-lg font-bold text-white tracking-wide flex items-center gap-1.5 leading-none">
+            المتابعة والافتقاد
+          </h1>
+<span class="text-xs text-gray-400 font-medium">متابعة الأعضاء وتوثيق الزيارات</span>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<button aria-label="الإشعارات" class="w-9 h-9 rounded-full bg-brand-surface border border-brand-border flex items-center justify-center text-gray-300 hover:text-white active:scale-95 transition-transform">
+<i class="w-4 h-4" data-lucide="bell"></i>
+</button>
+<button aria-label="تصفية إضافية" class="w-9 h-9 rounded-full bg-brand-surface border border-brand-border flex items-center justify-center text-gray-300 hover:text-white active:scale-95 transition-transform">
+<i class="w-4 h-4" data-lucide="sliders-horizontal"></i>
+</button>
+</div>
+</div>
+<!-- Quick Action Tool Buttons (Scrollable Horizontal Bar) -->
+<div class="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
+<button class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 text-xs font-semibold whitespace-nowrap active:scale-95 transition-transform shadow-sm">
+<i class="w-3.5 h-3.5" data-lucide="message-circle"></i>
+<span>تكليف واتساب</span>
+</button>
+<button class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand-purple/20 text-brand-purpleLight border border-brand-purple/40 text-xs font-semibold whitespace-nowrap active:scale-95 transition-transform shadow-sm">
+<i class="w-3.5 h-3.5" data-lucide="users-2"></i>
+<span>افتقاد جماعي</span>
+</button>
+<button class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/10 text-amber-400 border border-amber-500/30 text-xs font-semibold whitespace-nowrap active:scale-95 transition-transform shadow-sm">
+<i class="w-3.5 h-3.5" data-lucide="clock-alert"></i>
+<span>نسخ تأخر الافتقاد</span>
+</button>
+<button class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-500/10 text-rose-400 border border-rose-500/30 text-xs font-semibold whitespace-nowrap active:scale-95 transition-transform shadow-sm">
+<i class="w-3.5 h-3.5" data-lucide="copy"></i>
+<span>نسخ غياب آخر اجتماع</span>
+</button>
+</div>
+</header>
+<!-- END: AppHeader -->
+<!-- BEGIN: SearchAndFiltersSection -->
+<section class="px-4 py-3 bg-brand-dark/80 backdrop-blur sticky top-[108px] z-20 border-b border-brand-border/40 space-y-2.5">
+<!-- Search and District Dropdown in one compact row -->
+<div class="flex gap-2">
+<!-- Search input field -->
+<div class="relative flex-1">
+<i class="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" data-lucide="search"></i>
+<input class="w-full bg-brand-surface border border-brand-border rounded-xl text-sm pr-9 pl-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-brand-purple focus:border-brand-purple" placeholder="بحث بالاسم أو الهاتف..." type="text"/>
+</div>
+<!-- District Selector Dropdown -->
+<div class="w-32 relative">
+<select class="w-full appearance-none bg-brand-surface border border-brand-border rounded-xl text-xs py-2 pr-3 pl-7 text-gray-200 focus:outline-none focus:ring-1 focus:ring-brand-purple font-medium">
+<option>كل المناطق</option>
+<option>سندبيس</option>
+<option>البرادعة</option>
+<option>أجهور</option>
+</select>
+<i class="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" data-lucide="chevron-down"></i>
+</div>
+</div>
+<!-- Filter Category Badges -->
+<div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar pt-0.5 pb-1">
+<button class="px-3.5 py-1 rounded-full text-xs font-semibold bg-brand-purple text-white shadow-sm whitespace-nowrap">الكل (128)</button>
+<button class="px-3.5 py-1 rounded-full text-xs font-medium bg-brand-surface border border-brand-border text-rose-400 hover:bg-rose-500/10 whitespace-nowrap flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+        خطر (غائب 4+)
+      </button>
+<button class="px-3.5 py-1 rounded-full text-xs font-medium bg-brand-surface border border-brand-border text-amber-400 hover:bg-amber-500/10 whitespace-nowrap flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+        إنذار أول
+      </button>
+<button class="px-3.5 py-1 rounded-full text-xs font-medium bg-brand-surface border border-brand-border text-gray-300 hover:bg-white/5 whitespace-nowrap">غياب متكرر</button>
+<button class="px-3.5 py-1 rounded-full text-xs font-medium bg-brand-surface border border-brand-border text-gray-300 hover:bg-white/5 whitespace-nowrap">لم يفتقد لأكثر من شهر</button>
+</div>
+</section>
+<!-- END: SearchAndFiltersSection -->
+<!-- BEGIN: MainContentList -->
+<main class="flex-1 px-4 py-3 space-y-3.5 pb-24" data-purpose="visitation-records-list">
+<!-- Card Item 1: اسحاق ابراهيم -->
+<article class="bg-brand-surface rounded-2xl p-4 border border-brand-border shadow-md relative overflow-hidden" data-purpose="member-card">
+<div class="flex items-start justify-between gap-2">
+<div>
+<h2 class="text-base font-bold text-white flex items-center gap-2">
+            اسحاق ابراهيم
+            <span class="text-xs font-normal text-gray-400 bg-brand-card px-2 py-0.5 rounded-md border border-brand-border/60">سندبيس</span>
+</h2>
+<a class="inline-flex items-center gap-1 text-xs text-gray-400 hover:text-brand-purpleLight mt-1 font-mono direction-ltr" href="tel:01065937700">
+<i class="w-3 h-3 text-gray-400" data-lucide="phone"></i>
+<span>01065937700</span>
+</a>
+</div>
+<!-- Badges Stack -->
+<div class="flex flex-col items-end gap-1.5">
+<span class="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-md bg-rose-500/15 text-rose-400 border border-rose-500/30">
+<i class="w-3 h-3" data-lucide="alert-octagon"></i>
+            خطر: غائب 6 مرات
+          </span>
+<span class="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-md bg-amber-500/15 text-amber-300 border border-amber-500/30">
+<i class="w-2.5 h-2.5" data-lucide="clock"></i>
+            تأخر افتقاد
+          </span>
+</div>
+</div>
+<!-- Attendance & Visit Status Info Grid -->
+<div class="mt-3.5 pt-3 border-t border-brand-border/60 grid grid-cols-2 gap-2 text-xs">
+<div class="bg-brand-card/70 p-2.5 rounded-xl border border-brand-border/40">
+<div class="text-gray-400 text-[11px] mb-0.5 flex items-center gap-1">
+<i class="w-3 h-3 text-brand-purpleLight" data-lucide="calendar"></i>
+            آخر حضور
+          </div>
+<div class="font-semibold text-gray-200">28/08/2026</div>
+</div>
+<div class="bg-brand-card/70 p-2.5 rounded-xl border border-brand-border/40">
+<div class="text-gray-400 text-[11px] mb-0.5 flex items-center gap-1">
+<i class="w-3 h-3 text-amber-400" data-lucide="user-check"></i>
+            آخر افتقاد
+          </div>
+<div class="font-semibold text-amber-400">لم يتم الافتقاد</div>
+</div>
+</div>
+<!-- Attendance Percentage Progress -->
+<div class="mt-3">
+<div class="flex justify-between items-center text-xs mb-1">
+<span class="text-gray-400">نسبة الحضور السنوية</span>
+<span class="font-bold text-gray-300">50% <span class="text-[10px] text-gray-500">(7/14)</span></span>
+</div>
+<div class="w-full bg-brand-card h-2 rounded-full overflow-hidden border border-brand-border/40">
+<div class="bg-gradient-to-l from-indigo-500 to-brand-purple h-full rounded-full" style="width: 50%"></div>
+</div>
+</div>
+<!-- Action Buttons -->
+<div class="mt-4 pt-3 border-t border-brand-border/50 flex items-center gap-2">
+<button class="flex-1 bg-brand-purple hover:bg-brand-purpleLight active:scale-[0.98] transition-all text-white text-xs font-bold py-2 rounded-xl flex items-center justify-center gap-1.5 shadow-sm shadow-brand-purple/20">
+<i class="w-3.5 h-3.5" data-lucide="user-plus"></i>
+<span>توثيق افتقاد</span>
+</button>
+<a aria-label="مراسلة واتساب" class="w-10 h-9 rounded-xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-400 hover:bg-emerald-500 hover:text-white flex items-center justify-center transition-colors active:scale-95" href="https://wa.me/201065937700">
+<i class="w-4 h-4" data-lucide="message-circle"></i>
+</a>
+<button class="px-3 h-9 rounded-xl bg-brand-card border border-brand-border text-gray-300 hover:text-white text-xs font-medium flex items-center justify-center gap-1 hover:bg-brand-border/40 transition-colors">
+<i class="w-3.5 h-3.5" data-lucide="user"></i>
+<span>الملف</span>
+</button>
+</div>
+</article>
+<!-- Card Item 2: أبانوب مجدي -->
+<article class="bg-brand-surface rounded-2xl p-4 border border-brand-border shadow-md relative overflow-hidden" data-purpose="member-card">
+<div class="flex items-start justify-between gap-2">
+<div>
+<h2 class="text-base font-bold text-white flex items-center gap-2">
+            أبانوب مجدي
+            <span class="text-xs font-normal text-gray-400 bg-brand-card px-2 py-0.5 rounded-md border border-brand-border/60">البرادعة</span>
+</h2>
+<a class="inline-flex items-center gap-1 text-xs text-gray-400 hover:text-brand-purpleLight mt-1 font-mono direction-ltr" href="tel:01202241817">
+<i class="w-3 h-3 text-gray-400" data-lucide="phone"></i>
+<span>01202241817</span>
+</a>
+</div>
+<div class="flex flex-col items-end gap-1.5">
+<span class="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-md bg-rose-500/15 text-rose-400 border border-rose-500/30">
+<i class="w-3 h-3" data-lucide="alert-circle"></i>
+            خطر: غائب 4 مرات
+          </span>
+</div>
+</div>
+<div class="mt-3.5 pt-3 border-t border-brand-border/60 grid grid-cols-2 gap-2 text-xs">
+<div class="bg-brand-card/70 p-2.5 rounded-xl border border-brand-border/40">
+<div class="text-gray-400 text-[11px] mb-0.5 flex items-center gap-1">
+<i class="w-3 h-3 text-brand-purpleLight" data-lucide="calendar"></i>
+            آخر حضور
+          </div>
+<div class="font-semibold text-gray-200">18/09/2026</div>
+</div>
+<div class="bg-brand-card/70 p-2.5 rounded-xl border border-brand-border/40">
+<div class="text-gray-400 text-[11px] mb-0.5 flex items-center gap-1">
+<i class="w-3 h-3 text-emerald-400" data-lucide="user-check"></i>
+            آخر افتقاد
+          </div>
+<div class="font-semibold text-emerald-400">16/09/2026</div>
+</div>
+</div>
+<div class="mt-3">
+<div class="flex justify-between items-center text-xs mb-1">
+<span class="text-gray-400">نسبة الحضور السنوية</span>
+<span class="font-bold text-gray-300">14% <span class="text-[10px] text-gray-500">(2/14)</span></span>
+</div>
+<div class="w-full bg-brand-card h-2 rounded-full overflow-hidden border border-brand-border/40">
+<div class="bg-rose-500 h-full rounded-full" style="width: 14%"></div>
+</div>
+</div>
+<div class="mt-4 pt-3 border-t border-brand-border/50 flex items-center gap-2">
+<button class="flex-1 bg-brand-purple hover:bg-brand-purpleLight active:scale-[0.98] transition-all text-white text-xs font-bold py-2 rounded-xl flex items-center justify-center gap-1.5 shadow-sm shadow-brand-purple/20">
+<i class="w-3.5 h-3.5" data-lucide="user-plus"></i>
+<span>توثيق افتقاد</span>
+</button>
+<a aria-label="مراسلة واتساب" class="w-10 h-9 rounded-xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-400 hover:bg-emerald-500 hover:text-white flex items-center justify-center transition-colors active:scale-95" href="https://wa.me/201202241817">
+<i class="w-4 h-4" data-lucide="message-circle"></i>
+</a>
+<button class="px-3 h-9 rounded-xl bg-brand-card border border-brand-border text-gray-300 hover:text-white text-xs font-medium flex items-center justify-center gap-1 hover:bg-brand-border/40 transition-colors">
+<i class="w-3.5 h-3.5" data-lucide="user"></i>
+<span>الملف</span>
+</button>
+</div>
+</article>
+<!-- Card Item 3: بولا بشارة -->
+<article class="bg-brand-surface rounded-2xl p-4 border border-brand-border shadow-md relative overflow-hidden" data-purpose="member-card">
+<div class="flex items-start justify-between gap-2">
+<div>
+<h2 class="text-base font-bold text-white flex items-center gap-2">
+            بولا بشارة
+            <span class="text-xs font-normal text-gray-400 bg-brand-card px-2 py-0.5 rounded-md border border-brand-border/60">أجهور</span>
+</h2>
+<a class="inline-flex items-center gap-1 text-xs text-gray-400 hover:text-brand-purpleLight mt-1 font-mono direction-ltr" href="tel:01208172133">
+<i class="w-3 h-3 text-gray-400" data-lucide="phone"></i>
+<span>01208172133</span>
+</a>
+</div>
+<div class="flex flex-col items-end gap-1.5">
+<span class="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-md bg-amber-500/15 text-amber-400 border border-amber-500/30">
+<i class="w-3 h-3" data-lucide="alert-triangle"></i>
+            إنذار: غائب مرتين
+          </span>
+</div>
+</div>
+<div class="mt-3.5 pt-3 border-t border-brand-border/60 grid grid-cols-2 gap-2 text-xs">
+<div class="bg-brand-card/70 p-2.5 rounded-xl border border-brand-border/40">
+<div class="text-gray-400 text-[11px] mb-0.5 flex items-center gap-1">
+<i class="w-3 h-3 text-brand-purpleLight" data-lucide="calendar"></i>
+            آخر حضور
+          </div>
+<div class="font-semibold text-gray-200">02/10/2026</div>
+</div>
+<div class="bg-brand-card/70 p-2.5 rounded-xl border border-brand-border/40">
+<div class="text-gray-400 text-[11px] mb-0.5 flex items-center gap-1">
+<i class="w-3 h-3 text-emerald-400" data-lucide="user-check"></i>
+            آخر افتقاد
+          </div>
+<div class="font-semibold text-emerald-400">23/09/2026</div>
+</div>
+</div>
+<div class="mt-3">
+<div class="flex justify-between items-center text-xs mb-1">
+<span class="text-gray-400">نسبة الحضور السنوية</span>
+<span class="font-bold text-gray-300">14% <span class="text-[10px] text-gray-500">(2/14)</span></span>
+</div>
+<div class="w-full bg-brand-card h-2 rounded-full overflow-hidden border border-brand-border/40">
+<div class="bg-amber-400 h-full rounded-full" style="width: 14%"></div>
+</div>
+</div>
+<div class="mt-4 pt-3 border-t border-brand-border/50 flex items-center gap-2">
+<button class="flex-1 bg-brand-purple hover:bg-brand-purpleLight active:scale-[0.98] transition-all text-white text-xs font-bold py-2 rounded-xl flex items-center justify-center gap-1.5 shadow-sm shadow-brand-purple/20">
+<i class="w-3.5 h-3.5" data-lucide="user-plus"></i>
+<span>توثيق افتقاد</span>
+</button>
+<a aria-label="مراسلة واتساب" class="w-10 h-9 rounded-xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-400 hover:bg-emerald-500 hover:text-white flex items-center justify-center transition-colors active:scale-95" href="https://wa.me/201208172133">
+<i class="w-4 h-4" data-lucide="message-circle"></i>
+</a>
+<button class="px-3 h-9 rounded-xl bg-brand-card border border-brand-border text-gray-300 hover:text-white text-xs font-medium flex items-center justify-center gap-1 hover:bg-brand-border/40 transition-colors">
+<i class="w-3.5 h-3.5" data-lucide="user"></i>
+<span>الملف</span>
+</button>
+</div>
+</article>
+<!-- Card Item 4: بيشوي ايمن -->
+<article class="bg-brand-surface rounded-2xl p-4 border border-brand-border shadow-md relative overflow-hidden" data-purpose="member-card">
+<div class="flex items-start justify-between gap-2">
+<div>
+<h2 class="text-base font-bold text-white flex items-center gap-2">
+            بيشوي ايمن
+            <span class="text-xs font-normal text-gray-400 bg-brand-card px-2 py-0.5 rounded-md border border-brand-border/60">سندبيس ب</span>
+</h2>
+<a class="inline-flex items-center gap-1 text-xs text-gray-400 hover:text-brand-purpleLight mt-1 font-mono direction-ltr" href="tel:01200338579">
+<i class="w-3 h-3 text-gray-400" data-lucide="phone"></i>
+<span>01200338579</span>
+</a>
+</div>
+<div class="flex flex-col items-end gap-1.5">
+<span class="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-md bg-amber-500/15 text-amber-300 border border-amber-500/30">
+<i class="w-3 h-3" data-lucide="clock"></i>
+            تأخر افتقاد
+          </span>
+</div>
+</div>
+<div class="mt-3.5 pt-3 border-t border-brand-border/60 grid grid-cols-2 gap-2 text-xs">
+<div class="bg-brand-card/70 p-2.5 rounded-xl border border-brand-border/40">
+<div class="text-gray-400 text-[11px] mb-0.5 flex items-center gap-1">
+<i class="w-3 h-3 text-brand-purpleLight" data-lucide="calendar"></i>
+            آخر حضور
+          </div>
+<div class="font-semibold text-gray-200">08/10/2026</div>
+</div>
+<div class="bg-brand-card/70 p-2.5 rounded-xl border border-brand-border/40">
+<div class="text-gray-400 text-[11px] mb-0.5 flex items-center gap-1">
+<i class="w-3 h-3 text-amber-400" data-lucide="user-check"></i>
+            آخر افتقاد
+          </div>
+<div class="font-semibold text-amber-400">لم يتم الافتقاد</div>
+</div>
+</div>
+<div class="mt-3">
+<div class="flex justify-between items-center text-xs mb-1">
+<span class="text-gray-400">نسبة الحضور السنوية</span>
+<span class="font-bold text-gray-300">14% <span class="text-[10px] text-gray-500">(2/14)</span></span>
+</div>
+<div class="w-full bg-brand-card h-2 rounded-full overflow-hidden border border-brand-border/40">
+<div class="bg-brand-purple h-full rounded-full" style="width: 14%"></div>
+</div>
+</div>
+<div class="mt-4 pt-3 border-t border-brand-border/50 flex items-center gap-2">
+<button class="flex-1 bg-brand-purple hover:bg-brand-purpleLight active:scale-[0.98] transition-all text-white text-xs font-bold py-2 rounded-xl flex items-center justify-center gap-1.5 shadow-sm shadow-brand-purple/20">
+<i class="w-3.5 h-3.5" data-lucide="user-plus"></i>
+<span>توثيق افتقاد</span>
+</button>
+<a aria-label="مراسلة واتساب" class="w-10 h-9 rounded-xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-400 hover:bg-emerald-500 hover:text-white flex items-center justify-center transition-colors active:scale-95" href="https://wa.me/201200338579">
+<i class="w-4 h-4" data-lucide="message-circle"></i>
+</a>
+<button class="px-3 h-9 rounded-xl bg-brand-card border border-brand-border text-gray-300 hover:text-white text-xs font-medium flex items-center justify-center gap-1 hover:bg-brand-border/40 transition-colors">
+<i class="w-3.5 h-3.5" data-lucide="user"></i>
+<span>الملف</span>
+</button>
+</div>
+</article>
+<!-- Card Item 5: جيرمين عوض الله -->
+<article class="bg-brand-surface rounded-2xl p-4 border border-brand-border shadow-md relative overflow-hidden" data-purpose="member-card">
+<div class="flex items-start justify-between gap-2">
+<div>
+<h2 class="text-base font-bold text-white flex items-center gap-2">
+            جيرمين عوض الله
+            <span class="text-xs font-normal text-gray-400 bg-brand-card px-2 py-0.5 rounded-md border border-brand-border/60">سندبيس ب</span>
+</h2>
+<a class="inline-flex items-center gap-1 text-xs text-gray-400 hover:text-brand-purpleLight mt-1 font-mono direction-ltr" href="tel:01276421176">
+<i class="w-3 h-3 text-gray-400" data-lucide="phone"></i>
+<span>01276421176</span>
+</a>
+</div>
+<div class="flex flex-col items-end gap-1.5">
+<span class="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-md bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+<i class="w-3 h-3" data-lucide="check-check"></i>
+            حضور ممتاز
+          </span>
+</div>
+</div>
+<div class="mt-3.5 pt-3 border-t border-brand-border/60 grid grid-cols-2 gap-2 text-xs">
+<div class="bg-brand-card/70 p-2.5 rounded-xl border border-brand-border/40">
+<div class="text-gray-400 text-[11px] mb-0.5 flex items-center gap-1">
+<i class="w-3 h-3 text-brand-purpleLight" data-lucide="calendar"></i>
+            آخر حضور
+          </div>
+<div class="font-semibold text-gray-200">09/10/2026</div>
+</div>
+<div class="bg-brand-card/70 p-2.5 rounded-xl border border-brand-border/40">
+<div class="text-gray-400 text-[11px] mb-0.5 flex items-center gap-1">
+<i class="w-3 h-3 text-emerald-400" data-lucide="user-check"></i>
+            آخر افتقاد
+          </div>
+<div class="font-semibold text-emerald-400">01/10/2026</div>
+</div>
+</div>
+<div class="mt-3">
+<div class="flex justify-between items-center text-xs mb-1">
+<span class="text-gray-400">نسبة الحضور السنوية</span>
+<span class="font-bold text-gray-300">79% <span class="text-[10px] text-gray-500">(11/14)</span></span>
+</div>
+<div class="w-full bg-brand-card h-2 rounded-full overflow-hidden border border-brand-border/40">
+<div class="bg-emerald-500 h-full rounded-full" style="width: 79%"></div>
+</div>
+</div>
+<div class="mt-4 pt-3 border-t border-brand-border/50 flex items-center gap-2">
+<button class="flex-1 bg-brand-purple hover:bg-brand-purpleLight active:scale-[0.98] transition-all text-white text-xs font-bold py-2 rounded-xl flex items-center justify-center gap-1.5 shadow-sm shadow-brand-purple/20">
+<i class="w-3.5 h-3.5" data-lucide="user-plus"></i>
+<span>توثيق افتقاد</span>
+</button>
+<a aria-label="مراسلة واتساب" class="w-10 h-9 rounded-xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-400 hover:bg-emerald-500 hover:text-white flex items-center justify-center transition-colors active:scale-95" href="https://wa.me/201276421176">
+<i class="w-4 h-4" data-lucide="message-circle"></i>
+</a>
+<button class="px-3 h-9 rounded-xl bg-brand-card border border-brand-border text-gray-300 hover:text-white text-xs font-medium flex items-center justify-center gap-1 hover:bg-brand-border/40 transition-colors">
+<i class="w-3.5 h-3.5" data-lucide="user"></i>
+<span>الملف</span>
+</button>
+</div>
+</article>
+</main>
+<!-- END: MainContentList -->
+<!-- BEGIN: BottomNavigation -->
+<nav class="fixed bottom-0 inset-x-0 z-40 bg-brand-surface/95 backdrop-blur-lg border-t border-brand-border px-3 py-1.5 flex items-center justify-around shadow-2xl" data-purpose="mobile-bottom-tabs">
+<!-- Tab: الرئيسية -->
+<button class="flex flex-col items-center justify-center py-1 px-2 text-gray-400 hover:text-gray-200 transition-colors">
+<i class="w-5 h-5" data-lucide="layout-grid"></i>
+<span class="text-[10px] mt-1 font-medium">الرئيسية</span>
+</button>
+<!-- Tab: تسجيل الحضور -->
+<button class="flex flex-col items-center justify-center py-1 px-2 text-gray-400 hover:text-gray-200 transition-colors">
+<i class="w-5 h-5" data-lucide="calendar-check-2"></i>
+<span class="text-[10px] mt-1 font-medium">الحضور</span>
+</button>
+<!-- Tab: المتابعة والافتقاد (نشط) -->
+<button class="flex flex-col items-center justify-center py-1 px-3 text-brand-purpleLight relative group">
+<div class="relative">
+<i class="w-5 h-5 stroke-[2.5]" data-lucide="users-round"></i>
+<span class="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-brand-purple animate-pulse"></span>
+</div>
+<span class="text-[10px] mt-1 font-bold">الافتقاد</span>
+</button>
+<!-- Tab: متابعة الخدام -->
+<button class="flex flex-col items-center justify-center py-1 px-2 text-gray-400 hover:text-gray-200 transition-colors">
+<i class="w-5 h-5" data-lucide="award"></i>
+<span class="text-[10px] mt-1 font-medium">الخدام</span>
+</button>
+<!-- Tab: الإدارة / الإعدادات -->
+<button class="flex flex-col items-center justify-center py-1 px-2 text-gray-400 hover:text-gray-200 transition-colors">
+<i class="w-5 h-5" data-lucide="settings-2"></i>
+<span class="text-[10px] mt-1 font-medium">الإعدادات</span>
+</button>
+</nav>
+<!-- END: BottomNavigation -->
+<!-- Icon Rendering Script -->
+<script data-purpose="lucide-initialization">
+    lucide.createIcons();
+  </script>
+</body></html>

@@ -17,7 +17,7 @@
     <!-- SheetJS for Excel generation -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <!-- Styles -->
-    <link rel="stylesheet" href="style.css?v=10">
+    <link rel="stylesheet" href="style.css?v=11">
 </head>
 <body>
     <div class="app-container">
@@ -34,25 +34,28 @@
                 <button class="nav-btn active" data-target="dashboard-view">
                     <i class="ph ph-squares-four"></i> الشاشة الرئيسية
                 </button>
-                <button class="nav-btn" onclick="if(window.innerWidth <= 900) toggleMobileMenu()" data-target="attendance-view">
+                <button class="nav-btn" data-target="attendance-view">
                     <i class="ph ph-calendar-check"></i> تسجيل الحضور
                 </button>
-                <button class="nav-btn" onclick="if(window.innerWidth <= 900) toggleMobileMenu()" data-target="followup-view">
+                <button class="nav-btn" data-target="followup-view">
                     <i class="ph ph-users-three"></i> المتابعة والافتقاد
                 </button>
-                <button class="nav-btn" onclick="if(window.innerWidth <= 900) toggleMobileMenu()" data-target="servants-dashboard-view">
+                <button class="nav-btn" data-target="servants-dashboard-view">
                     <i class="ph ph-star"></i> متابعة الخدام
                 </button>
-                <button class="nav-btn" onclick="if(window.innerWidth <= 900) toggleMobileMenu()" data-target="competitions-view">
+                <button class="nav-btn" data-target="servants-notes-view">
+                    <i class="ph ph-notebook"></i> ملاحظات للخدام
+                </button>
+                <button class="nav-btn" data-target="competitions-view">
                     <i class="ph ph-trophy"></i> المسابقات
                 </button>
-                <button class="nav-btn" onclick="if(window.innerWidth <= 900) toggleMobileMenu()" data-target="summary-view">
+                <button class="nav-btn" data-target="summary-view">
                     <i class="ph ph-list-numbers"></i> الملخص
                 </button>
-                <button class="nav-btn" onclick="if(window.innerWidth <= 900) toggleMobileMenu()" data-target="admin-view">
+                <button class="nav-btn" data-target="admin-view">
                     <i class="ph ph-shield-check"></i> الإدارة
                 </button>
-                <button class="nav-btn" onclick="if(window.innerWidth <= 900) toggleMobileMenu()" data-target="settings-view">
+                <button class="nav-btn" data-target="settings-view">
                     <i class="ph ph-gear"></i> الإعدادات
                 </button>
             </nav>
@@ -70,10 +73,25 @@
         <!-- Main Content Area -->
         <main class="main-content">
             
-            <!-- Mobile Header -->
+            <!-- Mobile Header (Stitch Design) -->
             <div class="mobile-header">
-                <h2><i class="ph ph-church"></i> اجتماع القديس يوحنا</h2>
-                <button class="hamburger-btn" onclick="toggleMobileMenu()"><i class="ph ph-list"></i></button>
+                <div class="mobile-header-branding">
+                    <div class="mobile-header-logo">
+                        <i class="ph ph-church"></i>
+                    </div>
+                    <div>
+                        <h2>اجتماع القديس يوحنا الحبيب</h2>
+                        <span class="mobile-header-badge">الشباب والخدام</span>
+                    </div>
+                </div>
+                <div class="mobile-header-actions">
+                    <button class="mobile-header-btn" id="btn-mobile-sync" onclick="if(typeof triggerCloudSync === 'function') triggerCloudSync()" title="مزامنة فورية">
+                        <i class="ph ph-arrows-clockwise"></i>
+                    </button>
+                    <button class="hamburger-btn" onclick="toggleMobileMenu()" title="القائمة">
+                        <i class="ph ph-list"></i>
+                    </button>
+                </div>
             </div>
 
             
@@ -282,6 +300,119 @@
                 </div>
             </section>
 
+            <!-- Servants Notes View (Private) -->
+            <section id="servants-notes-view" class="view-section">
+                <!-- Locked Gate (Shown when private password is not entered) -->
+                <div id="servants-notes-locked-gate" class="notes-locked-gate glass" style="display: none;">
+                    <div class="lock-icon-wrap">
+                        <i class="ph ph-lock-key"></i>
+                    </div>
+                    <h2 style="margin-bottom: 10px;">ملاحظات الخدام (خاص وسري)</h2>
+                    <p style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 25px; line-height: 1.6;">
+                        هذا القسم خاص وسري ومحمي بكلمة مرور. أدخل كلمة المرور للمتابعة.
+                    </p>
+                    <div class="form-group" style="max-width: 300px; margin: 0 auto 20px;">
+                        <input type="password" id="servants-notes-gate-pass" class="form-control" placeholder="أدخل كلمة المرور..." style="text-align: center; font-size: 1.1rem; letter-spacing: 2px;">
+                    </div>
+                    <button class="btn btn-primary" id="btn-unlock-servants-notes-gate" style="width: 100%; max-width: 300px; margin: 0 auto; display: flex; justify-content: center;">
+                        <i class="ph ph-lock-key-open"></i> فتح الملاحظات
+                    </button>
+                </div>
+
+                <!-- Main Content (Shown when unlocked) -->
+                <div id="servants-notes-main-content">
+                    <header class="view-header flex-between">
+                        <div>
+                            <h1>
+                                <i class="ph ph-notebook"></i> ملاحظات للخدام
+                                <span class="badge-private"><i class="ph ph-lock-key"></i> خاص وسري</span>
+                            </h1>
+                            <p class="subtitle">سجل خاص لتدوين ومتابعة الملاحظات الإيجابية والسلبية لكل خادم بالاجتماع</p>
+                        </div>
+                        <div class="header-actions" style="display: flex; gap: 8px; flex-wrap: wrap;">
+                            <button class="btn btn-primary" id="btn-add-servant-note-main">
+                                <i class="ph ph-plus-circle"></i> إضافة ملاحظة
+                            </button>
+                            <button class="btn btn-outline" id="btn-export-servant-notes" title="تصدير إلى ملف إكسيل">
+                                <i class="ph ph-file-arrow-down"></i> تصدير إكسيل
+                            </button>
+                            <button class="btn btn-outline" id="btn-change-servants-notes-pass" title="تغيير كلمة المرور الخاصة">
+                                <i class="ph ph-key"></i> تغيير الرمز السري
+                            </button>
+                            <button class="btn btn-outline" id="btn-lock-servants-notes" style="border-color: var(--warning); color: var(--warning);" title="قفل الصفحة الآن">
+                                <i class="ph ph-lock-simple"></i> قفل
+                            </button>
+                        </div>
+                    </header>
+
+                    <!-- Stats Grid -->
+                    <div class="stats-grid">
+                        <div class="stat-card glass">
+                            <div class="stat-icon"><i class="ph ph-users-three"></i></div>
+                            <div class="stat-info">
+                                <h3>خدام الاجتماع</h3>
+                                <p class="stat-value" id="notes-stat-servants-count">0</p>
+                                <p class="stat-subtext">إجمالي الخدام المسجلين</p>
+                            </div>
+                        </div>
+                        <div class="stat-card glass">
+                            <div class="stat-icon" style="color: var(--primary);"><i class="ph ph-chat-centered-dots"></i></div>
+                            <div class="stat-info">
+                                <h3>إجمالي الملاحظات</h3>
+                                <p class="stat-value" id="notes-stat-total-notes">0</p>
+                                <p class="stat-subtext">كل الملاحظات المدونة</p>
+                            </div>
+                        </div>
+                        <div class="stat-card glass">
+                            <div class="stat-icon" style="color: var(--success);"><i class="ph ph-thumbs-up"></i></div>
+                            <div class="stat-info">
+                                <h3>ملاحظات إيجابية</h3>
+                                <p class="stat-value" id="notes-stat-positive-notes" style="color: #34d399;">0</p>
+                                <p class="stat-subtext" id="notes-stat-pos-percent">0% من الإجمالي</p>
+                            </div>
+                        </div>
+                        <div class="stat-card glass">
+                            <div class="stat-icon" style="color: var(--danger);"><i class="ph ph-thumbs-down"></i></div>
+                            <div class="stat-info">
+                                <h3>ملاحظات سلبية</h3>
+                                <p class="stat-value" id="notes-stat-negative-notes" style="color: #f87171;">0</p>
+                                <p class="stat-subtext">للمتابعة والإرشاد بمحبة</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Filter & Search Toolbar -->
+                    <div class="admin-toolbar glass mt-4" style="margin-top: 20px;">
+                        <div class="search-bar">
+                            <i class="ph ph-magnifying-glass"></i>
+                            <input type="text" id="search-servants-notes" placeholder="بحث باسم الخادم أو بنص الملاحظة..." class="form-control">
+                        </div>
+                        <div class="filters-container" id="servants-notes-filters">
+                            <button class="filter-btn active" data-notes-filter="all">الكل <span class="filter-count" id="count-notes-all">0</span></button>
+                            <button class="filter-btn" data-notes-filter="has-notes">لديهم ملاحظات <span class="filter-count" id="count-notes-has">0</span></button>
+                            <button class="filter-btn" data-notes-filter="has-pos">إيجابية 🟢 <span class="filter-count" id="count-notes-pos">0</span></button>
+                            <button class="filter-btn" data-notes-filter="has-neg">سلبية 🔴 <span class="filter-count" id="count-notes-neg">0</span></button>
+                            <button class="filter-btn" data-notes-filter="no-notes">بدون ملاحظات <span class="filter-count" id="count-notes-none">0</span></button>
+                        </div>
+                        <div style="margin-right: auto; display: flex; align-items: center; gap: 8px;">
+                            <label style="font-size: 0.85rem; color: var(--text-muted); white-space: nowrap;">ترتيب:</label>
+                            <select id="sort-servants-notes" class="form-control" style="width: auto; padding: 6px 12px; font-size: 0.85rem;">
+                                <option value="recent">الأحدث نشاطاً</option>
+                                <option value="alpha">أبجدياً (أ - ي)</option>
+                                <option value="most-notes">الأكثر ملاحظات</option>
+                                <option value="most-neg">الأكثر سلبية</option>
+                                <option value="most-pos">الأكثر إيجابية</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Servants Cards Grid -->
+                    <div class="members-grid mt-4" id="servants-notes-grid" style="margin-top: 20px;">
+                        <!-- Cards dynamically rendered by JS -->
+                    </div>
+                </div>
+            </section>
+
             <!-- Competitions View -->
             <section id="competitions-view" class="view-section">
                 <header class="view-header flex-between">
@@ -391,10 +522,10 @@
                         </button>
                     </div>
                     <div class="settings-card glass">
-                        <h3><i class="ph ph-shield-check"></i> إدارة الصلاحيات</h3>
-                        <p>إدارة الخدام، تعيين كلمات المرور، وتحديد الشاشات المسموحة.</p>
+                        <h3><i class="ph ph-shield-check"></i> إدارة الصلاحيات وكلمات المرور</h3>
+                        <p>إدارة الحسابات، تعيين وتغيير كلمات المرور لأي خادم أو للأدمن، وتحديد مستويات الصلاحيات.</p>
                         <button class="btn btn-warning mt-2" id="btn-manage-permissions">
-                            <i class="ph ph-key"></i> صلاحيات الخدام
+                            <i class="ph ph-key"></i> الصلاحيات وكلمات المرور
                         </button>
                     </div>
                     <div class="settings-card glass">
@@ -989,21 +1120,23 @@
     <div class="modal-overlay" id="permissions-modal-bg" style="z-index: 10000;">
         <div class="modal glass" style="max-width: 600px;">
             <div class="modal-header">
-                <h3><i class="ph ph-shield-check"></i> إدارة صلاحيات الخدام</h3>
+                <h3><i class="ph ph-shield-check"></i> إدارة الصلاحيات وكلمات المرور</h3>
                 <button class="close-modal"><span style="font-size: 1.5rem; font-weight: bold; line-height: 1;">&times;</span></button>
             </div>
             <div class="modal-body" style="max-height: 75vh; overflow-y: auto;">
                 <div class="form-group">
-                    <label>اختر الخادم</label>
+                    <label>اختر الحساب / الخادم</label>
                     <select id="perm-servant-select" class="form-control">
-                        <option value="supervisor">المشرف</option>
+                        <option value="admin">المدير (Admin)</option>
+                        <option value="supervisor">المشرف (Supervisor)</option>
                         <!-- Servants populated by JS -->
                     </select>
                 </div>
                 
                 <div class="form-group mt-3">
-                    <label>كلمة المرور (لو سيبتها فاضية مش هيتغير القديم)</label>
-                    <input type="text" id="perm-password" class="form-control" placeholder="كلمة المرور الجديدة...">
+                    <label>كلمة المرور</label>
+                    <input type="text" id="perm-password" class="form-control" placeholder="أدخل كلمة مرور جديدة للتغيير...">
+                    <small id="perm-pass-hint" style="color: var(--primary); display: block; margin-top: 6px; font-weight: 600; font-size: 0.88rem;"></small>
                 </div>
 
                 <h4 class="mt-4 mb-2" style="border-bottom: 1px solid var(--glass-border); padding-bottom: 5px;">الشاشات المسموحة</h4>
@@ -1034,6 +1167,14 @@
                     <div class="perm-row" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px;">
                         <span>متابعة الخدام</span>
                         <select class="perm-select form-control" data-section="servants-dashboard" style="width: 150px; padding: 5px;">
+                            <option value="none">لا يوجد صلاحية</option>
+                            <option value="view">مشاهدة فقط</option>
+                            <option value="edit">مشاهدة وتعديل</option>
+                        </select>
+                    </div>
+                    <div class="perm-row" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px;">
+                        <span>ملاحظات للخدام (خاص وسري 🔒)</span>
+                        <select class="perm-select form-control" data-section="servants-notes" style="width: 150px; padding: 5px;">
                             <option value="none">لا يوجد صلاحية</option>
                             <option value="view">مشاهدة فقط</option>
                             <option value="edit">مشاهدة وتعديل</option>
@@ -1077,12 +1218,184 @@
         </div>
     </div>
 
+    <!-- Add / Edit Servant Note Modal -->
+    <div class="modal-overlay" id="servant-note-modal-bg" style="z-index: 10005;">
+        <div class="modal glass" style="max-width: 540px;">
+            <div class="modal-header">
+                <h3 id="servant-note-modal-title"><i class="ph ph-note-pencil"></i> إضافة ملاحظة لخادم</h3>
+                <button class="close-modal"><span style="font-size: 1.5rem; font-weight: bold; line-height: 1;">&times;</span></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="edit-note-id" value="">
+                
+                <div class="form-group">
+                    <label>الخادم <span style="color: var(--danger);">*</span></label>
+                    <select id="note-servant-select" class="form-control">
+                        <!-- Populated with servants -->
+                    </select>
+                </div>
+
+                <div class="form-group mt-3">
+                    <label>نوع الملاحظة <span style="color: var(--danger);">*</span></label>
+                    <input type="hidden" id="note-type-val" value="positive">
+                    <div class="note-type-toggle-group">
+                        <button type="button" class="note-type-btn type-pos active" id="btn-toggle-type-pos">
+                            <i class="ph ph-thumbs-up"></i>
+                            <span>إيجابية 🟢</span>
+                            <small style="font-size: 0.72rem; font-weight: normal; opacity: 0.85;">(تميز، التزام، إشادة، روح حلوة)</small>
+                        </button>
+                        <button type="button" class="note-type-btn type-neg" id="btn-toggle-type-neg">
+                            <i class="ph ph-thumbs-down"></i>
+                            <span>سلبية 🔴</span>
+                            <small style="font-size: 0.72rem; font-weight: normal; opacity: 0.85;">(تقصير، تأخير، متابعة، إرشاد)</small>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="form-group" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                    <div>
+                        <label>التصنيف</label>
+                        <select id="note-category-select" class="form-control">
+                            <option value="عام">عام</option>
+                            <option value="التزام ومواعيد">التزام ومواعيد</option>
+                            <option value="افتقاد وتواصل">افتقاد وتواصل</option>
+                            <option value="تحضير وفقرات">تحضير وفقرات</option>
+                            <option value="روحيات وسلوكيات">روحيات وسلوكيات</option>
+                            <option value="تعاون مع الفريق">تعاون مع الفريق</option>
+                            <option value="أخرى">أخرى</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label>التاريخ</label>
+                        <input type="date" id="note-date-input" class="form-control">
+                    </div>
+                </div>
+
+                <div class="form-group mt-3">
+                    <label>نص الملاحظة <span style="color: var(--danger);">*</span></label>
+                    <textarea id="note-text-input" class="form-control" rows="4" placeholder="اكتب الملاحظة بالتفصيل هنا..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 10px;">
+                <button class="btn btn-outline close-modal">إلغاء</button>
+                <button class="btn btn-primary" id="btn-save-servant-note">
+                    <i class="ph ph-floppy-disk"></i> حفظ الملاحظة
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Servant Notes History Modal -->
+    <div class="modal-overlay" id="servant-notes-history-modal-bg" style="z-index: 10004;">
+        <div class="modal glass" style="max-width: 680px;">
+            <div class="modal-header">
+                <div>
+                    <h3 id="history-modal-servant-title"><i class="ph ph-user-circle"></i> سجل ملاحظات الخادم</h3>
+                    <p class="subtitle" id="history-modal-servant-sub" style="margin-top: 4px; font-size: 0.85rem;">عرض وتعديل الملاحظات المسجلة</p>
+                </div>
+                <button class="close-modal"><span style="font-size: 1.5rem; font-weight: bold; line-height: 1;">&times;</span></button>
+            </div>
+            <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+                <!-- Summary bar inside modal -->
+                <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.2); padding: 12px 16px; border-radius: 12px; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
+                    <div style="display: flex; gap: 12px; font-size: 0.88rem; font-weight: 600;">
+                        <span>إجمالي: <b id="history-stat-total">0</b></span>
+                        <span style="color: #34d399;">🟢 إيجابي: <b id="history-stat-pos">0</b></span>
+                        <span style="color: #f87171;">🔴 سلبي: <b id="history-stat-neg">0</b></span>
+                    </div>
+                    <button class="btn btn-primary btn-sm" id="btn-history-quick-add">
+                        <i class="ph ph-plus"></i> إضافة ملاحظة جديدة
+                    </button>
+                </div>
+
+                <!-- Internal Filter Pills -->
+                <div style="display: flex; gap: 8px; margin-bottom: 15px;">
+                    <button class="filter-btn active" id="btn-hist-filter-all" data-hist-filter="all">الكل</button>
+                    <button class="filter-btn" id="btn-hist-filter-pos" data-hist-filter="positive">إيجابية فقط 🟢</button>
+                    <button class="filter-btn" id="btn-hist-filter-neg" data-hist-filter="negative">سلبية فقط 🔴</button>
+                </div>
+
+                <!-- Timeline / Notes List -->
+                <div id="servant-notes-history-list">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline close-modal">إغلاق</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Change Servant Notes Password Modal -->
+    <div class="modal-overlay" id="servants-notes-pass-modal-bg" style="z-index: 10006;">
+        <div class="modal glass" style="max-width: 440px;">
+            <div class="modal-header">
+                <h3><i class="ph ph-key"></i> تغيير كلمة المرور للملاحظات</h3>
+                <button class="close-modal"><span style="font-size: 1.5rem; font-weight: bold; line-height: 1;">&times;</span></button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>كلمة المرور الحالية</label>
+                    <input type="password" id="notes-curr-pass" class="form-control" placeholder="أدخل كلمة المرور الحالية...">
+                </div>
+                <div class="form-group mt-3">
+                    <label>كلمة المرور الجديدة</label>
+                    <input type="password" id="notes-new-pass" class="form-control" placeholder="أدخل كلمة المرور الجديدة...">
+                </div>
+                <div class="form-group mt-3">
+                    <label>تأكيد كلمة المرور الجديدة</label>
+                    <input type="password" id="notes-confirm-pass" class="form-control" placeholder="أعد إدخال كلمة المرور الجديدة...">
+                </div>
+            </div>
+            <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 10px;">
+                <button class="btn btn-outline close-modal">إلغاء</button>
+                <button class="btn btn-primary" id="btn-save-notes-pass">حفظ كلمة المرور</button>
+            </div>
+        </div>
+    </div>
+
     
+    <!-- Floating Mobile Save Attendance Bar (Stitch Design) -->
+    <div class="attendance-mobile-save-bar" id="attendance-mobile-save-bar" style="display: none;">
+        <button class="btn-save-mobile" id="btn-save-attendance-mobile">
+            <i class="ph ph-floppy-disk"></i>
+            <span>حفظ الحضور</span>
+        </button>
+    </div>
+
+    <!-- Mobile Bottom Navigation Bar (Stitch Design) -->
+    <nav class="mobile-bottom-nav" id="mobile-bottom-nav">
+        <button class="mobile-nav-item active" data-target="dashboard-view" title="الرئيسية">
+            <i class="ph ph-squares-four"></i>
+            <span>الرئيسية</span>
+            <span class="active-dot"></span>
+        </button>
+        <button class="mobile-nav-item" data-target="attendance-view" title="الحضور">
+            <i class="ph ph-calendar-check"></i>
+            <span>الحضور</span>
+            <span class="active-dot"></span>
+        </button>
+        <button class="mobile-nav-item" data-target="followup-view" title="الافتقاد">
+            <i class="ph ph-users-three"></i>
+            <span>الافتقاد</span>
+            <span class="active-dot"></span>
+        </button>
+        <button class="mobile-nav-item" data-target="servants-notes-view" title="الملاحظات">
+            <i class="ph ph-notebook"></i>
+            <span>الملاحظات</span>
+            <span class="active-dot"></span>
+        </button>
+        <button class="mobile-nav-item" id="btn-mobile-more" onclick="toggleMobileMenu()" title="المزيد">
+            <i class="ph ph-dots-three-circle"></i>
+            <span>المزيد</span>
+        </button>
+    </nav>
+
     <!-- Firebase SDKs -->
     <script src="firebase-app.js"></script>
     <script src="firebase-firestore.js"></script>
     
     <!-- Script -->
-    <script src="app.js?v=10"></script>
+    <script src="app.js?v=11"></script>
 </body>
 </html>

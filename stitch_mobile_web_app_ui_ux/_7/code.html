@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+
+<html class="dark" dir="rtl" lang="ar"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/>
+<title>ملخص الاجتماع - اجتماع القديس يوحنا الحبيب</title>
+<!-- Tailwind CSS CDN -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Font Awesome Icons -->
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
+<!-- Google Fonts: Cairo -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind Configuration -->
+<script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            cairo: ['Cairo', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              dark: '#0d1322',
+              card: '#161e31',
+              cardLight: '#1d273f',
+              border: '#263450',
+              accent: '#4f6ef7',
+              purple: '#6c5ce7',
+              cyan: '#00d2d3',
+              gold: '#f59e0b',
+            }
+          }
+        }
+      }
+    }
+  </script>
+<!-- BEGIN: Custom Styles -->
+<style data-purpose="base-typography">
+    body {
+      font-family: 'Cairo', sans-serif;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+    
+    /* Hide scrollbar for clean horizontal scrolling */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+  </style>
+<style data-purpose="glass-effects">
+    .glass-card {
+      background: linear-gradient(135deg, rgba(29, 39, 63, 0.7) 0%, rgba(22, 30, 49, 0.9) 100%);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+    }
+    .glass-nav {
+      background: rgba(13, 19, 34, 0.88);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+    }
+  </style>
+<!-- END: Custom Styles -->
+</head>
+<body class="bg-[#0b101d] text-slate-100 min-h-screen pb-28 antialiased selection:bg-brand-accent selection:text-white">
+<!-- BEGIN: AppContainer -->
+<div class="max-w-md mx-auto min-h-screen relative flex flex-col justify-between overflow-x-hidden">
+<!-- BEGIN: TopBar -->
+<header class="sticky top-0 z-40 bg-[#0b101d]/90 backdrop-blur-md px-4 pt-4 pb-3 border-b border-brand-border/40 flex items-center justify-between" data-purpose="app-header">
+<div class="flex items-center gap-3">
+<!-- Logo / Icon Badge -->
+<div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-accent to-brand-purple flex items-center justify-center p-0.5 shadow-lg shadow-brand-accent/20">
+<div class="w-full h-full bg-[#111728] rounded-[10px] flex items-center justify-center">
+<i class="fa-solid fa-cross text-brand-accent text-lg"></i>
+</div>
+</div>
+<div>
+<h1 class="text-sm font-bold text-white tracking-wide">اجتماع القديس يوحنا</h1>
+<span class="text-[11px] font-medium text-brand-accent bg-brand-accent/10 px-2 py-0.5 rounded-full inline-block">الشباب والخدام</span>
+</div>
+</div>
+<!-- Action Buttons -->
+<div class="flex items-center gap-2">
+<button aria-label="الإشعارات" class="w-9 h-9 rounded-full bg-brand-card flex items-center justify-center border border-brand-border/60 text-slate-300 hover:text-white hover:border-brand-accent relative transition-colors" type="button">
+<i class="fa-regular fa-bell text-sm"></i>
+<span class="absolute top-2 right-2 w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
+</button>
+<button aria-label="الملف الشخصي" class="w-9 h-9 rounded-full bg-brand-card flex items-center justify-center border border-brand-border/60 text-slate-300 hover:text-white hover:border-brand-accent transition-colors" type="button">
+<i class="fa-solid fa-user-circle text-base"></i>
+</button>
+</div>
+</header>
+<!-- END: TopBar -->
+<!-- BEGIN: MainContent -->
+<main class="flex-1 px-4 pt-4 space-y-6">
+<!-- BEGIN: SectionHeader -->
+<div class="flex items-center justify-between" data-purpose="page-title">
+<div>
+<h2 class="text-2xl font-extrabold text-white flex items-center gap-2">
+            ملخص الاجتماع
+            <span class="text-xs font-semibold px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">نشط الآن</span>
+</h2>
+<p class="text-xs text-slate-400 mt-1">نظرة عامة دقيقة على إحصائيات ونشاط الحضور</p>
+</div>
+<button class="text-xs bg-brand-cardLight/80 hover:bg-brand-cardLight text-slate-300 px-3 py-1.5 rounded-lg border border-brand-border flex items-center gap-1.5">
+<i class="fa-solid fa-arrow-rotate-right text-[10px]"></i>
+<span>تحديث</span>
+</button>
+</div>
+<!-- END: SectionHeader -->
+<!-- BEGIN: StatsGrid -->
+<!-- شبكة الإحصائيات الأربعة (2x2) -->
+<section class="grid grid-cols-2 gap-3" data-purpose="metrics-summary">
+<!-- Metric 1: Total Members -->
+<article class="glass-card rounded-2xl p-4 flex flex-col justify-between relative overflow-hidden group hover:border-brand-accent/50 transition-all duration-200">
+<div class="flex justify-between items-start">
+<span class="text-xs font-semibold text-slate-400">إجمالي الأعضاء</span>
+<div class="w-8 h-8 rounded-lg bg-blue-500/15 text-blue-400 flex items-center justify-center">
+<i class="fa-solid fa-users text-sm"></i>
+</div>
+</div>
+<div class="mt-3">
+<div class="text-3xl font-black text-white tracking-tight">105</div>
+<div class="text-[10px] text-slate-400 mt-1 flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-blue-400"></span> مسجلين في الخدمة
+            </div>
+</div>
+</article>
+<!-- Metric 2: Average Attendance -->
+<article class="glass-card rounded-2xl p-4 flex flex-col justify-between relative overflow-hidden group hover:border-purple-500/50 transition-all duration-200">
+<div class="flex justify-between items-start">
+<span class="text-xs font-semibold text-slate-400">متوسط الحضور</span>
+<div class="w-8 h-8 rounded-lg bg-purple-500/15 text-purple-400 flex items-center justify-center">
+<i class="fa-solid fa-chart-line text-sm"></i>
+</div>
+</div>
+<div class="mt-3">
+<div class="text-2xl font-black text-white flex items-baseline gap-1">
+<span>34%</span>
+<span class="text-xs font-normal text-slate-300">(36 شخص)</span>
+</div>
+<div class="text-[10px] text-emerald-400 mt-1 font-semibold flex items-center gap-1">
+<i class="fa-solid fa-arrow-trend-up"></i>
+<span>+8 أشخاص عن الشهر الفائت</span>
+</div>
+</div>
+</article>
+<!-- Metric 3: Highest Attendance -->
+<article class="glass-card rounded-2xl p-4 flex flex-col justify-between relative overflow-hidden group hover:border-amber-500/50 transition-all duration-200">
+<div class="flex justify-between items-start">
+<span class="text-xs font-semibold text-slate-400">أعلى حضور</span>
+<div class="w-8 h-8 rounded-lg bg-amber-500/15 text-amber-400 flex items-center justify-center">
+<i class="fa-solid fa-crown text-sm"></i>
+</div>
+</div>
+<div class="mt-3">
+<div class="text-3xl font-black text-amber-300 tracking-tight">44</div>
+<div class="text-[10px] text-slate-400 mt-1">
+              تاريخ: 02/10/2026
+            </div>
+</div>
+</article>
+<!-- Metric 4: Expected Today -->
+<article class="glass-card rounded-2xl p-4 flex flex-col justify-between border-brand-accent/40 bg-gradient-to-br from-brand-accent/20 to-brand-card group hover:border-brand-accent transition-all duration-200">
+<div class="flex justify-between items-start">
+<span class="text-xs font-semibold text-blue-200">المتوقع اليوم</span>
+<div class="w-8 h-8 rounded-lg bg-brand-accent/30 text-blue-300 flex items-center justify-center">
+<i class="fa-solid fa-wand-magic-sparkles text-sm"></i>
+</div>
+</div>
+<div class="mt-3">
+<div class="text-3xl font-black text-white tracking-tight">35</div>
+<div class="text-[10px] text-blue-300/80 mt-1">
+              متوسط آخر 4 اجتماعات
+            </div>
+</div>
+</article>
+</section>
+<!-- END: StatsGrid -->
+<!-- BEGIN: RegionsSection -->
+<!-- خريطة المناطق وإحصائيات التوزيع -->
+<section class="space-y-3" data-purpose="regions-distribution">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2 text-sm font-bold text-slate-200">
+<i class="fa-solid fa-map-location-dot text-brand-accent"></i>
+<h3>خريطة المناطق (إحصائيات الشهر)</h3>
+</div>
+<span class="text-xs text-slate-400">5 مناطق</span>
+</div>
+<div aria-label="قائمة المناطق" class="flex items-center gap-2.5 overflow-x-auto no-scrollbar py-1 px-0.5" role="region" tabindex="0">
+<!-- Area Item 1 -->
+<div class="flex-shrink-0 w-32 glass-card rounded-xl p-3 border-brand-border text-center hover:border-brand-accent/60 transition-all">
+<span class="text-[11px] font-bold text-slate-300 block">سندبيس (ب)</span>
+<div class="text-lg font-black text-white mt-1">32 <span class="text-[10px] font-normal text-slate-400">مخدوم</span></div>
+<span class="inline-block mt-2 text-[10px] font-semibold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">39% حضور</span>
+</div>
+<!-- Area Item 2 -->
+<div class="flex-shrink-0 w-32 glass-card rounded-xl p-3 border-brand-border text-center hover:border-brand-accent/60 transition-all">
+<span class="text-[11px] font-bold text-slate-300 block">سندبيس (أ)</span>
+<div class="text-lg font-black text-white mt-1">27 <span class="text-[10px] font-normal text-slate-400">مخدوم</span></div>
+<span class="inline-block mt-2 text-[10px] font-semibold text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded-full">21% حضور</span>
+</div>
+<!-- Area Item 3 -->
+<div class="flex-shrink-0 w-32 glass-card rounded-xl p-3 border-brand-border text-center hover:border-brand-accent/60 transition-all">
+<span class="text-[11px] font-bold text-slate-300 block">بهادة</span>
+<div class="text-lg font-black text-white mt-1">13 <span class="text-[10px] font-normal text-slate-400">مخدوم</span></div>
+<span class="inline-block mt-2 text-[10px] font-semibold text-sky-400 bg-sky-500/10 px-2 py-0.5 rounded-full">21% حضور</span>
+</div>
+<!-- Area Item 4 -->
+<div class="flex-shrink-0 w-32 glass-card rounded-xl p-3 border-brand-border text-center hover:border-brand-accent/60 transition-all">
+<span class="text-[11px] font-bold text-slate-300 block">البرادعة</span>
+<div class="text-lg font-black text-white mt-1">10 <span class="text-[10px] font-normal text-slate-400">مخدوم</span></div>
+<span class="inline-block mt-2 text-[10px] font-semibold text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded-full">27% حضور</span>
+</div>
+<!-- Area Item 5 -->
+<div class="flex-shrink-0 w-28 glass-card rounded-xl p-3 border-brand-border text-center hover:border-brand-accent/60 transition-all">
+<span class="text-[11px] font-bold text-slate-300 block">أجهور</span>
+<div class="text-lg font-black text-white mt-1">4 <span class="text-[10px] font-normal text-slate-400">مخدوم</span></div>
+<span class="inline-block mt-2 text-[10px] font-semibold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full">0% حضور</span>
+</div>
+</div>
+</section>
+<!-- END: RegionsSection -->
+<!-- BEGIN: BirthdaysSection -->
+<!-- مناسبات أعياد الميلاد القادمة -->
+<section class="space-y-3" data-purpose="birthdays-carousel">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2 text-sm font-bold text-amber-400">
+<i class="fa-solid fa-cake-candles"></i>
+<h3>أعياد الميلاد القادمة</h3>
+</div>
+<span class="text-xs text-slate-400 hover:text-slate-200 cursor-pointer">عرض الكل</span>
+</div>
+<div aria-label="أعياد الميلاد" class="flex items-center gap-3 overflow-x-auto no-scrollbar py-1 px-0.5" role="region" tabindex="0">
+<!-- Birthday Card: Today Highlight -->
+<div class="flex-shrink-0 w-44 rounded-2xl p-3.5 bg-gradient-to-br from-amber-500/25 via-brand-card to-brand-card border border-amber-500/40 relative shadow-lg shadow-amber-500/5">
+<div class="absolute top-2 left-2 text-xs">🎉</div>
+<div class="w-8 h-8 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center mb-2">
+<i class="fa-solid fa-gift text-sm"></i>
+</div>
+<h4 class="font-bold text-sm text-white truncate">مريم رجائي</h4>
+<div class="flex items-center justify-between mt-2 pt-2 border-t border-brand-border/60">
+<span class="text-[11px] font-black text-amber-300 bg-amber-500/20 px-2 py-0.5 rounded-md">النهاردة! 🎂</span>
+<span class="text-[10px] text-slate-400">13/10</span>
+</div>
+</div>
+<!-- Birthday Card 2 -->
+<div class="flex-shrink-0 w-40 glass-card rounded-2xl p-3.5 border-brand-border/80">
+<div class="w-8 h-8 rounded-full bg-brand-cardLight text-slate-300 flex items-center justify-center mb-2">
+<i class="fa-solid fa-cake-candles text-xs text-amber-400/80"></i>
+</div>
+<h4 class="font-bold text-sm text-white truncate">كيرلس رضا</h4>
+<div class="flex items-center justify-between mt-2 pt-2 border-t border-brand-border/60">
+<span class="text-[10px] text-brand-accent font-semibold bg-brand-accent/10 px-1.5 py-0.5 rounded">بعد 7 أيام</span>
+<span class="text-[10px] text-slate-400">20/10</span>
+</div>
+</div>
+<!-- Birthday Card 3 -->
+<div class="flex-shrink-0 w-40 glass-card rounded-2xl p-3.5 border-brand-border/80">
+<div class="w-8 h-8 rounded-full bg-brand-cardLight text-slate-300 flex items-center justify-center mb-2">
+<i class="fa-solid fa-cake-candles text-xs text-amber-400/80"></i>
+</div>
+<h4 class="font-bold text-sm text-white truncate">جورج سامي</h4>
+<div class="flex items-center justify-between mt-2 pt-2 border-t border-brand-border/60">
+<span class="text-[10px] text-slate-300 font-medium">بعد 11 يوم</span>
+<span class="text-[10px] text-slate-400">24/10</span>
+</div>
+</div>
+<!-- Birthday Card 4 -->
+<div class="flex-shrink-0 w-40 glass-card rounded-2xl p-3.5 border-brand-border/80">
+<div class="w-8 h-8 rounded-full bg-brand-cardLight text-slate-300 flex items-center justify-center mb-2">
+<i class="fa-solid fa-cake-candles text-xs text-amber-400/80"></i>
+</div>
+<h4 class="font-bold text-sm text-white truncate">مهرائيل اسحاق</h4>
+<div class="flex items-center justify-between mt-2 pt-2 border-t border-brand-border/60">
+<span class="text-[10px] text-slate-300 font-medium">بعد 13 يوم</span>
+<span class="text-[10px] text-slate-400">26/10</span>
+</div>
+</div>
+<!-- Birthday Card 5 -->
+<div class="flex-shrink-0 w-40 glass-card rounded-2xl p-3.5 border-brand-border/80">
+<div class="w-8 h-8 rounded-full bg-brand-cardLight text-slate-300 flex items-center justify-center mb-2">
+<i class="fa-solid fa-cake-candles text-xs text-amber-400/80"></i>
+</div>
+<h4 class="font-bold text-sm text-white truncate">اسحاق ابراهيم</h4>
+<div class="flex items-center justify-between mt-2 pt-2 border-t border-brand-border/60">
+<span class="text-[10px] text-slate-300 font-medium">بعد 18 يوم</span>
+<span class="text-[10px] text-slate-400">31/10</span>
+</div>
+</div>
+</div>
+</section>
+<!-- END: BirthdaysSection -->
+<!-- BEGIN: AttendanceCurveSection -->
+<!-- كيرف الحضور في آخر الأسابيع -->
+<section class="glass-card rounded-2xl p-4 space-y-3" data-purpose="attendance-trend-chart">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<i class="fa-solid fa-chart-area text-brand-accent"></i>
+<h3 class="font-bold text-sm text-white">كيرف الحضور في آخر الأسابيع</h3>
+</div>
+<span class="text-[11px] text-emerald-400 font-semibold bg-emerald-500/10 px-2 py-0.5 rounded-full">أعلى قمة: 44</span>
+</div>
+<!-- SVG Chart Container -->
+<div class="relative w-full pt-3 pb-1" data-purpose="attendance-svg-curve">
+<svg class="w-full h-36 overflow-visible" preserveaspectratio="none" viewbox="0 0 400 160">
+<defs>
+<lineargradient id="curveGradient" x1="0" x2="0" y1="0" y2="1">
+<stop offset="0%" stop-color="#4f6ef7" stop-opacity="0.45"></stop>
+<stop offset="100%" stop-color="#4f6ef7" stop-opacity="0.0"></stop>
+</lineargradient>
+</defs>
+<!-- Horizontal Grid lines -->
+<line opacity="0.6" stroke="#263450" stroke-dasharray="3 3" stroke-width="0.7" x1="0" x2="400" y1="20" y2="20"></line>
+<line opacity="0.6" stroke="#263450" stroke-dasharray="3 3" stroke-width="0.7" x1="0" x2="400" y1="60" y2="60"></line>
+<line opacity="0.6" stroke="#263450" stroke-dasharray="3 3" stroke-width="0.7" x1="0" x2="400" y1="100" y2="100"></line>
+<line opacity="0.7" stroke="#263450" stroke-width="0.9" x1="0" x2="400" y1="140" y2="140"></line>
+<!-- Curve Fill Area -->
+<path d="M 10 75 
+                     C 60 73, 90 95, 130 96 
+                     C 170 97, 210 102, 250 82 
+                     C 280 65, 305 20, 325 22 
+                     C 345 24, 370 78, 390 77 
+                     L 390 140 L 10 140 Z" fill="url(#curveGradient)"></path>
+<!-- Curve Smooth Line -->
+<path d="M 10 75 
+                     C 60 73, 90 95, 130 96 
+                     C 170 97, 210 102, 250 82 
+                     C 280 65, 305 20, 325 22 
+                     C 345 24, 370 78, 390 77" fill="none" stroke="#5d78ff" stroke-linecap="round" stroke-width="3"></path>
+<!-- Highlight Peak Dot (44 members) -->
+<circle class="animate-pulse" cx="325" cy="22" fill="#38bdf8" r="5" stroke="#ffffff" stroke-width="2"></circle>
+<!-- Other Data Dots -->
+<circle cx="10" cy="75" fill="#4f6ef7" r="3.5"></circle>
+<circle cx="80" cy="78" fill="#4f6ef7" r="3.5"></circle>
+<circle cx="130" cy="96" fill="#4f6ef7" r="3.5"></circle>
+<circle cx="210" cy="102" fill="#4f6ef7" r="3.5"></circle>
+<circle cx="250" cy="82" fill="#4f6ef7" r="3.5"></circle>
+<circle cx="390" cy="77" fill="#4f6ef7" r="3.5"></circle>
+</svg>
+<!-- Chart X-Axis Labels -->
+<div class="flex justify-between text-[9px] text-slate-400 font-mono mt-1 px-1">
+<span>08/07</span>
+<span>08/28</span>
+<span>09/18</span>
+<span class="text-brand-accent font-bold">10/02 (الذروة)</span>
+<span>10/09</span>
+</div>
+</div>
+<div class="flex items-center justify-between text-xs pt-1 border-t border-brand-border/40 text-slate-400">
+<span>معدل الاستقرار: <strong class="text-slate-200">مرتفع</strong></span>
+<span class="text-brand-accent hover:underline cursor-pointer">تحليل تفصيلي ←</span>
+</div>
+</section>
+<!-- END: AttendanceCurveSection -->
+<!-- BEGIN: QuickActions -->
+<!-- أزرار الإجراءات السريعة للهاتف -->
+<section class="grid grid-cols-2 gap-3 pb-2" data-purpose="quick-actions">
+<button class="bg-gradient-to-r from-brand-accent to-brand-purple hover:opacity-95 text-white font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-brand-accent/20 active:scale-95 transition-all text-sm">
+<i class="fa-solid fa-qrcode text-base"></i>
+<span>مسح كود الحضور</span>
+</button>
+<button class="glass-card hover:bg-brand-cardLight text-slate-200 font-semibold py-3 px-4 rounded-xl flex items-center justify-center gap-2 border-brand-border active:scale-95 transition-all text-sm">
+<i class="fa-solid fa-user-plus text-base text-brand-accent"></i>
+<span>إضافة مخدوم</span>
+</button>
+</section>
+<!-- END: QuickActions -->
+</main>
+<!-- END: MainContent -->
+<!-- BEGIN: BottomNavigation -->
+<!-- شريط التنقل السفلي للهاتف المحمول -->
+<nav class="fixed bottom-0 left-0 right-0 z-50 glass-nav px-4 py-2" data-purpose="bottom-navigation-bar">
+<div class="max-w-md mx-auto flex items-center justify-around">
+<!-- Tab 1: Home (Active) -->
+<button class="flex flex-col items-center gap-1 text-brand-accent relative py-1 px-2" type="button">
+<div class="relative">
+<i class="fa-solid fa-house-chimney text-lg"></i>
+</div>
+<span class="text-[10px] font-bold">الرئيسية</span>
+<span class="w-1.5 h-1.5 rounded-full bg-brand-accent absolute -bottom-0.5"></span>
+</button>
+<!-- Tab 2: Attendance -->
+<button class="flex flex-col items-center gap-1 text-slate-400 hover:text-slate-200 py-1 px-2 transition-colors" type="button">
+<i class="fa-solid fa-clipboard-user text-lg"></i>
+<span class="text-[10px] font-medium">تسجيل الحضور</span>
+</button>
+<!-- Tab 3: Pastoral Care (الافتقاد) -->
+<button class="flex flex-col items-center gap-1 text-slate-400 hover:text-slate-200 py-1 px-2 transition-colors" type="button">
+<i class="fa-solid fa-heart-pulse text-lg"></i>
+<span class="text-[10px] font-medium">الافتقاد</span>
+</button>
+<!-- Tab 4: Contests -->
+<button class="flex flex-col items-center gap-1 text-slate-400 hover:text-slate-200 py-1 px-2 transition-colors" type="button">
+<i class="fa-solid fa-trophy text-lg"></i>
+<span class="text-[10px] font-medium">المسابقات</span>
+</button>
+<!-- Tab 5: More -->
+<button class="flex flex-col items-center gap-1 text-slate-400 hover:text-slate-200 py-1 px-2 transition-colors" type="button">
+<i class="fa-solid fa-bars text-lg"></i>
+<span class="text-[10px] font-medium">المزيد</span>
+</button>
+</div>
+</nav>
+<!-- END: BottomNavigation -->
+</div>
+<!-- END: AppContainer -->
+</body></html>

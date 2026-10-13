@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+
+<html dir="rtl" lang="ar"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/>
+<title>دوري المسابقات - اجتماع القديس يوحنا الحبيب</title>
+<!-- Font Setup: Cairo -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS CDN -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Cairo', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              dark: '#0c1322',
+              card: '#162035',
+              border: '#243452',
+              primary: '#5950e8',
+              primaryHover: '#4b42d6',
+              accent: '#3b82f6',
+              gold: '#f59e0b',
+            }
+          }
+        }
+      }
+    }
+  </script>
+<style data-purpose="custom-styling">
+    body {
+      font-family: 'Cairo', sans-serif;
+      -webkit-tap-highlight-color: transparent;
+      padding-top: env(safe-area-inset-top);
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+    
+    /* Smooth transition for active interactions */
+    .tap-effect:active {
+      transform: scale(0.97);
+    }
+    
+    /* Custom scrollbar for horizontal category tabs */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+  </style>
+</head>
+<body class="bg-[#0b111e] text-slate-100 min-h-screen flex flex-col justify-between selection:bg-brand-primary selection:text-white">
+<!-- BEGIN: MainContent -->
+<main class="flex-1 pb-28 max-w-md mx-auto w-full px-4 pt-4">
+<!-- BEGIN: TopBar -->
+<header class="flex items-center justify-between py-2 mb-4" data-purpose="app-bar">
+<div class="flex items-center gap-3">
+<!-- Logo Image from Image Snapshot -->
+<div class="relative w-11 h-11 rounded-full p-0.5 bg-gradient-to-tr from-brand-primary to-blue-400 shadow-md shadow-brand-primary/20">
+<img alt="شعار اجتماع القديس يوحنا الحبيب" class="w-full h-full object-cover rounded-full bg-white" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD8s51_5Lq9DsSyy8JctizxM5_eWWh4MBSxa-gZdgf2UwTgVUWzB0mDV2FidAam-6vxeeRqQbciDb3jI85ht5JZsaE71d-79vbvzoP205KeQLPwis6gL3KHvOtzk_W3NMl56KN1LHi5vxvpfO7harhmuHcpo8n_dr8SYxWGBx6UQjpSuc8aJ0yF035zugnigfz8MM312JVVBta9eutqS1SkItqUdyGR7k0uFwuYYHkbkGIh1_gW3qMIPjmeacjysKcGiO0"/>
+</div>
+<div>
+<span class="text-xs text-blue-300/80 font-medium tracking-wide block">اجتماع القديس يوحنا الحبيب</span>
+<h1 class="text-xl font-bold text-white tracking-tight">دوري المسابقات</h1>
+</div>
+</div>
+<!-- Action Button / Notifications -->
+<button aria-label="الإشعارات" class="w-10 h-10 rounded-xl bg-brand-card border border-brand-border/60 flex items-center justify-center text-slate-300 tap-effect hover:text-white shadow-sm">
+<svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+<path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+</button>
+</header>
+<!-- END: TopBar -->
+<!-- BEGIN: HeaderBanner -->
+<section class="mb-5" data-purpose="page-description">
+<p class="text-sm text-slate-400 font-normal leading-relaxed">
+        إدارة المسابقات، وتوزيع الفرق، وتسجيل الدرجات الأسبوعية وحساب النقاط مباشرةً.
+      </p>
+<!-- Primary Action: New Competition -->
+<button class="w-full mt-3.5 bg-brand-primary hover:bg-brand-primaryHover text-white py-3.5 px-5 rounded-2xl font-bold flex items-center justify-center gap-2.5 shadow-lg shadow-brand-primary/25 tap-effect transition-all duration-150" data-purpose="add-competition-btn">
+<svg class="w-5 h-5 stroke-[2.5]" fill="none" stroke="currentColor" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+<path d="M12 4v16m8-8H4" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+<span class="text-sm sm:text-base">إضافة مسابقة جديدة</span>
+</button>
+</section>
+<!-- END: HeaderBanner -->
+<!-- BEGIN: FilterTabs -->
+<!-- التبويبات السريعة للتصفية -->
+<div class="flex items-center gap-2 overflow-x-auto no-scrollbar pb-3 mb-3" data-purpose="competition-filters">
+<button class="px-4 py-1.5 rounded-full text-xs font-semibold bg-brand-primary text-white shadow-sm flex-shrink-0">
+        الكل (2)
+      </button>
+<button class="px-4 py-1.5 rounded-full text-xs font-semibold bg-brand-card text-slate-300 hover:text-white border border-brand-border/60 flex-shrink-0">
+        المسابقات الجارية
+      </button>
+<button class="px-4 py-1.5 rounded-full text-xs font-semibold bg-brand-card text-slate-300 hover:text-white border border-brand-border/60 flex-shrink-0">
+        المسابقات المنتهية
+      </button>
+</div>
+<!-- END: FilterTabs -->
+<!-- BEGIN: CompetitionsList -->
+<div class="space-y-4" data-purpose="competition-cards-container">
+<!-- Card 1: مسابقة صموئيل أول (جارية) -->
+<article class="bg-brand-card border border-brand-border/80 rounded-2xl p-4 shadow-xl transition-all relative overflow-hidden" data-purpose="competition-card">
+<!-- Status indicator bar on the side -->
+<div class="absolute top-0 right-0 w-1.5 h-full bg-emerald-500 rounded-r-2xl"></div>
+<div class="flex items-start justify-between gap-3 mb-3.5 pr-1">
+<!-- Right side: Title & Badge -->
+<div class="flex-1">
+<div class="flex items-center gap-2 flex-wrap mb-1">
+<h2 class="text-lg font-bold text-white tracking-tight">صموئيل أول</h2>
+<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+<span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                جارية
+              </span>
+</div>
+<p class="text-xs text-slate-400 font-medium">تاريخ الإنشاء: 09-10-2026</p>
+</div>
+<!-- Cup Icon -->
+<div class="w-12 h-12 rounded-xl bg-[#1e2d4a] border border-amber-500/30 flex items-center justify-center flex-shrink-0 shadow-inner">
+<svg class="w-6 h-6 text-brand-gold" fill="currentColor" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+<path clip-rule="evenodd" d="M5.166 2.621v.858c-1.035.148-2.059.33-3.071.543a.75.75 0 00-.584.859 6.753 6.753 0 006.138 5.6c.402 1.554 1.455 2.868 2.851 3.585v2.884h-2.25a.75.75 0 000 1.5h6a.75.75 0 000-1.5h-2.25V14.07c1.396-.718 2.45-2.031 2.851-3.586a6.753 6.753 0 006.138-5.6.75.75 0 00-.584-.86 47.16 47.16 0 00-3.07-.542V2.62a.75.75 0 00-.658-.744 49.28 49.28 0 00-6.092-.377c-2.063 0-4.096.128-6.093.377a.75.75 0 00-.657.744zm0 2.629c1.649-.187 3.32-.303 5.012-.346v4.613a5.24 5.24 0 01-4.008-3.037 13.9 13.9 0 01-1.004-1.23zm10.656 0c-.31.396-.645.795-1.004 1.23a5.24 5.24 0 01-4.008 3.037V4.904c1.692.043 3.363.16 5.012.346z" fill-rule="evenodd"></path>
+</svg>
+</div>
+</div>
+<!-- Quick Stats Container -->
+<div class="grid grid-cols-2 gap-2 py-2.5 px-3 bg-[#0e1626]/70 rounded-xl border border-brand-border/40 text-xs text-slate-300 mb-3.5">
+<div class="flex items-center gap-2">
+<svg class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+<path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+<span class="font-medium text-white">49 مشترك</span>
+</div>
+<div class="flex items-center gap-2">
+<svg class="w-4 h-4 text-brand-gold" fill="none" stroke="currentColor" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+<path d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+<span class="font-medium text-white">1 جولة</span>
+</div>
+</div>
+<!-- Action Buttons -->
+<div class="flex items-center gap-2 pt-1">
+<button class="flex-1 py-2.5 px-3 rounded-xl bg-brand-primary/15 hover:bg-brand-primary/25 border border-brand-primary/40 text-brand-primary text-xs font-bold flex items-center justify-center gap-1.5 tap-effect transition-all" data-purpose="view-details">
+<svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+<path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+<span>عرض الترتيب والنتائج</span>
+</button>
+<button class="py-2.5 px-3.5 rounded-xl bg-[#1c2942] hover:bg-[#233352] text-slate-300 border border-brand-border/80 text-xs font-semibold flex items-center gap-1.5 tap-effect" data-purpose="print-results" title="طباعة النتيجة">
+<svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+<path d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+<span>طباعة</span>
+</button>
+</div>
+</article>
+<!-- Card 2: مسابقة القضاة (منتهية) -->
+<article class="bg-brand-card border border-brand-border/80 rounded-2xl p-4 shadow-xl transition-all relative overflow-hidden" data-purpose="competition-card">
+<!-- Status indicator bar on the side -->
+<div class="absolute top-0 right-0 w-1.5 h-full bg-rose-500 rounded-r-2xl"></div>
+<div class="flex items-start justify-between gap-3 mb-3.5 pr-1">
+<!-- Right side: Title & Badge -->
+<div class="flex-1">
+<div class="flex items-center gap-2 flex-wrap mb-1">
+<h2 class="text-lg font-bold text-white tracking-tight">القضاة</h2>
+<span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold bg-rose-600 text-white shadow-sm">
+                منتهية
+              </span>
+</div>
+<p class="text-xs text-slate-400 font-medium">تاريخ الإنشاء: 08-10-2026</p>
+</div>
+<!-- Cup Icon -->
+<div class="w-12 h-12 rounded-xl bg-[#1e2d4a] border border-amber-500/30 flex items-center justify-center flex-shrink-0 shadow-inner">
+<svg class="w-6 h-6 text-brand-gold" fill="currentColor" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+<path clip-rule="evenodd" d="M5.166 2.621v.858c-1.035.148-2.059.33-3.071.543a.75.75 0 00-.584.859 6.753 6.753 0 006.138 5.6c.402 1.554 1.455 2.868 2.851 3.585v2.884h-2.25a.75.75 0 000 1.5h6a.75.75 0 000-1.5h-2.25V14.07c1.396-.718 2.45-2.031 2.851-3.586a6.753 6.753 0 006.138-5.6.75.75 0 00-.584-.86 47.16 47.16 0 00-3.07-.542V2.62a.75.75 0 00-.658-.744 49.28 49.28 0 00-6.092-.377c-2.063 0-4.096.128-6.093.377a.75.75 0 00-.657.744zm0 2.629c1.649-.187 3.32-.303 5.012-.346v4.613a5.24 5.24 0 01-4.008-3.037 13.9 13.9 0 01-1.004-1.23zm10.656 0c-.31.396-.645.795-1.004 1.23a5.24 5.24 0 01-4.008 3.037V4.904c1.692.043 3.363.16 5.012.346z" fill-rule="evenodd"></path>
+</svg>
+</div>
+</div>
+<!-- Quick Stats Container -->
+<div class="grid grid-cols-2 gap-2 py-2.5 px-3 bg-[#0e1626]/70 rounded-xl border border-brand-border/40 text-xs text-slate-300 mb-3.5">
+<div class="flex items-center gap-2">
+<svg class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+<path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+<span class="font-medium text-white">43 مشترك</span>
+</div>
+<div class="flex items-center gap-2">
+<svg class="w-4 h-4 text-brand-gold" fill="none" stroke="currentColor" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+<path d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+<span class="font-medium text-white">3 جولات</span>
+</div>
+</div>
+<!-- Action Buttons -->
+<div class="flex items-center gap-2 pt-1">
+<button class="flex-1 py-2.5 px-3 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 text-slate-200 text-xs font-bold flex items-center justify-center gap-1.5 tap-effect transition-all" data-purpose="view-final-ranking">
+<svg class="w-4 h-4 text-brand-gold" fill="none" stroke="currentColor" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+<path d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+<span>عرض النتائج والترتيب النهائي</span>
+</button>
+<button class="py-2.5 px-3.5 rounded-xl bg-[#1c2942] hover:bg-[#233352] text-slate-300 border border-brand-border/80 text-xs font-semibold flex items-center gap-1.5 tap-effect" data-purpose="print-results" title="طباعة النتيجة">
+<svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+<path d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+<span>طباعة</span>
+</button>
+</div>
+</article>
+</div>
+<!-- END: CompetitionsList -->
+</main>
+<!-- END: MainContent -->
+<!-- BEGIN: BottomNavigation -->
+<!-- شريط التنقل السفلي للهاتف المحمول -->
+<nav class="fixed bottom-0 inset-x-0 z-40 bg-[#0d1527]/95 backdrop-blur-md border-t border-brand-border/80 px-2 py-1 max-w-md mx-auto" data-purpose="bottom-navigation">
+<div class="grid grid-cols-5 text-center text-[10px] font-medium">
+<!-- الرئيسية -->
+<a class="flex flex-col items-center py-1.5 text-slate-400 hover:text-white transition-colors" href="#">
+<svg class="w-5 h-5 mb-0.5" fill="none" stroke="currentColor" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+<path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+<span>الرئيسية</span>
+</a>
+<!-- الحضور والافتقاد -->
+<a class="flex flex-col items-center py-1.5 text-slate-400 hover:text-white transition-colors" href="#">
+<svg class="w-5 h-5 mb-0.5" fill="none" stroke="currentColor" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+<path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+<span>الحضور</span>
+</a>
+<!-- المسابقات (Active Tab) -->
+<a class="flex flex-col items-center py-1.5 text-brand-primary font-bold" href="#">
+<div class="relative">
+<svg class="w-5 h-5 mb-0.5" fill="currentColor" viewbox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+<path clip-rule="evenodd" d="M10 2a1 1 0 011 1v1.323l3.954 1.582 1.599-.8a1 1 0 01.894 1.79l-1.233.616 1.738 5.42a1 1 0 01-.285 1.05A3.989 3.989 0 0115 15a3.989 3.989 0 01-2.667-1.019 1 1 0 01-.285-1.05l1.715-5.349L11 6.477V16h2a1 1 0 110 2H7a1 1 0 110-2h2V6.477L6.237 7.582l1.715 5.349a1 1 0 01-.285 1.05A3.989 3.989 0 015 15a3.989 3.989 0 01-2.667-1.019 1 1 0 01-.285-1.05l1.738-5.42-1.233-.617a1 1 0 01.894-1.788l1.599.799L9 4.323V3a1 1 0 011-1z" fill-rule="evenodd"></path>
+</svg>
+<span class="absolute -top-1 -right-1 w-2 h-2 bg-brand-primary rounded-full"></span>
+</div>
+<span>المسابقات</span>
+</a>
+<!-- الملخص -->
+<a class="flex flex-col items-center py-1.5 text-slate-400 hover:text-white transition-colors" href="#">
+<svg class="w-5 h-5 mb-0.5" fill="none" stroke="currentColor" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+<path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+<span>الملخص</span>
+</a>
+<!-- الإعدادات -->
+<a class="flex flex-col items-center py-1.5 text-slate-400 hover:text-white transition-colors" href="#">
+<svg class="w-5 h-5 mb-0.5" fill="none" stroke="currentColor" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+<path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+<path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+<span>الإعدادات</span>
+</a>
+</div>
+</nav>
+<!-- END: BottomNavigation -->
+<script data-purpose="interaction-handlers">
+    // Add simple click visual feedback
+    document.querySelectorAll('button').forEach(btn => {
+      btn.addEventListener('click', function(e) {
+        // Feedback placeholder for mobile experience
+      });
+    });
+  </script>
+</body></html>
