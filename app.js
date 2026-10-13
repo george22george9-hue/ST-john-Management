@@ -384,7 +384,9 @@ function enforcePermissions() {
     // 1. Generic [data-perm] elements
     document.querySelectorAll('[data-perm]').forEach(el => {
         const requiredPerm = el.getAttribute('data-perm');
-        if (!currentPermissions.includes(requiredPerm)) {
+        if (requiredPerm === 'admin-only') {
+            el.style.display = (currentUserRole === 'admin') ? '' : 'none';
+        } else if (!currentPermissions.includes(requiredPerm)) {
             el.style.display = 'none';
         } else {
             el.style.display = '';
@@ -436,6 +438,7 @@ function enforcePermissions() {
     }
 
     // 3. Follow-up & Care View (المتابعة والافتقاد)
+    const isAdmin = (currentUserRole === 'admin');
     const canEditFollowup = currentPermissions.includes('followup-edit');
     const btnBulkVisit = document.getElementById('btn-open-bulk-visit');
     const btnWaTask = document.getElementById('btn-open-wa-task');
@@ -444,15 +447,18 @@ function enforcePermissions() {
     const btnRecordVisitProfile = document.getElementById('btn-open-record-visit');
     const btnEditPhoneProfile = document.getElementById('btn-edit-profile-phone');
 
-    if (btnBulkVisit) btnBulkVisit.style.display = canEditFollowup ? '' : 'none';
-    if (btnWaTask) btnWaTask.style.display = canEditFollowup ? '' : 'none';
-    if (btnCopyAbsent) btnCopyAbsent.style.display = canEditFollowup ? '' : 'none';
-    if (btnCopyNoVisit) btnCopyNoVisit.style.display = canEditFollowup ? '' : 'none';
-    if (btnRecordVisitProfile) btnRecordVisitProfile.style.display = canEditFollowup ? '' : 'none';
-    if (btnEditPhoneProfile) btnEditPhoneProfile.style.display = canEditFollowup ? '' : 'none';
+    // هذه الإجراءات خاصة بالأدمن فقط: نسخ غياب آخر اجتماع، نسخ تأخر الافتقاد، افتقاد جماعي، تكليف واتساب
+    if (btnBulkVisit) btnBulkVisit.style.display = isAdmin ? '' : 'none';
+    if (btnWaTask) btnWaTask.style.display = isAdmin ? '' : 'none';
+    if (btnCopyAbsent) btnCopyAbsent.style.display = isAdmin ? '' : 'none';
+    if (btnCopyNoVisit) btnCopyNoVisit.style.display = isAdmin ? '' : 'none';
+
+    // تسجيل الافتقاد الفردي متاح للأدمن أو الخادم الحاصل على صلاحية الافتقاد
+    if (btnRecordVisitProfile) btnRecordVisitProfile.style.display = (isAdmin || canEditFollowup) ? '' : 'none';
+    if (btnEditPhoneProfile) btnEditPhoneProfile.style.display = (isAdmin || canEditFollowup) ? '' : 'none';
 
     document.querySelectorAll('.btn-record-visit').forEach(b => {
-        b.style.display = canEditFollowup ? '' : 'none';
+        b.style.display = (isAdmin || canEditFollowup) ? '' : 'none';
     });
 
     // 4. Competitions View (المسابقات)
@@ -3240,10 +3246,22 @@ function setupCopyNeedsVisit() {
     }
 
     if (btnAbsentLast) {
-        btnAbsentLast.addEventListener('click', () => copyList('absent_last'));
+        btnAbsentLast.addEventListener('click', () => {
+            if (currentUserRole !== 'admin') {
+                alert('عفواً، ميزة نسخ غياب آخر اجتماع خاصة بالأدمن فقط.');
+                return;
+            }
+            copyList('absent_last');
+        });
     }
     if (btnNoVisit) {
-        btnNoVisit.addEventListener('click', () => copyList('no_visit'));
+        btnNoVisit.addEventListener('click', () => {
+            if (currentUserRole !== 'admin') {
+                alert('عفواً، ميزة نسخ تأخر الافتقاد خاصة بالأدمن فقط.');
+                return;
+            }
+            copyList('no_visit');
+        });
     }
 }
 
@@ -3286,6 +3304,10 @@ function setupVisitationModals() {
     const btnOpenBulk = document.getElementById('btn-open-bulk-visit');
     if (btnOpenBulk) {
         btnOpenBulk.addEventListener('click', () => {
+            if (currentUserRole !== 'admin') {
+                alert('عفواً، ميزة الافتقاد الجماعي خاصة بالأدمن فقط.');
+                return;
+            }
             document.getElementById('bulk-visit-date').value = todayLocal();
             document.getElementById('bulk-visit-positives').value = '';
             document.getElementById('bulk-visit-problems').value = '';
@@ -3345,8 +3367,8 @@ function setupVisitationModals() {
     const btnSaveBulk = document.getElementById('btn-save-bulk-visit');
     if (btnSaveBulk) {
         btnSaveBulk.addEventListener('click', () => {
-            if (currentUserRole !== 'admin' && !currentPermissions.includes('followup-edit')) {
-                alert('عفواً، لا تملك صلاحية تسجيل أو تعديل الافتقاد (المشاهدة فقط).');
+            if (currentUserRole !== 'admin') {
+                alert('عفواً، لا يملك صلاحية حفظ الافتقاد الجماعي إلا الأدمن.');
                 return;
             }
             const date = document.getElementById('bulk-visit-date').value;
@@ -3967,6 +3989,10 @@ function setupWhatsAppTask() {
     if (!btnOpenWa) return;
 
     btnOpenWa.addEventListener('click', () => {
+        if (currentUserRole !== 'admin') {
+            alert('عفواً، ميزة تكليف الواتساب خاصة بالأدمن فقط.');
+            return;
+        }
         const members = getMembers();
         const records = getAttendanceRecords();
         const waTasks = getWaTasks();
@@ -4094,6 +4120,10 @@ function setupWhatsAppTask() {
 
     // Send WhatsApp
     btnSendWa.addEventListener('click', () => {
+        if (currentUserRole !== 'admin') {
+            alert('عفواً، ميزة تكليف الواتساب خاصة بالأدمن فقط.');
+            return;
+        }
         const servantId = servantSelect.value;
         if (!servantId) {
             alert('برجاء اختيار الخادم أولاً');
