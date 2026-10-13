@@ -672,15 +672,91 @@ function showToast(message, type = 'success') {
 }
 
 // --- Navigation ---
+window.navigateToView = async function(targetId) {
+    let passSuccess = true;
+
+    if (targetId === 'admin-view') {
+        if (!window.isAdminUnlocked) {
+            const pass = await customPrompt('برجاء إدخال كلمة المرور لدخول صفحة الإدارة:');
+            if (pass === 'STjohn') {
+                window.isAdminUnlocked = true;
+            } else {
+                showToast('كلمة المرور غير صحيحة!', 'error');
+                passSuccess = false;
+            }
+        }
+    }
+
+    if (targetId === 'servants-notes-view') {
+        if (!window.isServantNotesUnlocked) {
+            const pass = await customPrompt('🔒 برجاء إدخال كلمة المرور الخاصة لفتح ملاحظات الخدام:');
+            if (pass !== null) {
+                if (verifyServantNotesPassword(pass)) {
+                    window.isServantNotesUnlocked = true;
+                    showToast('تم فتح ملاحظات الخدام بنجاح 🔓', 'success');
+                } else {
+                    showToast('كلمة المرور غير صحيحة! ❌', 'error');
+                    passSuccess = false;
+                }
+            } else {
+                passSuccess = false;
+            }
+        }
+    }
+
+    if (passSuccess) {
+        // If mobile drawer is open, close it
+        if (window.innerWidth <= 900) {
+            const sidebar = document.querySelector('.sidebar');
+            if (sidebar && sidebar.classList.contains('mobile-open')) {
+                toggleMobileMenu();
+            }
+        }
+
+        // Remove active classes
+        navBtns.forEach(b => b.classList.remove('active'));
+        views.forEach(v => v.classList.remove('active'));
+
+        // Add active class to target sidebar button and section
+        const targetBtn = document.querySelector(`.sidebar-nav .nav-btn[data-target="${targetId}"]`);
+        if (targetBtn) targetBtn.classList.add('active');
+
+        const targetEl = document.getElementById(targetId);
+        if (targetEl) targetEl.classList.add('active');
+
+        // Sync mobile bottom navigation active state
+        document.querySelectorAll('.mobile-nav-item[data-target]').forEach(mItem => {
+            mItem.classList.toggle('active', mItem.getAttribute('data-target') === targetId);
+        });
+
+        // Toggle Mobile Floating Save Bar
+        const mobileSaveBar = document.getElementById('attendance-mobile-save-bar');
+        if (mobileSaveBar) {
+            const canEditAttendance = currentUserRole === 'admin' || currentPermissions.includes('attendance-edit');
+            mobileSaveBar.style.display = (targetId === 'attendance-view' && canEditAttendance && currentAttendanceDate) ? 'flex' : 'none';
+        }
+
+        // View specific logic
+        if (targetId === 'dashboard-view') refreshDashboard();
+        if (targetId === 'followup-view') refreshFollowUp();
+        if (targetId === 'attendance-view') updateAttendanceWorkspace();
+        if (targetId === 'visitation-view') refreshVisitationView();
+        if (targetId === 'servants-dashboard-view') refreshServantsDashboard();
+        if (targetId === 'servants-notes-view') refreshServantsNotes();
+        if (targetId === 'summary-view') refreshSummaryView();
+        if (targetId === 'competitions-view') { if (typeof renderCompetitions === 'function') renderCompetitions(); }
+        if (targetId === 'admin-view') refreshAdminView();
+
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+};
+
 function setupNavigation() {
     // Setup Mobile Bottom Navigation items
     document.querySelectorAll('.mobile-nav-item[data-target]').forEach(mItem => {
         mItem.addEventListener('click', () => {
             const target = mItem.getAttribute('data-target');
-            const targetBtn = document.querySelector(`.sidebar-nav .nav-btn[data-target="${target}"]`);
-            if (targetBtn) {
-                targetBtn.click();
-            }
+            if (target) window.navigateToView(target);
         });
     });
 
@@ -694,78 +770,9 @@ function setupNavigation() {
     }
 
     navBtns.forEach(btn => {
-        btn.addEventListener('click', async () => {
+        btn.addEventListener('click', () => {
             const targetId = btn.getAttribute('data-target');
-            let passSuccess = true;
-
-            if (targetId === 'admin-view') {
-                if (!window.isAdminUnlocked) {
-                    const pass = await customPrompt('برجاء إدخال كلمة المرور لدخول صفحة الإدارة:');
-                    if (pass === 'STjohn') {
-                        window.isAdminUnlocked = true;
-                    } else {
-                        showToast('كلمة المرور غير صحيحة!', 'error');
-                        passSuccess = false;
-                    }
-                }
-            }
-
-            if (targetId === 'servants-notes-view') {
-                if (!window.isServantNotesUnlocked) {
-                    const pass = await customPrompt('🔒 برجاء إدخال كلمة المرور الخاصة لفتح ملاحظات الخدام:');
-                    if (pass !== null) {
-                        if (verifyServantNotesPassword(pass)) {
-                            window.isServantNotesUnlocked = true;
-                            showToast('تم فتح ملاحظات الخدام بنجاح 🔓', 'success');
-                        } else {
-                            showToast('كلمة المرور غير صحيحة! ❌', 'error');
-                            passSuccess = false;
-                        }
-                    } else {
-                        passSuccess = false;
-                    }
-                }
-            }
-
-            if (passSuccess) {
-                // If mobile drawer is open, close it
-                if (window.innerWidth <= 900) {
-                    const sidebar = document.querySelector('.sidebar');
-                    if (sidebar && sidebar.classList.contains('mobile-open')) {
-                        toggleMobileMenu();
-                    }
-                }
-
-                // Remove active classes
-                navBtns.forEach(b => b.classList.remove('active'));
-                views.forEach(v => v.classList.remove('active'));
-
-                // Add active class to clicked
-                btn.classList.add('active');
-                document.getElementById(targetId).classList.add('active');
-
-                // Sync mobile bottom navigation active state
-                document.querySelectorAll('.mobile-nav-item[data-target]').forEach(mItem => {
-                    mItem.classList.toggle('active', mItem.getAttribute('data-target') === targetId);
-                });
-
-                // Toggle Mobile Floating Save Bar
-                const mobileSaveBar = document.getElementById('attendance-mobile-save-bar');
-                if (mobileSaveBar) {
-                    const canEditAttendance = currentUserRole === 'admin' || currentPermissions.includes('attendance-edit');
-                    mobileSaveBar.style.display = (targetId === 'attendance-view' && canEditAttendance && currentAttendanceDate) ? 'flex' : 'none';
-                }
-
-                // View specific logic
-                if (targetId === 'dashboard-view') refreshDashboard();
-                if (targetId === 'followup-view') refreshFollowUp();
-                if (targetId === 'attendance-view') updateAttendanceWorkspace();
-                if (targetId === 'visitation-view') refreshVisitationView();
-                if (targetId === 'servants-dashboard-view') refreshServantsDashboard();
-                if (targetId === 'servants-notes-view') refreshServantsNotes();
-                if (targetId === 'summary-view') refreshSummaryView();
-                if (targetId === 'admin-view') refreshAdminView();
-            }
+            if (targetId) window.navigateToView(targetId);
         });
     });
 }
@@ -3141,58 +3148,64 @@ function refreshFollowUp() {
         card.setAttribute('data-filters', filterAttr);
 
         card.innerHTML = `
-            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
-                <div style="flex: 1; margin-left: 10px;">
-                    <h3 style="margin: 0; font-size: 1.15rem; font-weight: 700; color: var(--text);">${member.name}</h3>
-                    <p style="margin: 4px 0 0; font-size: 0.85rem; color: var(--text-muted);">
-                        <i class="ph ph-phone" style="vertical-align: middle;"></i> ${member.phone || 'لا يوجد رقم'}
-                    </p>
-                    <p class="member-address" style="margin: 2px 0 0; font-size: 0.8rem; color: var(--primary);">
-                        <i class="ph ph-map-pin" style="vertical-align: middle;"></i> ${member.address || 'غير محدد'}
-                    </p>
+            <div class="followup-card-header">
+                <div>
+                    <h3 class="followup-card-name">
+                        ${esc(member.name)}
+                        <span class="followup-region-tag">${esc(member.address || 'غير محدد')}</span>
+                    </h3>
+                    <a class="followup-phone-link" href="tel:${member.phone || ''}">
+                        <i class="ph ph-phone"></i>
+                        <span>${member.phone || 'لا يوجد رقم'}</span>
+                    </a>
                 </div>
-                <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px;">
+                <div class="followup-badges-stack">
                     ${badgeHtml}
                 </div>
             </div>
-            
-            <div style="background: rgba(0,0,0,0.15); border-radius: 8px; padding: 10px; margin-bottom: 12px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; border: 1px solid rgba(255,255,255,0.05);">
-                <div>
-                    <span style="display: block; font-size: 0.7rem; color: var(--text-muted); margin-bottom: 3px;">آخر حضور</span>
-                    <span style="font-size: 0.85rem; font-weight: 600; color: var(--primary);">
-                        <i class="ph ph-calendar-check" style="vertical-align: middle;"></i> ${lastAttendedDate}
-                    </span>
+
+            <div class="followup-stats-grid">
+                <div class="followup-stat-cell">
+                    <div class="stat-cell-label">
+                        <i class="ph ph-calendar"></i>
+                        <span>آخر حضور</span>
+                    </div>
+                    <div class="stat-cell-val">${lastAttendedDate}</div>
                 </div>
-                <div>
-                    <span style="display: block; font-size: 0.7rem; color: var(--text-muted); margin-bottom: 3px;">آخر افتقاد</span>
-                    <span style="font-size: 0.85rem; font-weight: 600; color: ${noVisitForMonth ? 'var(--warning)' : 'var(--success)'};">
-                        <i class="ph ph-hand-heart" style="vertical-align: middle;"></i> ${lastVisitDate || 'لم يتم'}
-                    </span>
+                <div class="followup-stat-cell">
+                    <div class="stat-cell-label">
+                        <i class="ph ph-user-check ${noVisitForMonth ? 'text-amber' : 'text-emerald'}"></i>
+                        <span>آخر افتقاد</span>
+                    </div>
+                    <div class="stat-cell-val ${noVisitForMonth ? 'text-amber font-bold' : 'text-emerald'}">
+                        ${lastVisitDate || 'لم يتم الافتقاد'}
+                    </div>
                 </div>
             </div>
 
-            <div class="attendance-progress" style="margin-bottom: 4px; height: 6px;">
-                <div class="progress-bar" style="width: ${percentage}%;"></div>
+            <div class="followup-progress-wrap">
+                <div class="progress-info-row">
+                    <span>نسبة الحضور السنوية</span>
+                    <span class="progress-val-bold">${percentage}% <span class="progress-sub">(${attendedCount}/${totalMeetings})</span></span>
+                </div>
+                <div class="progress-track">
+                    <div class="progress-bar-fill" style="width: ${percentage}%;"></div>
+                </div>
             </div>
-            <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-muted); margin-bottom: 12px;">
-                <span>نسبة الحضور</span>
-                <span style="font-weight: 600;">${percentage}% (${attendedCount}/${totalMeetings})</span>
-            </div>
-            
-            <div style="display: flex; gap: 8px; border-top: 1px solid var(--glass-border); padding-top: 12px;">
+
+            <div class="followup-actions-row">
+                <button class="btn-primary-visit" onclick="openRecordVisitModal('${member.id}', '${member.name.replace(/'/g, "\\'")}')">
+                    <i class="ph ph-user-plus"></i>
+                    <span>توثيق افتقاد</span>
+                </button>
                 ${member.phone ? `
-                <a href="tel:${member.phone}" class="btn btn-outline btn-sm" style="padding: 0; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; border-radius: 8px; flex-shrink: 0;" title="اتصال هاتفي">
-                    <i class="ph ph-phone" style="font-size: 1.15rem; color: #60a5fa;"></i>
-                </a>
-                <a href="https://wa.me/2${member.phone.startsWith('0') ? member.phone : '0' + member.phone}" target="_blank" class="btn btn-success btn-sm" style="padding: 0; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; border-radius: 8px; flex-shrink: 0;" title="مراسلة واتساب">
-                    <i class="ph ph-whatsapp-logo" style="font-size: 1.2rem;"></i>
+                <a href="https://wa.me/2${member.phone.startsWith('0') ? member.phone : '0' + member.phone}" target="_blank" class="btn-wa-direct" title="مراسلة واتساب">
+                    <i class="ph ph-whatsapp-logo"></i>
                 </a>
                 ` : ''}
-                <button class="btn btn-primary btn-sm" onclick="openRecordVisitModal('${member.id}', '${member.name.replace(/'/g, "\\'")}')" style="flex: 1; display: flex; justify-content: center; align-items: center; gap: 5px;">
-                    <i class="ph ph-plus"></i> افتقاد
-                </button>
-                <button class="btn btn-outline btn-sm" onclick="openMemberProfile('${member.id}')" style="flex: 1; display: flex; justify-content: center; align-items: center; gap: 5px;">
-                    <i class="ph ph-user"></i> الملف
+                <button class="btn-profile-card" onclick="openMemberProfile('${member.id}')">
+                    <i class="ph ph-user"></i>
+                    <span>الملف</span>
                 </button>
             </div>
         `;
@@ -3913,78 +3926,160 @@ function generateVisitationPDFReport(year, month) {
 
 // --- Summary Logic ---
 function refreshSummaryView() {
-    const list = document.getElementById('summary-list');
-    list.innerHTML = '';
+    const cardsContainer = document.getElementById('summary-cards-container');
+    const oldTableList = document.getElementById('summary-list');
+    if (!cardsContainer && !oldTableList) return;
 
     const records = getAttendanceRecords();
     const servantRecords = getServantRecords();
-
     const dates = Object.keys(records).sort((a, b) => b.localeCompare(a)); // Descending
-
-    if (dates.length === 0) {
-        list.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 20px;">لا يوجد سجلات حتى الآن</td></tr>';
-        return;
-    }
-
     const dayTypes = getDayTypes();
     const members = getMembers();
 
-    dates.forEach(date => {
-        const attendees = records[date] || [];
-        const attendanceCount = attendees.length;
+    const countTag = document.getElementById('summary-records-count');
+    if (countTag) countTag.textContent = `${dates.length} سجلات مسجلة`;
 
-        let mCount = 0;
-        let sCount = 0;
-        attendees.forEach(id => {
-            const m = members.find(x => x.id === id);
-            if (m) {
-                if (m.role === 'servant') sCount++;
-                else mCount++;
-            }
-        });
+    const dayTypeMap = {
+        'normal': 'يوم عادي',
+        'party': 'حفلة',
+        'evening': 'أمسية',
+        'funday': 'Fun Day',
+        'trip': 'رحلة',
+        'conference': 'مؤتمر',
+        'holiday': 'إجازة'
+    };
 
-        const dayTypeMap = {
-            'normal': 'يوم عادي',
-            'party': 'حفلة',
-            'evening': 'أمسية',
-            'funday': 'Fun Day',
-            'trip': 'رحلة',
-            'conference': 'مؤتمر',
-            'holiday': 'إجازة'
-        };
-        const typeKey = dayTypes[date] || 'normal';
-        const typeStr = dayTypeMap[typeKey] || 'عادي';
+    if (dates.length === 0) {
+        if (cardsContainer) {
+            cardsContainer.innerHTML = '<div class="empty-state"><i class="ph ph-calendar-blank"></i><h3>لا توجد سجلات اجتماعات مسجلة حتى الآن</h3></div>';
+        }
+        if (oldTableList) {
+            oldTableList.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 20px;">لا يوجد سجلات حتى الآن</td></tr>';
+        }
+        return;
+    }
 
-        let segmentsCount = 0;
-        const sRecords = servantRecords[date] || {};
-        Object.values(sRecords).forEach(sData => {
-            if (sData.presented) segmentsCount++;
-        });
-
-        const dObj = new Date(date);
-        const dayNameAr = !isNaN(dObj) ? dObj.toLocaleDateString('ar-EG', { weekday: 'long' }) : '';
-        const dateDisplay = dayNameAr ? `${dayNameAr}<br><span style="font-size: 0.85em; color: var(--text-muted);">${date}</span>` : date;
-
-        const tr = document.createElement('tr');
-        tr.style.borderBottom = '1px solid var(--glass-border)';
-        tr.innerHTML = `
-            <td style="padding: 15px; font-weight: bold; text-align: right;">${dateDisplay}</td>
-            <td style="padding: 15px; text-align: center; font-size: 0.95rem; font-weight: bold; color: var(--info);">${typeStr}</td>
-            <td style="padding: 15px; text-align: center; font-size: 1.1rem; font-weight: bold; color: var(--primary);">${mCount}</td>
-            <td style="padding: 15px; text-align: center; font-size: 1.1rem; font-weight: bold; color: var(--primary);">${sCount}</td>
-            <td style="padding: 15px; text-align: center; font-size: 1.1rem; font-weight: bold; color: var(--success);">${attendanceCount}</td>
-            <td style="padding: 15px; text-align: center; font-size: 1.1rem; font-weight: bold; color: var(--warning);">${segmentsCount}</td>
-            <td style="padding: 15px; text-align: center; white-space: nowrap;">
-                <button class="btn btn-outline btn-sm" onclick="editDayAttendance('${date}')" style="padding: 5px 10px; font-size: 0.8rem;">
-                    <i class="ph ph-pencil-simple"></i> تعديل
-                </button>
-                <button class="btn btn-outline btn-sm" onclick="deleteDayAttendance('${date}')" style="padding: 5px 8px; font-size: 0.8rem; border-color: var(--danger); color: var(--danger); margin-right: 5px;" title="حذف سجل اليوم">
-                    <i class="ph ph-trash"></i>
-                </button>
-            </td>
-        `;
-        list.appendChild(tr);
+    // Compute Last Meeting Stats
+    const lastDate = dates[0];
+    const lastAttendees = records[lastDate] || [];
+    let lastMCount = 0;
+    let lastSCount = 0;
+    lastAttendees.forEach(id => {
+        const m = members.find(x => x.id === id);
+        if (m) {
+            if (m.role === 'servant') lastSCount++;
+            else lastMCount++;
+        }
     });
+
+    const elLastDate = document.getElementById('summary-kpi-last-date-label');
+    const elLastTotal = document.getElementById('summary-kpi-last-total');
+    const elLastMembers = document.getElementById('summary-kpi-last-members');
+    const elLastServants = document.getElementById('summary-kpi-last-servants');
+    if (elLastDate) elLastDate.textContent = `آخر اجتماع (${lastDate.slice(5)})`;
+    if (elLastTotal) elLastTotal.textContent = lastAttendees.length;
+    if (elLastMembers) elLastMembers.textContent = lastMCount;
+    if (elLastServants) elLastServants.textContent = lastSCount;
+
+    // Compute Highest Attendance Meeting
+    let highestDate = dates[0];
+    let highestCount = (records[dates[0]] || []).length;
+    dates.forEach(d => {
+        const count = (records[d] || []).length;
+        if (count > highestCount) {
+            highestCount = count;
+            highestDate = d;
+        }
+    });
+
+    const highestTypeKey = dayTypes[highestDate] || 'normal';
+    const highestTypeStr = dayTypeMap[highestTypeKey] || 'عادي';
+    let highestSegments = 0;
+    const hSRecords = servantRecords[highestDate] || {};
+    Object.values(hSRecords).forEach(s => { if (s.presented) highestSegments++; });
+
+    const elHighType = document.getElementById('summary-kpi-highest-type-label');
+    const elHighTotal = document.getElementById('summary-kpi-highest-total');
+    const elHighSegs = document.getElementById('summary-kpi-highest-segments');
+    const elHighDate = document.getElementById('summary-kpi-highest-date');
+    if (elHighType) elHighType.textContent = `أعلى حضور (${highestTypeStr})`;
+    if (elHighTotal) elHighTotal.textContent = highestCount;
+    if (elHighSegs) elHighSegs.textContent = highestSegments;
+    if (elHighDate) elHighDate.textContent = highestDate;
+
+    // Render Weekly Meeting Cards
+    if (cardsContainer) {
+        cardsContainer.innerHTML = '';
+        dates.forEach(date => {
+            const attendees = records[date] || [];
+            const attendanceCount = attendees.length;
+            let mCount = 0;
+            let sCount = 0;
+            attendees.forEach(id => {
+                const m = members.find(x => x.id === id);
+                if (m) {
+                    if (m.role === 'servant') sCount++;
+                    else mCount++;
+                }
+            });
+
+            const typeKey = dayTypes[date] || 'normal';
+            const typeStr = dayTypeMap[typeKey] || 'عادي';
+            let segmentsCount = 0;
+            const sRecords = servantRecords[date] || {};
+            Object.values(sRecords).forEach(sData => {
+                if (sData.presented) segmentsCount++;
+            });
+
+            const dObj = new Date(date);
+            const dayNameAr = !isNaN(dObj) ? dObj.toLocaleDateString('ar-EG', { weekday: 'long' }) : 'اللقاء';
+            const isHighest = (date === highestDate && highestCount > 0);
+
+            const card = document.createElement('article');
+            card.className = `summary-meeting-card ${isHighest ? 'is-highest-record' : ''}`;
+            card.innerHTML = `
+                ${isHighest ? '<div class="highest-ribbon"><span>أعلى حضور</span></div>' : ''}
+                <div class="summary-card-top">
+                    <div class="summary-card-day-info">
+                        <span class="summary-card-day-title">
+                            ${dayNameAr}
+                            <span class="summary-card-date">${date}</span>
+                        </span>
+                        <span class="summary-day-badge badge-${typeKey}">${typeStr}</span>
+                    </div>
+                    <div class="summary-card-actions">
+                        <button class="summary-btn-edit" onclick="editDayAttendance('${date}')" title="تعديل السجل">
+                            <i class="ph ph-pencil-simple"></i>
+                            <span>تعديل</span>
+                        </button>
+                        ${currentUserRole === 'admin' ? `
+                        <button class="summary-btn-delete" onclick="deleteDayAttendance('${date}')" title="حذف السجل">
+                            <i class="ph ph-trash"></i>
+                        </button>` : ''}
+                    </div>
+                </div>
+                <div class="summary-card-metrics-grid">
+                    <div class="summary-metric-cell metric-total">
+                        <span class="metric-label">الإجمالي</span>
+                        <span class="metric-val text-emerald">${attendanceCount}</span>
+                    </div>
+                    <div class="summary-metric-cell">
+                        <span class="metric-label">مخدومين</span>
+                        <span class="metric-val">${mCount}</span>
+                    </div>
+                    <div class="summary-metric-cell">
+                        <span class="metric-label">خدام</span>
+                        <span class="metric-val">${sCount}</span>
+                    </div>
+                    <div class="summary-metric-cell">
+                        <span class="metric-label">فقرات</span>
+                        <span class="metric-val ${segmentsCount > 0 ? 'text-indigo' : ''}">${segmentsCount}</span>
+                    </div>
+                </div>
+            `;
+            cardsContainer.appendChild(card);
+        });
+    }
 }
 
 window.deleteDayAttendance = async function (date) {
@@ -4914,6 +5009,22 @@ function renderCompetitions_original() {
     if (!container) return;
 
     const comps = getCompetitions();
+    const countAllSpan = document.getElementById('comp-count-all');
+    if (countAllSpan) countAllSpan.textContent = comps.length;
+
+    // Attach filter pill listeners once
+    if (!window._compFiltersAttached) {
+        window._compFiltersAttached = true;
+        document.querySelectorAll('.comp-filter-pill').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.comp-filter-pill').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                window.currentCompFilter = btn.getAttribute('data-filter');
+                renderCompetitions();
+            });
+        });
+    }
+
     if (comps.length === 0) {
         container.innerHTML = '<div class="empty-state" style="grid-column: 1 / -1;">' +
             '<i class="ph ph-trophy"></i>' +
@@ -4924,36 +5035,75 @@ function renderCompetitions_original() {
     }
 
     container.innerHTML = '';
-    comps.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).forEach(comp => {
-        const totalMembers = comp.teams.team1.members.length + comp.teams.team2.members.length + comp.teams.team3.members.length;
-        const roundsCount = comp.rounds.length;
-        const statusLabel = comp.status === 'finished' ? '<span class="badge-danger" style="font-size: 0.7rem; padding: 2px 5px; margin-right: 5px;">منتهية</span>' : '<span class="badge-success" style="font-size: 0.7rem; padding: 2px 5px; margin-right: 5px;">جارية</span>';
+    const activeFilter = window.currentCompFilter || 'all';
 
-        const card = document.createElement('div');
-        card.className = 'stat-card glass';
-        card.style.cursor = 'pointer';
-        card.style.transition = 'transform 0.2s';
-        card.onmouseover = () => card.style.transform = 'translateY(-5px)';
-        card.onmouseout = () => card.style.transform = 'translateY(0)';
+    const sortedComps = [...comps].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    let renderedCount = 0;
 
-        card.innerHTML = '<div class="stat-icon" style="color: gold;"><i class="ph ph-trophy"></i></div>' +
-            '<div class="stat-info" style="flex: 1;">' +
-            '<h3 style="font-size: 1.2rem;">' + comp.name + ' ' + statusLabel + '</h3>' +
-            '<p style="color: var(--text-muted); font-size: 0.9rem;">' +
-            '<i class="ph ph-users"></i> ' + totalMembers + ' مشترك &nbsp;|&nbsp; ' +
-            '<i class="ph ph-flag-checkered"></i> ' + roundsCount + ' جولة' +
-            '</p>' +
-            '<div style="margin-top: 10px; font-size: 0.85rem; color: var(--text-muted);">' +
-            'تاريخ الإنشاء: ' + comp.createdAt +
-            '</div>' +
-            '</div>' +
-            '<div style="display: flex; align-items: center;">' +
-            '<button class="btn btn-outline" onclick="event.stopPropagation(); copyCompetitionResultToClipboard(\'' + comp.id + '\')" style="padding: 6px 12px; font-size: 0.85rem;"><i class="ph ph-copy"></i> طباعة النتيجة</button>' +
-            '</div>';
+    sortedComps.forEach(comp => {
+        const isFinished = comp.status === 'finished';
+        if (activeFilter === 'active' && isFinished) return;
+        if (activeFilter === 'finished' && !isFinished) return;
+        renderedCount++;
+
+        const totalMembers = ((comp.teams?.team1?.members?.length) || 0) + 
+                             ((comp.teams?.team2?.members?.length) || 0) + 
+                             ((comp.teams?.team3?.members?.length) || 0);
+        const roundsCount = comp.rounds ? comp.rounds.length : 0;
+
+        const card = document.createElement('article');
+        card.className = `competition-card ${isFinished ? 'is-finished' : 'is-active'}`;
+        card.setAttribute('data-comp-id', comp.id);
+
+        card.innerHTML = `
+            <div class="comp-status-indicator ${isFinished ? 'status-indicator-finished' : 'status-indicator-active'}"></div>
+            <div class="comp-card-header">
+                <div class="comp-header-info">
+                    <div class="comp-title-row">
+                        <h2 class="comp-name">${esc(comp.name)}</h2>
+                        ${isFinished ? 
+                            `<span class="comp-badge badge-finished">منتهية</span>` : 
+                            `<span class="comp-badge badge-running"><span class="badge-dot"></span> جارية</span>`
+                        }
+                    </div>
+                    <p class="comp-created-date">تاريخ الإنشاء: ${esc(comp.createdAt || '--')}</p>
+                </div>
+                <div class="comp-trophy-box">
+                    <i class="ph-fill ph-trophy"></i>
+                </div>
+            </div>
+            <div class="comp-stats-strip">
+                <div class="comp-stat-cell">
+                    <i class="ph ph-users comp-icon-blue"></i>
+                    <span><strong>${totalMembers}</strong> مشترك</span>
+                </div>
+                <div class="comp-stat-cell">
+                    <i class="ph ph-flag comp-icon-gold"></i>
+                    <span><strong>${roundsCount}</strong> ${roundsCount === 1 ? 'جولة' : 'جولات'}</span>
+                </div>
+            </div>
+            <div class="comp-actions-row">
+                <button class="comp-btn-primary" onclick="openCompetitionDetails('${comp.id}')">
+                    <i class="ph ph-chart-bar"></i>
+                    <span>${isFinished ? 'عرض النتائج والترتيب النهائي' : 'عرض الترتيب والنتائج'}</span>
+                </button>
+                <button class="comp-btn-secondary" onclick="event.stopPropagation(); copyCompetitionResultToClipboard('${comp.id}')" title="طباعة النتيجة">
+                    <i class="ph ph-printer"></i>
+                    <span>طباعة</span>
+                </button>
+            </div>
+        `;
 
         card.addEventListener('click', () => openCompetitionDetails(comp.id));
         container.appendChild(card);
     });
+
+    if (renderedCount === 0) {
+        container.innerHTML = '<div class="empty-state" style="grid-column: 1 / -1;">' +
+            '<i class="ph ph-funnel"></i>' +
+            '<h3>لا توجد مسابقات مطابقة لهذا الفلتر</h3>' +
+            '</div>';
+    }
 }
 
 function openCompetitionDetails(...args) {

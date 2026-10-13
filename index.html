@@ -17,7 +17,7 @@
     <!-- SheetJS for Excel generation -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <!-- Styles -->
-    <link rel="stylesheet" href="style.css?v=15">
+    <link rel="stylesheet" href="style.css?v=16">
 </head>
 <body>
     <!-- Mobile Top Header (Fixed at top on Mobile) -->
@@ -460,49 +460,110 @@
                 </div>
             </section>
 
-            <!-- Competitions View -->
+            <!-- Competitions View (Nocturne Ecclesia _2 Design) -->
             <section id="competitions-view" class="view-section">
-                <header class="view-header flex-between">
-                    <div>
-                        <h1>دوري المسابقات</h1>
-                        <p class="subtitle">إدارة المسابقات، وتوزيع الفرق، وتسجيل الدرجات أسبوعياً</p>
+                <header class="view-header competitions-header">
+                    <div class="competitions-header-top">
+                        <div class="competitions-brand">
+                            <div class="competitions-avatar-wrap">
+                                <i class="ph ph-trophy"></i>
+                            </div>
+                            <div>
+                                <span class="competitions-subtitle">اجتماع القديس يوحنا الحبيب</span>
+                                <h1 class="competitions-title">دوري المسابقات</h1>
+                            </div>
+                        </div>
+                        <button class="competitions-header-action" onclick="if(typeof triggerCloudSync === 'function') triggerCloudSync()" title="مزامنة فورية">
+                            <i class="ph ph-arrows-clockwise"></i>
+                        </button>
                     </div>
-                    <button class="btn btn-primary" id="btn-create-competition">
-                        <i class="ph ph-plus-circle"></i> إضافة مسابقة جديدة
+                    <p class="competitions-desc">إدارة المسابقات، وتوزيع الفرق، وتسجيل الدرجات الأسبوعية وحساب النقاط مباشرة.</p>
+                    <button class="btn-hero-add-comp" id="btn-create-competition">
+                        <i class="ph ph-plus"></i>
+                        <span>إضافة مسابقة جديدة</span>
                     </button>
                 </header>
 
-                <div class="competitions-grid mt-4" id="competitions-list-container">
-                    <!-- Competitions will be injected here -->
+                <!-- Filter Tabs (Pills) -->
+                <div class="competitions-filter-pills" id="competitions-filter-pills">
+                    <button class="comp-filter-pill active" data-filter="all">الكل (<span id="comp-count-all">0</span>)</button>
+                    <button class="comp-filter-pill" data-filter="active">المسابقات الجارية</button>
+                    <button class="comp-filter-pill" data-filter="finished">المسابقات المنتهية</button>
+                </div>
+
+                <div class="competitions-list-container" id="competitions-list-container">
+                    <!-- Competitions will be injected here via JS -->
                 </div>
             </section>
 
-            <!-- Summary View -->
+            <!-- Summary View (Nocturne Ecclesia _3 Design) -->
             <section id="summary-view" class="view-section">
-                <header class="view-header">
-                    <h1>الملخص</h1>
-                    <p class="subtitle">ملخص عدد الحضور وفقرات الخدام لكل جمعة</p>
+                <header class="view-header summary-header">
+                    <div class="summary-header-top">
+                        <div class="summary-brand">
+                            <div class="summary-avatar-wrap">
+                                <span>✝</span>
+                            </div>
+                            <div>
+                                <span class="summary-subtitle">اجتماع القديس يوحنا الحبيب</span>
+                                <h1 class="summary-title">
+                                    الملخص
+                                    <span class="summary-tag-pill">أسبوعي</span>
+                                </h1>
+                            </div>
+                        </div>
+                        <button class="summary-refresh-btn" id="btn-refresh-summary" onclick="refreshSummaryView()" title="تحديث البيانات">
+                            <i class="ph ph-arrows-clockwise"></i>
+                        </button>
+                    </div>
+                    <p class="summary-desc">ملخص عدد الحضور وتوزيع الخدمة وفقرات الخدام لكل جمعة</p>
                 </header>
 
-                <div class="glass" style="padding: 20px; border-radius: 16px;">
-                    <div style="overflow-x: auto;">
-                        <table style="width: 100%; border-collapse: collapse; min-width: 600px;">
-                            <thead>
-                                <tr style="border-bottom: 2px solid var(--glass-border);">
-                                    <th style="padding: 15px; text-align: right; color: var(--primary);">التاريخ</th>
-                                    <th style="padding: 15px; text-align: center; color: var(--primary);">نوع اليوم</th>
-                                    <th style="padding: 15px; text-align: center; color: var(--primary);">حضور المخدومين</th>
-                                    <th style="padding: 15px; text-align: center; color: var(--primary);">حضور الخدام</th>
-                                    <th style="padding: 15px; text-align: center; color: var(--primary);">إجمالي الحضور</th>
-                                    <th style="padding: 15px; text-align: center; color: var(--primary);">الفقرات المقدمة</th>
-                                    <th style="padding: 15px; text-align: center; color: var(--primary);">إجراءات</th>
-                                </tr>
-                            </thead>
-                            <tbody id="summary-list">
-                                <!-- Populated by JS -->
-                            </tbody>
-                        </table>
+                <!-- 2 Side-by-Side KPI Cards -->
+                <div class="summary-kpi-grid">
+                    <div class="summary-kpi-card" id="summary-kpi-last">
+                        <div class="summary-kpi-top">
+                            <span class="summary-kpi-label" id="summary-kpi-last-date-label">آخر اجتماع</span>
+                            <span class="summary-pulse-dot"></span>
+                        </div>
+                        <div class="summary-kpi-main">
+                            <span class="summary-kpi-val" id="summary-kpi-last-total">0</span>
+                            <span class="summary-kpi-unit text-emerald">حاضر إجمالي</span>
+                        </div>
+                        <div class="summary-kpi-sub">
+                            <span>مخدومين: <strong id="summary-kpi-last-members">0</strong></span>
+                            <span>خدام: <strong id="summary-kpi-last-servants">0</strong></span>
+                        </div>
                     </div>
+
+                    <div class="summary-kpi-card" id="summary-kpi-highest">
+                        <div class="summary-kpi-top">
+                            <span class="summary-kpi-label" id="summary-kpi-highest-type-label">أعلى حضور</span>
+                            <span class="summary-star-icon">★</span>
+                        </div>
+                        <div class="summary-kpi-main">
+                            <span class="summary-kpi-val text-emerald" id="summary-kpi-highest-total">0</span>
+                            <span class="summary-kpi-unit text-gray">مشارك</span>
+                        </div>
+                        <div class="summary-kpi-sub">
+                            <span>الفقرات: <strong id="summary-kpi-highest-segments" class="text-indigo">0</strong></span>
+                            <span id="summary-kpi-highest-date">--</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section Header for Weekly Cards -->
+                <div class="summary-section-bar">
+                    <h3 class="summary-section-title">
+                        <i class="ph ph-calendar"></i>
+                        <span>سجل الاجتماعات الأسبوعية</span>
+                    </h3>
+                    <span class="summary-count-tag" id="summary-records-count">0 سجلات مسجلة</span>
+                </div>
+
+                <!-- Weekly Meeting Cards List Container -->
+                <div class="summary-cards-container" id="summary-cards-container">
+                    <!-- Meeting cards populated by JS -->
                 </div>
             </section>
 
@@ -553,67 +614,146 @@
                 </div>
             </section>
 
-            <!-- Settings View (For Data Management) -->
+            <!-- Settings View (Nocturne Ecclesia _1 Design) -->
             <section id="settings-view" class="view-section">
-                <header class="view-header">
-                    <h1>الإعدادات والبيانات</h1>
-                    <p class="subtitle">إدارة بيانات البرنامج والنسخ الاحتياطي</p>
+                <header class="view-header settings-header">
+                    <div class="settings-header-top">
+                        <div class="settings-brand">
+                            <div class="settings-avatar-wrap">
+                                <i class="ph ph-church"></i>
+                            </div>
+                            <div>
+                                <h1 class="settings-title">الإعدادات والبيانات</h1>
+                                <p class="settings-subtitle">إدارة بيانات البرنامج والنسخ الاحتياطي</p>
+                            </div>
+                        </div>
+                        <button class="settings-header-btn" onclick="if(typeof triggerCloudSync === 'function') triggerCloudSync()" title="مزامنة فورية">
+                            <i class="ph ph-arrows-clockwise"></i>
+                        </button>
+                    </div>
                 </header>
-                
-                <div class="settings-grid">
-                    <div class="settings-card glass">
-                        <h3><i class="ph ph-users-gear"></i> إدارة الأعضاء</h3>
-                        <p>إضافة أعضاء، حذف أعضاء، أو إضافة مجموعة (يتطلب كلمة مرور).</p>
-                        <button class="btn btn-primary mt-2" id="btn-manage-members">
-                            <i class="ph ph-lock-key"></i> لوحة الإدارة
+
+                <div class="settings-sections-wrap">
+                    <!-- Section 1: Security & Admin -->
+                    <div class="settings-section-divider">
+                        <span class="settings-sec-title">إجراءات الإدارة والأمان</span>
+                        <span class="settings-sec-badge badge-indigo">نظام الأمان</span>
+                    </div>
+
+                    <div class="settings-card-nocturne">
+                        <div class="card-head">
+                            <div class="card-icon-box box-indigo"><i class="ph ph-users"></i></div>
+                            <h2 class="card-title">إدارة الأعضاء</h2>
+                        </div>
+                        <p class="card-desc">إضافة أعضاء، حذف أعضاء، أو إضافة مجموعة (يتطلب كلمة مرور).</p>
+                        <button class="btn-nocturne btn-indigo" id="btn-manage-members">
+                            <i class="ph ph-lock-key"></i>
+                            <span>لوحة الإدارة</span>
                         </button>
                     </div>
-                    <div class="settings-card glass">
-                        <h3><i class="ph ph-shield-check"></i> إدارة الصلاحيات وكلمات المرور</h3>
-                        <p>إدارة الحسابات، تعيين وتغيير كلمات المرور لأي خادم أو للأدمن، وتحديد مستويات الصلاحيات.</p>
-                        <button class="btn btn-warning mt-2" id="btn-manage-permissions">
-                            <i class="ph ph-key"></i> الصلاحيات وكلمات المرور
+
+                    <div class="settings-card-nocturne">
+                        <div class="card-head">
+                            <div class="card-icon-box box-amber"><i class="ph ph-shield-check"></i></div>
+                            <h2 class="card-title">إدارة الصلاحيات</h2>
+                        </div>
+                        <p class="card-desc">إدارة الخدام، تعيين كلمات المرور، وتحديد الشاشات المسموحة لكل خادم.</p>
+                        <button class="btn-nocturne btn-amber" id="btn-manage-permissions">
+                            <i class="ph ph-key"></i>
+                            <span>صلاحيات الخدام</span>
                         </button>
                     </div>
-                    <div class="settings-card glass">
-                        <h3><i class="ph ph-download-simple"></i> نسخة احتياطية</h3>
-                        <p>قم بتحميل جميع بيانات البرنامج للاحتفاظ بها كنسخة أمان.</p>
-                        <button class="btn btn-success mt-2" id="btn-export-data">تحميل البيانات</button>
+
+                    <!-- Section 2: Backup & Sync -->
+                    <div class="settings-section-divider">
+                        <span class="settings-sec-title">النسخ الاحتياطي والمزامنة</span>
+                        <span class="settings-sec-badge badge-emerald">سحابي ومحلي</span>
                     </div>
-                    <div class="settings-card glass">
-                        <h3><i class="ph ph-upload-simple"></i> استعادة البيانات</h3>
-                        <p>قم برفع ملف البيانات السابق لاستعادته.</p>
+
+                    <div class="settings-card-nocturne">
+                        <div class="card-head">
+                            <div class="card-icon-box box-emerald"><i class="ph ph-cloud-arrow-down"></i></div>
+                            <h2 class="card-title">نسخة احتياطية</h2>
+                        </div>
+                        <p class="card-desc">قم بتحميل جميع بيانات البرنامج للاحتفاظ بها كنسخة أمان موثوقة.</p>
+                        <button class="btn-nocturne btn-emerald" id="btn-export-data">
+                            <i class="ph ph-download-simple"></i>
+                            <span>تحميل البيانات</span>
+                        </button>
+                    </div>
+
+                    <div class="settings-card-nocturne">
+                        <div class="card-head">
+                            <div class="card-icon-box box-amber"><i class="ph ph-cloud-arrow-up"></i></div>
+                            <h2 class="card-title">استعادة البيانات</h2>
+                        </div>
+                        <p class="card-desc">قم برفع ملف البيانات السابق لاستعادته بالكامل إلى قاعدة البيانات.</p>
                         <input type="file" id="file-import" style="display: none;" accept=".json">
-                        <button class="btn btn-warning mt-2" id="btn-import-data">استعادة من ملف</button>
-                    </div>
-                    <div class="settings-card glass">
-                        <h3><i class="ph ph-cloud-arrow-up"></i> مزامنة مع الإكسيل</h3>
-                        <p>رفع كل الداتا والغياب لشيت جوجل على الإنترنت.</p>
-                        <button class="btn btn-primary mt-2" id="btn-sync-cloud">
-                            <i class="ph ph-arrows-clockwise"></i> بدء المزامنة
+                        <button class="btn-nocturne btn-amber" id="btn-import-data">
+                            <i class="ph ph-folder-open"></i>
+                            <span>استعادة من ملف</span>
                         </button>
                     </div>
-                    <div class="settings-card glass">
-                        <h3><i class="ph ph-file-xls"></i> تصدير إكسيل المنظم</h3>
-                        <p>تنزيل ملف إكسيل يضم 3 صفحات منظمة للسكرتارية، الحضور، والافتقاد.</p>
-                        <button class="btn btn-success mt-2" id="btn-export-csv">
-                            <i class="ph ph-microsoft-excel-logo"></i> تحميل ملف الإكسيل
+
+                    <div class="settings-card-nocturne">
+                        <div class="card-head">
+                            <div class="card-icon-box box-indigo"><i class="ph ph-arrows-clockwise"></i></div>
+                            <h2 class="card-title">مزامنة مع الإكسيل</h2>
+                        </div>
+                        <p class="card-desc">رفع كل الداتا والغياب لشيت جوجل على الإنترنت تلقائياً وبسرعة.</p>
+                        <button class="btn-nocturne btn-indigo" id="btn-sync-cloud">
+                            <i class="ph ph-arrows-clockwise"></i>
+                            <span>بدء المزامنة</span>
                         </button>
                     </div>
-                    <div class="settings-card glass">
-                        <h3><i class="ph ph-file-pdf"></i> تقارير شهرية</h3>
-                        <p>تنزيل تقرير PDF شامل للمواظبة والافتقاد لشهر معين.</p>
-                        <input type="month" id="report-month" class="form-control mt-2" style="margin-bottom: 10px;">
-                        <button class="btn btn-danger" id="btn-generate-pdf">
-                            <i class="ph ph-download-simple"></i> تحميل التقرير الشامل
+
+                    <div class="settings-card-nocturne">
+                        <div class="card-head">
+                            <div class="card-icon-box box-emerald"><i class="ph ph-file-xls"></i></div>
+                            <h2 class="card-title">تصدير إكسيل المنظم</h2>
+                        </div>
+                        <p class="card-desc">تنزيل ملف إكسيل يضم 3 صفحات منظمة للسكرتارية، الحضور، والافتقاد.</p>
+                        <button class="btn-nocturne btn-emerald" id="btn-export-csv">
+                            <i class="ph ph-microsoft-excel-logo"></i>
+                            <span>تحميل ملف الإكسيل</span>
                         </button>
                     </div>
-                    <div class="settings-card glass">
-                        <h3><i class="ph ph-file-pdf"></i> تقارير الافتقاد</h3>
-                        <p>تنزيل تقرير PDF خاص بالافتقادات فقط لشهر معين.</p>
-                        <input type="month" id="report-month-visit" class="form-control mt-2" style="margin-bottom: 10px;">
-                        <button class="btn btn-danger" id="btn-generate-pdf-visit">
-                            <i class="ph ph-download-simple"></i> تحميل تقرير الافتقاد
+
+                    <!-- Section 3: Reports & Outputs -->
+                    <div class="settings-section-divider">
+                        <span class="settings-sec-title">التقارير والمخرجات</span>
+                        <span class="settings-sec-badge badge-rose">PDF</span>
+                    </div>
+
+                    <div class="settings-card-nocturne">
+                        <div class="card-head">
+                            <div class="card-icon-box box-rose"><i class="ph ph-file-pdf"></i></div>
+                            <h2 class="card-title">تقارير شهرية</h2>
+                        </div>
+                        <p class="card-desc">تنزيل تقرير PDF شامل للمواظبة والافتقاد لشهر معين.</p>
+                        <div class="report-input-wrap">
+                            <label class="report-picker-label">الشهر المحدد</label>
+                            <input type="month" id="report-month" class="report-month-input">
+                        </div>
+                        <button class="btn-nocturne btn-rose" id="btn-generate-pdf">
+                            <i class="ph ph-download-simple"></i>
+                            <span>تحميل التقرير الشامل</span>
+                        </button>
+                    </div>
+
+                    <div class="settings-card-nocturne">
+                        <div class="card-head">
+                            <div class="card-icon-box box-rose"><i class="ph ph-users-three"></i></div>
+                            <h2 class="card-title">تقارير الافتقاد</h2>
+                        </div>
+                        <p class="card-desc">تنزيل تقرير PDF خاص بالافتقادات فقط لشهر معين.</p>
+                        <div class="report-input-wrap">
+                            <label class="report-picker-label">الشهر المحدد</label>
+                            <input type="month" id="report-month-visit" class="report-month-input">
+                        </div>
+                        <button class="btn-nocturne btn-rose" id="btn-generate-pdf-visit">
+                            <i class="ph ph-download-simple"></i>
+                            <span>تحميل تقرير الافتقاد</span>
                         </button>
                     </div>
                 </div>
@@ -1412,29 +1552,35 @@
 
     <!-- Mobile Bottom Navigation Bar (Stitch Design) -->
     <nav class="mobile-bottom-nav" id="mobile-bottom-nav">
-        <button class="mobile-nav-item active" data-target="dashboard-view" title="الرئيسية">
+        <button class="mobile-nav-item active" data-target="dashboard-view" onclick="window.navigateToView('dashboard-view')" title="الرئيسية">
             <i class="ph ph-squares-four"></i>
             <span>الرئيسية</span>
             <span class="active-dot"></span>
         </button>
-        <button class="mobile-nav-item" data-target="attendance-view" title="الحضور">
+        <button class="mobile-nav-item" data-target="attendance-view" onclick="window.navigateToView('attendance-view')" title="الحضور">
             <i class="ph ph-calendar-check"></i>
             <span>الحضور</span>
             <span class="active-dot"></span>
         </button>
-        <button class="mobile-nav-item" data-target="followup-view" title="الافتقاد">
+        <button class="mobile-nav-item" data-target="followup-view" onclick="window.navigateToView('followup-view')" title="الافتقاد">
             <i class="ph ph-users-three"></i>
             <span>الافتقاد</span>
             <span class="active-dot"></span>
         </button>
-        <button class="mobile-nav-item" data-target="servants-notes-view" title="الملاحظات">
-            <i class="ph ph-notebook"></i>
-            <span>الملاحظات</span>
+        <button class="mobile-nav-item" data-target="competitions-view" onclick="window.navigateToView('competitions-view')" title="المسابقات">
+            <i class="ph ph-trophy"></i>
+            <span>المسابقات</span>
             <span class="active-dot"></span>
         </button>
-        <button class="mobile-nav-item" id="btn-mobile-more" onclick="toggleMobileMenu()" title="المزيد">
-            <i class="ph ph-dots-three-circle"></i>
-            <span>المزيد</span>
+        <button class="mobile-nav-item" data-target="summary-view" onclick="window.navigateToView('summary-view')" title="الملخص">
+            <i class="ph ph-list-numbers"></i>
+            <span>الملخص</span>
+            <span class="active-dot"></span>
+        </button>
+        <button class="mobile-nav-item" data-target="settings-view" onclick="window.navigateToView('settings-view')" title="الإعدادات">
+            <i class="ph ph-gear"></i>
+            <span>الإعدادات</span>
+            <span class="active-dot"></span>
         </button>
     </nav>
 
@@ -1443,6 +1589,6 @@
     <script src="firebase-firestore.js"></script>
     
     <!-- Script -->
-    <script src="app.js?v=15"></script>
+    <script src="app.js?v=16"></script>
 </body>
 </html>
