@@ -1,1 +1,13 @@
-rules_version = "2"; service cloud.firestore { match /databases/{database}/documents { match /{document=**} { allow read, write: if true; } } }
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // حماية قاعدة بيانات الكنيسة من المسح الكامل العرضي أو الخبيث
+    match /church_db/{docId} {
+      allow read, create, update: if true;
+      allow delete: if false;
+    }
+    match /{document=**} {
+      allow read, write: if true;
+    }
+  }
+}

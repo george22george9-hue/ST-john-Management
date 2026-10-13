@@ -17,7 +17,7 @@
     <!-- SheetJS for Excel generation -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <!-- Styles -->
-    <link rel="stylesheet" href="style.css?v=16">
+    <link rel="stylesheet" href="style.css?v=19">
 </head>
 <body>
     <!-- Mobile Top Header (Fixed at top on Mobile) -->
@@ -94,64 +94,106 @@
         <main class="main-content">
 
             
-            <!-- Dashboard View -->
+            <!-- Dashboard View (Nocturne Ecclesia _7 Design) -->
             <section id="dashboard-view" class="view-section active">
-                <header class="view-header">
-                    <h1>ملخص الإجتماع</h1>
-                    <p class="subtitle">نظرة عامة على إحصائيات الحضور</p>
+                <header class="view-header dash-header">
+                    <div class="dash-header-top">
+                        <div class="dash-brand">
+                            <h1 class="dash-title">
+                                ملخص الاجتماع
+                                <span class="dash-badge-live">نشط الآن</span>
+                            </h1>
+                            <p class="dash-subtitle">نظرة عامة دقيقة على إحصائيات ونشاط الحضور</p>
+                        </div>
+                        <button class="dash-refresh-btn" id="btn-refresh-dashboard" onclick="refreshDashboard()" title="تحديث البيانات">
+                            <i class="ph ph-arrows-clockwise"></i>
+                            <span>تحديث</span>
+                        </button>
+                    </div>
                 </header>
 
-                <div class="stats-grid">
-                    <div class="stat-card glass">
-                        <div class="stat-icon"><i class="ph ph-users"></i></div>
-                        <div class="stat-info">
-                            <h3>إجمالي الأعضاء</h3>
-                            <p class="stat-value" id="dash-total-members">0</p>
+                <!-- 2x2 Stats Grid -->
+                <div class="stats-grid dash-stats-grid">
+                    <div class="stat-card glass-card">
+                        <div class="stat-card-top">
+                            <span class="stat-label">إجمالي الأعضاء</span>
+                            <div class="stat-icon-box box-blue"><i class="ph ph-users"></i></div>
+                        </div>
+                        <div class="stat-card-main">
+                            <span class="stat-value" id="dash-total-members">0</span>
+                            <span class="stat-subtext"><span class="dot-blue"></span> مسجلين في الخدمة</span>
                         </div>
                     </div>
-                    <div class="stat-card glass">
-                        <div class="stat-icon"><i class="ph ph-chart-line-up"></i></div>
-                        <div class="stat-info">
-                            <h3>متوسط حضور الشهر</h3>
-                            <p class="stat-value" id="dash-avg-attendance">0%</p>
-                            <p class="stat-subtext" id="dash-month-compare" style="font-size: 0.8rem; color: var(--warning);">--</p>
+
+                    <div class="stat-card glass-card">
+                        <div class="stat-card-top">
+                            <span class="stat-label">متوسط الحضور</span>
+                            <div class="stat-icon-box box-purple"><i class="ph ph-chart-line-up"></i></div>
+                        </div>
+                        <div class="stat-card-main">
+                            <span class="stat-value" id="dash-avg-attendance">0%</span>
+                            <span class="stat-subtext text-emerald" id="dash-month-compare">--</span>
                         </div>
                     </div>
-                    <div class="stat-card glass">
-                        <div class="stat-icon"><i class="ph ph-crown"></i></div>
-                        <div class="stat-info">
-                            <h3>أعلى حضور (الشهر)</h3>
-                            <p class="stat-value" id="dash-highest-attendance">0</p>
-                            <p class="stat-subtext" id="dash-highest-date">--</p>
+
+                    <div class="stat-card glass-card">
+                        <div class="stat-card-top">
+                            <span class="stat-label">أعلى حضور</span>
+                            <div class="stat-icon-box box-gold"><i class="ph ph-crown"></i></div>
+                        </div>
+                        <div class="stat-card-main">
+                            <span class="stat-value text-gold" id="dash-highest-attendance">0</span>
+                            <span class="stat-subtext" id="dash-highest-date">--</span>
                         </div>
                     </div>
-                    <div class="stat-card glass" style="border: 1px solid rgba(99, 102, 241, 0.5); background: rgba(99, 102, 241, 0.05);">
-                        <div class="stat-icon" style="color: var(--primary);"><i class="ph ph-magic-wand"></i></div>
-                        <div class="stat-info">
-                            <h3>المتوقع حضوره اليوم</h3>
-                            <p class="stat-value" id="dash-prediction">0</p>
-                            <p class="stat-subtext">بناءً على متوسط آخر 4 اجتماعات</p>
+
+                    <div class="stat-card glass-card card-prediction">
+                        <div class="stat-card-top">
+                            <span class="stat-label text-blue-glow">المتوقع اليوم</span>
+                            <div class="stat-icon-box box-sparkle"><i class="ph ph-magic-wand"></i></div>
+                        </div>
+                        <div class="stat-card-main">
+                            <span class="stat-value" id="dash-prediction">0</span>
+                            <span class="stat-subtext">متوسط آخر 4 اجتماعات</span>
                         </div>
                     </div>
                 </div>
 
-                <div class="areas-container glass mt-4">
-                    <h3><i class="ph ph-map-pin"></i> خريطة المناطق (إحصائيات الشهر)</h3>
-                    <div class="stats-grid" id="dash-areas-grid" style="grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); margin-top: 15px; gap: 10px;">
+                <!-- Areas Map Horizontal Swipeable Bar -->
+                <div class="dash-section-wrap mt-4">
+                    <div class="dash-section-head">
+                        <h3 class="dash-section-title"><i class="ph ph-map-pin"></i> خريطة المناطق (إحصائيات الشهر)</h3>
+                        <span class="dash-section-tag" id="dash-areas-count-tag">5 مناطق</span>
+                    </div>
+                    <div class="dash-areas-scroll-row" id="dash-areas-grid">
                         <!-- Areas stats populated by JS -->
                     </div>
                 </div>
 
-                <div class="birthdays-container glass mt-4" id="dash-birthdays-container" style="display: none;">
-                    <h3><i class="ph ph-confetti"></i> أعياد الميلاد</h3>
-                    <div id="dash-birthdays-list" class="birthdays-list">
+                <!-- Upcoming Birthdays Cards -->
+                <div class="dash-section-wrap mt-4" id="dash-birthdays-container" style="display: none;">
+                    <div class="dash-section-head">
+                        <h3 class="dash-section-title"><i class="ph ph-cake"></i> أعياد الميلاد القادمة</h3>
+                        <span class="dash-section-link">عرض الكل</span>
+                    </div>
+                    <div class="dash-birthdays-scroll-row" id="dash-birthdays-list">
                         <!-- Birthdays will be populated here -->
                     </div>
                 </div>
 
-                <div class="chart-container glass mt-4">
-                    <h3><i class="ph ph-trend-up"></i> كيرف الحضور في آخر الأسابيع</h3>
-                    <canvas id="attendanceChart"></canvas>
+                <!-- Attendance Curve Chart -->
+                <div class="dash-chart-card mt-4">
+                    <div class="dash-chart-head">
+                        <h3 class="dash-chart-title"><i class="ph ph-chart-line"></i> كيرف الحضور في آخر الأسابيع</h3>
+                        <span class="dash-peak-tag" id="dash-peak-tag">أعلى قمة: --</span>
+                    </div>
+                    <div class="dash-canvas-wrap">
+                        <canvas id="attendanceChart"></canvas>
+                    </div>
+                    <div class="dash-chart-footer">
+                        <span class="dash-stability-tag">معدل الاستقرار: <strong class="text-emerald">مرتفع</strong></span>
+                        <span class="dash-details-link">تحليل تفصيلي &larr;</span>
+                    </div>
                 </div>
             </section>
 
@@ -567,33 +609,50 @@
                 </div>
             </section>
 
-            <!-- Admin View -->
+            <!-- Admin View (Nocturne Ecclesia _6 Design) -->
             <section id="admin-view" class="view-section">
-                <header class="view-header flex-between">
-                    <div>
-                        <h1>الإدارة</h1>
-                        <p class="subtitle">قاعدة بيانات جميع المخدومين والخدام وتعديل بياناتهم</p>
+                <header class="view-header admin-header">
+                    <div class="admin-header-top">
+                        <div class="admin-brand">
+                            <div class="admin-title-row">
+                                <h1 class="admin-title">الإدارة</h1>
+                                <span class="admin-badge-pill">قاعدة البيانات</span>
+                            </div>
+                            <p class="admin-subtitle">سجل بيانات جميع المخدومين والخدام وتعديلها</p>
+                        </div>
+                        <button class="btn-add-person-hero" id="btn-add-person" data-perm="admin-edit">
+                            <i class="ph ph-user-plus"></i>
+                            <span>إضافة شخص</span>
+                        </button>
                     </div>
-                    <button class="btn btn-primary" id="btn-add-person" data-perm="admin-edit">
-                        <i class="ph ph-user-plus"></i> إضافة شخص
-                    </button>
                 </header>
 
-                <div class="admin-toolbar glass">
-                    <div class="search-bar">
-                        <i class="ph ph-magnifying-glass"></i>
-                        <input type="text" id="search-admin" placeholder="ابحث بالاسم أو المنطقة أو التليفون..." class="form-control" aria-label="بحث في قاعدة البيانات">
-                    </div>
-                    <div class="filters-container" id="admin-filters">
-                        <button class="filter-btn active" data-filter="all">الكل <span class="filter-count" id="count-all"></span></button>
-                        <button class="filter-btn" data-filter="member">المخدومين <span class="filter-count" id="count-member"></span></button>
-                        <button class="filter-btn" data-filter="servant">الخدام <span class="filter-count" id="count-servant"></span></button>
-                    </div>
+                <div class="admin-search-wrap">
+                    <i class="ph ph-magnifying-glass search-icon"></i>
+                    <input type="text" id="search-admin" placeholder="ابحث بالاسم، المنطقة أو رقم الهاتف..." class="form-control" aria-label="بحث في قاعدة البيانات">
+                </div>
+
+                <div class="admin-filter-pills" id="admin-filters">
+                    <button class="admin-filter-pill filter-btn active" data-filter="all">
+                        <span>الكل</span> <span class="admin-pill-count" id="count-all">0</span>
+                    </button>
+                    <button class="admin-filter-pill filter-btn" data-filter="member">
+                        <span>المخدومين</span> <span class="admin-pill-count count-member" id="count-member">0</span>
+                    </button>
+                    <button class="admin-filter-pill filter-btn" data-filter="servant">
+                        <span>الخدام</span> <span class="admin-pill-count count-servant" id="count-servant">0</span>
+                    </button>
                 </div>
 
                 <p class="admin-result-count" id="admin-result-count"></p>
 
-                <div class="glass admin-table-wrap">
+                <!-- Mobile Cards Container (Stitch _6) -->
+                <div class="admin-cards-mobile" id="admin-cards-mobile">
+                    <!-- Dynamic Member Cards injected here -->
+                </div>
+
+                <!-- Desktop Table View -->
+                <div class="glass admin-table-wrap desktop-only-table">
                     <table class="data-table">
                         <thead>
                             <tr>
@@ -895,7 +954,7 @@
                 <h3><i class="ph ph-handshake"></i> تسجيل افتقاد</h3>
                 <button class="close-modal"><span style="font-size: 1.5rem; font-weight: bold; line-height: 1;">&times;</span></button>
             </div>
-            <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+            <div class="modal-body">
                 <input type="hidden" id="visit-member-id">
                 <h4 id="visit-member-name" style="margin-bottom: 15px; color: var(--primary);"></h4>
                 <div class="form-group">
@@ -938,7 +997,7 @@
                 <h3><i class="ph ph-users-three"></i> تسجيل افتقاد جماعي</h3>
                 <button class="close-modal"><span style="font-size: 1.5rem; font-weight: bold; line-height: 1;">&times;</span></button>
             </div>
-            <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+            <div class="modal-body">
                 <div class="form-group">
                     <label>تاريخ الزيارة</label>
                     <input type="date" min="2024-01-01" max="2030-12-31" id="bulk-visit-date" class="form-control">
@@ -1572,9 +1631,9 @@
             <span>المسابقات</span>
             <span class="active-dot"></span>
         </button>
-        <button class="mobile-nav-item" data-target="summary-view" onclick="window.navigateToView('summary-view')" title="الملخص">
-            <i class="ph ph-list-numbers"></i>
-            <span>الملخص</span>
+        <button class="mobile-nav-item" data-target="admin-view" onclick="window.navigateToView('admin-view')" title="الإدارة">
+            <i class="ph ph-shield-check"></i>
+            <span>الإدارة</span>
             <span class="active-dot"></span>
         </button>
         <button class="mobile-nav-item" data-target="settings-view" onclick="window.navigateToView('settings-view')" title="الإعدادات">
@@ -1589,6 +1648,6 @@
     <script src="firebase-firestore.js"></script>
     
     <!-- Script -->
-    <script src="app.js?v=16"></script>
+    <script src="app.js?v=19"></script>
 </body>
 </html>

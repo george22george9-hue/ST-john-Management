@@ -126,9 +126,26 @@ function pushToCloud() {
 
     localStorage.setItem('last_push_id', data.pushId);
 
+    // التحقق من حجم البيانات لحماية السحابة من تجاوز حد الـ 1 ميجابايت (Firestore 1MB limit)
+    try {
+        const payloadStr = JSON.stringify(data);
+        const approxBytes = new Blob([payloadStr]).size;
+        if (approxBytes > 850000) {
+            console.warn(`[Firestore Alert] حجم بيانات السحابة قارب على الامتلاء: ${Math.round(approxBytes / 1024)} KB`);
+            if (typeof showToast === 'function' && approxBytes > 950000) {
+                showToast('تنبيه: حجم بيانات السحابة اقترب من الحد الأقصى (1MB)! يرجى أخذ نسخة احتياطية.', 'warning');
+            }
+        }
+    } catch (e) {}
+
     db.collection('church_db').doc('main_data').set(data).then(() => {
         console.log("Pushed to cloud successfully");
-    }).catch(e => console.error("Push failed", e));
+    }).catch(e => {
+        console.error("Push failed", e);
+        if (typeof showToast === 'function') {
+            showToast('تعذر حفظ البيانات في السحابة: ' + (e.message || ''), 'error');
+        }
+    });
 }
 
 function triggerCloudSync() {
@@ -160,7 +177,9 @@ function startFirebaseSync() {
 
         isSyncingFromCloud = true;
 
-        if (cloudData.members) localStorage.setItem('church_attendance_members', JSON.stringify(cloudData.members));
+        if (cloudData.members && Array.isArray(cloudData.members) && (cloudData.members.length > 0 || getMembers().length === 0)) {
+            localStorage.setItem('church_attendance_members', JSON.stringify(cloudData.members));
+        }
         if (cloudData.attendance) localStorage.setItem('church_attendance_records', JSON.stringify(cloudData.attendance));
         if (cloudData.visitations) localStorage.setItem('church_attendance_visitations', JSON.stringify(cloudData.visitations));
         if (cloudData.servantRecords) localStorage.setItem('church_servant_records', JSON.stringify(cloudData.servantRecords));
@@ -173,12 +192,17 @@ function startFirebaseSync() {
         
         localStorage.setItem('last_push_id', cloudData.pushId || '');
         
-        if (typeof renderMembers === 'function') renderMembers();
-        if (typeof renderAttendance === 'function') renderAttendance();
+        // استدعاء دوال الريندر الحقيقية لتحديث كل الشاشات فوراً
         if (typeof refreshDashboard === 'function') refreshDashboard();
+        if (typeof updateAttendanceWorkspace === 'function') updateAttendanceWorkspace();
+        if (typeof refreshFollowUp === 'function') refreshFollowUp();
+        if (typeof refreshServantsDashboard === 'function') refreshServantsDashboard();
         if (typeof refreshServantsNotes === 'function') refreshServantsNotes();
         if (typeof renderCompetitions === 'function') renderCompetitions();
         if (typeof setupAdminTable === 'function') setupAdminTable();
+        if (typeof refreshAdminView === 'function') refreshAdminView();
+        if (typeof refreshSummaryView === 'function') refreshSummaryView();
+        if (typeof enforcePermissions === 'function') enforcePermissions();
         
         showToast('تم استقبال تحديثات من الخادم!', 'success');
         
@@ -378,6 +402,22 @@ function enforcePermissions() {
         const btnManagePerms = document.getElementById('btn-manage-permissions');
         if (btnManagePerms) btnManagePerms.style.display = '';
 
+        const btnDeleteComp = document.getElementById('btn-delete-comp') || document.getElementById('btn-delete-competition');
+        if (btnDeleteComp) btnDeleteComp.style.display = '';
+
+        const btnEditPhoneProfile = document.getElementById('btn-edit-phone') || document.getElementById('btn-edit-profile-phone');
+        if (btnEditPhoneProfile) btnEditPhoneProfile.style.display = '';
+        const btnEditGenderProfile = document.getElementById('btn-edit-gender');
+        if (btnEditGenderProfile) btnEditGenderProfile.style.display = '';
+
+        document.querySelectorAll('.btn-record-visit, .btn-primary-visit').forEach(b => {
+            b.style.display = '';
+        });
+
+        document.querySelectorAll('#admin-members-tbody [data-action="edit"], #admin-members-tbody [data-action="delete"], #admin-cards-mobile [data-action="edit"], #admin-cards-mobile [data-action="delete"]').forEach(b => {
+            b.style.display = '';
+        });
+
         return;
     }
     
@@ -445,7 +485,8 @@ function enforcePermissions() {
     const btnCopyAbsent = document.getElementById('btn-copy-absent-last');
     const btnCopyNoVisit = document.getElementById('btn-copy-no-visit');
     const btnRecordVisitProfile = document.getElementById('btn-open-record-visit');
-    const btnEditPhoneProfile = document.getElementById('btn-edit-profile-phone');
+    const btnEditPhoneProfile = document.getElementById('btn-edit-phone') || document.getElementById('btn-edit-profile-phone');
+    const btnEditGenderProfile = document.getElementById('btn-edit-gender');
 
     // هذه الإجراءات خاصة بالأدمن فقط: نسخ غياب آخر اجتماع، نسخ تأخر الافتقاد، افتقاد جماعي، تكليف واتساب
     if (btnBulkVisit) btnBulkVisit.style.display = isAdmin ? '' : 'none';
@@ -453,11 +494,12 @@ function enforcePermissions() {
     if (btnCopyAbsent) btnCopyAbsent.style.display = isAdmin ? '' : 'none';
     if (btnCopyNoVisit) btnCopyNoVisit.style.display = isAdmin ? '' : 'none';
 
-    // تسجيل الافتقاد الفردي متاح للأدمن أو الخادم الحاصل على صلاحية الافتقاد
+    // تسجيل الافتقاد الفردي وتعديل الهاتف متاح للأدمن أو الخادم الحاصل على صلاحية الافتقاد
     if (btnRecordVisitProfile) btnRecordVisitProfile.style.display = (isAdmin || canEditFollowup) ? '' : 'none';
     if (btnEditPhoneProfile) btnEditPhoneProfile.style.display = (isAdmin || canEditFollowup) ? '' : 'none';
+    if (btnEditGenderProfile) btnEditGenderProfile.style.display = (isAdmin || canEditFollowup) ? '' : 'none';
 
-    document.querySelectorAll('.btn-record-visit').forEach(b => {
+    document.querySelectorAll('.btn-record-visit, .btn-primary-visit').forEach(b => {
         b.style.display = (isAdmin || canEditFollowup) ? '' : 'none';
     });
 
@@ -466,7 +508,7 @@ function enforcePermissions() {
     const btnCreateComp = document.getElementById('btn-create-competition');
     const btnAddRound = document.getElementById('btn-add-comp-round');
     const btnFinishComp = document.getElementById('btn-finish-comp');
-    const btnDeleteComp = document.getElementById('btn-delete-competition');
+    const btnDeleteComp = document.getElementById('btn-delete-comp') || document.getElementById('btn-delete-competition');
 
     if (btnCreateComp) btnCreateComp.style.display = canEditCompetitions ? '' : 'none';
     if (btnAddRound) btnAddRound.style.display = canEditCompetitions ? '' : 'none';
@@ -481,7 +523,7 @@ function enforcePermissions() {
     if (btnAddPerson) btnAddPerson.style.display = canEditAdmin ? '' : 'none';
     if (btnManageMembers) btnManageMembers.style.display = canEditAdmin ? '' : 'none';
 
-    document.querySelectorAll('#admin-members-tbody [data-action="edit"], #admin-members-tbody [data-action="delete"]').forEach(b => {
+    document.querySelectorAll('#admin-members-tbody [data-action="edit"], #admin-members-tbody [data-action="delete"], #admin-cards-mobile [data-action="edit"], #admin-cards-mobile [data-action="delete"]').forEach(b => {
         b.style.display = canEditAdmin ? '' : 'none';
     });
 
@@ -1280,7 +1322,7 @@ function setupSettings() {
 
 // --- Search Logic ---
 function setupAdminFilters() {
-    const filters = document.querySelectorAll('#admin-filters .filter-btn');
+    const filters = document.querySelectorAll('#admin-filters .filter-btn, #admin-filters .admin-filter-pill');
     filters.forEach(btn => {
         btn.addEventListener('click', () => {
             filters.forEach(f => f.classList.remove('active'));
@@ -1356,7 +1398,7 @@ window.refreshAdminView = function () {
 
     const all = getMembers().sort((a, b) => a.name.localeCompare(b.name, 'ar'));
 
-    const activeFilterBtn = document.querySelector('#admin-filters .filter-btn.active');
+    const activeFilterBtn = document.querySelector('#admin-filters .filter-btn.active, #admin-filters .admin-filter-pill.active');
     const filter = activeFilterBtn ? activeFilterBtn.getAttribute('data-filter') : 'all';
     const query = normalizeAr(document.getElementById('search-admin')?.value || '');
 
@@ -1435,6 +1477,76 @@ window.refreshAdminView = function () {
             </tr>
         `;
     }).join('');
+
+    // Also populate Mobile Cards (Stitch _6)
+    const mobileCardsContainer = document.getElementById('admin-cards-mobile');
+    if (mobileCardsContainer) {
+        mobileCardsContainer.innerHTML = rows.map(m => {
+            const id = esc(m.id);
+            const isServant = m.role === 'servant';
+            const initial = (m.name || '').trim().charAt(0) || 'أ';
+            const genderText = m.gender === 'female' ? 'أنثى' : 'ذكر';
+            const eduText = m.education === 'graduate' ? 'خريج' : (m.education === 'student' ? 'طالب' : '--');
+
+            let ageText = '-- سنة';
+            if (m.birthdate) {
+                const bDate = new Date(m.birthdate);
+                if (!isNaN(bDate)) {
+                    let age = new Date().getFullYear() - bDate.getFullYear();
+                    const mDiff = new Date().getMonth() - bDate.getMonth();
+                    if (mDiff < 0 || (mDiff === 0 && new Date().getDate() < bDate.getDate())) age--;
+                    ageText = age + ' سنة';
+                }
+            }
+            const subtitleText = `${genderText} / ${eduText} • ${ageText}`;
+            const birthdateDisplay = m.birthdate ? formatDate(m.birthdate) : '--';
+
+            return `
+                <article class="admin-member-card ${isServant ? 'card-servant' : 'card-member'}">
+                    <div class="admin-card-head">
+                        <div class="admin-card-user-info">
+                            <div class="admin-card-avatar ${isServant ? 'avatar-servant' : 'avatar-member'}">
+                                ${esc(initial)}
+                            </div>
+                            <div>
+                                <h3 class="admin-card-name">${esc(m.name)}</h3>
+                                <p class="admin-card-subtitle">${subtitleText}</p>
+                            </div>
+                        </div>
+                        <span class="admin-role-badge ${isServant ? 'badge-servant' : 'badge-member'}">
+                            ${isServant ? 'خادم' : 'مخدوم'}
+                        </span>
+                    </div>
+                    <div class="admin-card-info-grid">
+                        <div class="info-cell">
+                            <i class="ph ph-map-pin"></i>
+                            <span class="truncate">${esc(m.address || 'بدون منطقة')}</span>
+                        </div>
+                        <div class="info-cell dir-ltr">
+                            <i class="ph ph-phone"></i>
+                            <span class="font-mono">${m.phone ? esc(m.phone) : 'لا يوجد رقم'}</span>
+                        </div>
+                        <div class="info-meta-row">
+                            <span>تاريخ الميلاد: <strong>${birthdateDisplay}</strong></span>
+                            <span>السن الحالي: <strong>${ageText}</strong></span>
+                        </div>
+                    </div>
+                    <div class="admin-card-actions">
+                        <button type="button" class="btn-card-action btn-card-profile" data-action="profile" data-id="${id}">
+                            <i class="ph ph-user"></i> <span>الملف</span>
+                        </button>
+                        <button type="button" class="btn-card-action btn-card-edit" data-action="edit" data-id="${id}">
+                            <i class="ph ph-pencil-simple"></i> <span>تعديل</span>
+                        </button>
+                        <button type="button" class="btn-card-action btn-card-delete" data-action="delete" data-id="${id}">
+                            <i class="ph ph-trash"></i> <span>حذف</span>
+                        </button>
+                    </div>
+                </article>
+            `;
+        }).join('');
+    }
+    if (typeof enforcePermissions === 'function') enforcePermissions();
 };
 
 function setupAdminTable(...args) {
@@ -1444,16 +1556,30 @@ function setupAdminTable(...args) {
 }
 function setupAdminTable_original() {
     const tbody = document.getElementById('admin-members-tbody');
-    if (!tbody) return;
-    tbody.addEventListener('click', (e) => {
-        const el = e.target.closest('[data-action]');
-        if (!el) return;
-        const id = el.getAttribute('data-id');
-        const action = el.getAttribute('data-action');
-        if (action === 'profile') openMemberProfile(id);
-        else if (action === 'edit') openPersonModal(id);
-        else if (action === 'delete') deleteMemberFromAdmin(id);
-    });
+    if (tbody) {
+        tbody.addEventListener('click', (e) => {
+            const el = e.target.closest('[data-action]');
+            if (!el) return;
+            const id = el.getAttribute('data-id');
+            const action = el.getAttribute('data-action');
+            if (action === 'profile') openMemberProfile(id);
+            else if (action === 'edit') openPersonModal(id);
+            else if (action === 'delete') deleteMemberFromAdmin(id);
+        });
+    }
+
+    const mobileCards = document.getElementById('admin-cards-mobile');
+    if (mobileCards) {
+        mobileCards.addEventListener('click', (e) => {
+            const el = e.target.closest('[data-action]');
+            if (!el) return;
+            const id = el.getAttribute('data-id');
+            const action = el.getAttribute('data-action');
+            if (action === 'profile') openMemberProfile(id);
+            else if (action === 'edit') openPersonModal(id);
+            else if (action === 'delete') deleteMemberFromAdmin(id);
+        });
+    }
 }
 
 function setSegmented(groupId, value) {
@@ -2477,11 +2603,14 @@ function refreshDashboard() {
             else if (pct < 60) pctColor = 'var(--warning)';
             else if (pct > 0) pctColor = 'var(--success)';
 
+            const countTag = document.getElementById('dash-areas-count-tag');
+            if (countTag) countTag.textContent = `${Object.keys(areasStats).length} مناطق`;
+
             areasGrid.innerHTML += `
-                <div class="glass" style="padding: 10px; border-radius: 8px; text-align: center; border: 1px solid rgba(255,255,255,0.05);">
-                    <div style="font-size: 0.9rem; font-weight: bold; color: var(--primary);">${area}</div>
-                    <div style="font-size: 1.2rem; font-weight: bold;">${stat.total} مخدوم</div>
-                    <div style="font-size: 0.85rem; margin-top: 5px; color: ${pctColor};">متوسط الحضور: ${pct}%</div>
+                <div class="dash-area-card">
+                    <div class="area-name">${esc(area)}</div>
+                    <div class="area-count"><strong>${stat.total}</strong> مخدوم</div>
+                    <div class="area-pct-pill ${pct >= 50 ? 'pill-good' : (pct >= 25 ? 'pill-mid' : 'pill-low')}">${pct}% حضور</div>
                 </div>
             `;
         });
@@ -2533,25 +2662,31 @@ function refreshDashboard() {
             bdayContainer.style.display = 'block';
             bdayList.innerHTML = upcomingBirthdays.map(item => {
                 const m = item.member;
-                const mth = item.mth + 1;
-                const d = item.day;
+                const mth = (item.mth + 1).toString().padStart(2, '0');
+                const d = item.day.toString().padStart(2, '0');
                 const diffDays = item.diffDays;
 
-                let dayText = '';
-                if (diffDays === 0) dayText = '(النهاردة! 🎉)';
-                else if (diffDays === 1) dayText = '(بكرة)';
-                else if (diffDays === 2) dayText = '(بعد بكرة)';
-                else if (diffDays > 2) dayText = `(بعد ${diffDays} أيام)`;
-                else if (diffDays === -1) dayText = '(امبارح)';
-                else if (diffDays === -2) dayText = '(أول امبارح)';
-                else if (diffDays < -2) dayText = `(من ${Math.abs(diffDays)} أيام)`;
+                let badgeText = '';
+                const isToday = diffDays === 0;
+                if (isToday) badgeText = 'النهاردة! 🎂';
+                else if (diffDays === 1) badgeText = 'بكرة';
+                else if (diffDays === 2) badgeText = 'بعد يومين';
+                else if (diffDays > 2) badgeText = `بعد ${diffDays} أيام`;
+                else if (diffDays === -1) badgeText = 'امبارح';
+                else if (diffDays === -2) badgeText = 'أول امبارح';
+                else if (diffDays < -2) badgeText = `من ${Math.abs(diffDays)} أيام`;
 
                 return `
-                <div class="birthday-card">
-                    <div class="bday-icon"><i class="ph ph-cake"></i></div>
+                <div class="dash-birthday-card ${isToday ? 'is-today-card' : ''}">
+                    <div class="bday-icon-box ${isToday ? 'box-gold' : 'box-sparkle'}">
+                        <i class="ph ${isToday ? 'ph-gift' : 'ph-cake'}"></i>
+                    </div>
                     <div class="bday-info">
-                        <div class="bday-name">${m.name}</div>
-                        <div class="bday-date">${d}/${mth} <span style="color:var(--warning); font-weight:bold;">${dayText}</span></div>
+                        <div class="bday-name">${esc(m.name)}</div>
+                        <div class="bday-date-row">
+                            <span class="bday-date">${d}/${mth}</span>
+                            <span class="bday-badge ${isToday ? 'badge-today' : 'badge-soon'}">${badgeText}</span>
+                        </div>
                     </div>
                 </div>`;
             }).join('');
@@ -2568,20 +2703,41 @@ function refreshDashboard() {
     const displayLabels = chartLabels.slice(-10);
     const displayData = chartData.slice(-10);
 
+    const peakVal = displayData.length > 0 ? Math.max(...displayData) : highestMonth;
+    const peakTag = document.getElementById('dash-peak-tag');
+    if (peakTag) peakTag.innerText = `أعلى قمة: ${peakVal}`;
+
+    const formattedLabels = displayLabels.map((date, idx) => {
+        const val = displayData[idx];
+        const parts = date.split('-');
+        let short = parts.length === 3 ? `${parts[1]}/${parts[2]}` : date;
+        if (val === peakVal && peakVal > 0) {
+            short += ' (الذروة)';
+        }
+        return short;
+    });
+
+    const gradient = ctx.createLinearGradient(0, 0, 0, 180);
+    gradient.addColorStop(0, 'rgba(91, 97, 244, 0.45)');
+    gradient.addColorStop(1, 'rgba(91, 97, 244, 0.0)');
+
     currentChart = new Chart(ctx, {
         type: 'line',
         data: {
-            labels: displayLabels,
+            labels: formattedLabels,
             datasets: [{
                 label: 'عدد الحضور',
                 data: displayData,
-                borderColor: '#6366f1',
-                backgroundColor: 'rgba(99, 102, 241, 0.2)',
+                borderColor: '#5b61f4',
+                backgroundColor: gradient,
                 borderWidth: 3,
-                tension: 0.4,
+                tension: 0.45,
                 fill: true,
-                pointBackgroundColor: '#10b981',
-                pointRadius: 5
+                pointBackgroundColor: displayData.map(v => v === peakVal ? '#ffffff' : '#5b61f4'),
+                pointBorderColor: displayData.map(v => v === peakVal ? '#5b61f4' : 'transparent'),
+                pointBorderWidth: 2,
+                pointRadius: displayData.map(v => v === peakVal ? 6 : 4),
+                pointHoverRadius: 7
             }]
         },
         options: {
@@ -2593,11 +2749,11 @@ function refreshDashboard() {
             scales: {
                 y: {
                     beginAtZero: true,
-                    grid: { color: 'rgba(255,255,255,0.1)' },
-                    ticks: { color: '#94a3b8' }
+                    grid: { color: 'rgba(255,255,255,0.05)' },
+                    ticks: { color: '#64748b' }
                 },
                 x: {
-                    grid: { color: 'rgba(255,255,255,0.1)' },
+                    grid: { display: false },
                     ticks: { color: '#94a3b8' }
                 }
             }
@@ -3006,6 +3162,7 @@ function updateAttendanceWorkspace() {
     updateServantsEvalNotice();
 
     updateLiveCounter();
+    if (typeof enforcePermissions === 'function') enforcePermissions();
 }
 
 function updateServantsEvalNotice() {
@@ -3212,6 +3369,7 @@ function refreshFollowUp() {
 
         grid.appendChild(card);
     });
+    if (typeof enforcePermissions === 'function') enforcePermissions();
 }
 
 function setupViewFilters(viewId, gridSelector, searchId) {
@@ -5464,49 +5622,30 @@ function toggleMobileMenu() {
 // --- Permissions Enforcement Patch ---
 (function() {
     if (typeof enforcePermissions !== 'function') return;
-    
-    const originalRenderDashboard = window.renderDashboard;
-    if (originalRenderDashboard) {
-        window.renderDashboard = function(...args) { originalRenderDashboard.apply(this, args); enforcePermissions(); };
-    }
-    
-    const originalRenderAttendance = window.renderAttendance;
-    if (originalRenderAttendance) {
-        window.renderAttendance = function(...args) { originalRenderAttendance.apply(this, args); enforcePermissions(); };
-    }
-    
-    const originalRenderFollowup = window.renderFollowup;
-    if (originalRenderFollowup) {
-        window.renderFollowup = function(...args) { originalRenderFollowup.apply(this, args); enforcePermissions(); };
-    }
-    
-    const originalRenderServantsDashboard = window.renderServantsDashboard;
-    if (originalRenderServantsDashboard) {
-        window.renderServantsDashboard = function(...args) { originalRenderServantsDashboard.apply(this, args); enforcePermissions(); };
+
+    function wrapWithEnforce(fnName) {
+        const orig = window[fnName] || (typeof eval !== 'undefined' ? (function() { try { return eval(fnName); } catch(e) { return null; } })() : null);
+        if (typeof orig === 'function') {
+            window[fnName] = function(...args) {
+                const res = orig.apply(this, args);
+                try { enforcePermissions(); } catch(e) { console.error('enforcePermissions error in ' + fnName, e); }
+                return res;
+            };
+        }
     }
 
-    const originalRefreshServantsNotes = window.refreshServantsNotes;
-    if (originalRefreshServantsNotes) {
-        window.refreshServantsNotes = function(...args) { originalRefreshServantsNotes.apply(this, args); enforcePermissions(); };
-    }
-    
-    const originalRenderCompetitions = window.renderCompetitions;
-    if (originalRenderCompetitions) {
-        window.renderCompetitions = function(...args) { originalRenderCompetitions.apply(this, args); enforcePermissions(); };
-    }
-    
-    const originalRenderSummary = window.renderSummary;
-    if (originalRenderSummary) {
-        window.renderSummary = function(...args) { originalRenderSummary.apply(this, args); enforcePermissions(); };
-    }
+    const functionsToProtect = [
+        'refreshDashboard',
+        'updateAttendanceWorkspace',
+        'refreshFollowUp',
+        'refreshServantsDashboard',
+        'refreshServantsNotes',
+        'renderCompetitions',
+        'refreshSummaryView',
+        'setupAdminTable',
+        'refreshAdminView',
+        'renderServantsNotesGrid'
+    ];
 
-    const originalRefreshAdminView = window.refreshAdminView;
-    if (originalRefreshAdminView) {
-        window.refreshAdminView = function(...args) { originalRefreshAdminView.apply(this, args); enforcePermissions(); };
-    }
-
-    const originalRenderServantsNotesGrid = window.renderServantsNotesGrid;
-    if (originalRenderServantsNotesGrid) {
-        window.renderServantsNotesGrid = function(...args) { originalRenderServantsNotesGrid.apply(this, args); enforcePermissions(); };
-    }
+    functionsToProtect.forEach(wrapWithEnforce);
 })();
