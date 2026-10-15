@@ -8,7 +8,7 @@ try {
 } catch (e) {}
 
 // --- Custom UI Alerts & Prompts ---
-window.showToast = function (message, type = 'success') {
+function showToast(message, type = 'success') {
     const container = document.getElementById('toast-container');
     if (!container) return;
 
@@ -25,7 +25,8 @@ window.showToast = function (message, type = 'success') {
         toast.classList.add('hiding');
         setTimeout(() => toast.remove(), 300);
     }, 3000);
-};
+}
+window.showToast = showToast;
 
 window.alert = function (msg) {
     showToast(msg, 'warning');
@@ -825,19 +826,7 @@ function normalizeAr(value) {
         .trim();
 }
 
-function showToast(message, type = 'success') {
-    let toast = document.getElementById('app-toast');
-    if (!toast) {
-        toast = document.createElement('div');
-        toast.id = 'app-toast';
-        toast.setAttribute('role', 'status');
-        document.body.appendChild(toast);
-    }
-    toast.textContent = message;
-    toast.className = `toast toast-${type} show`;
-    clearTimeout(showToast._timer);
-    showToast._timer = setTimeout(() => toast.classList.remove('show'), 2600);
-}
+// (Duplicate showToast removed - defined at top with #toast-container)
 
 // --- Navigation ---
 window.navigateToView = async function(targetId) {
@@ -888,7 +877,6 @@ window.navigateToView = async function(targetId) {
     if (targetId === 'dashboard-view') refreshDashboard();
     if (targetId === 'followup-view') refreshFollowUp();
     if (targetId === 'attendance-view') updateAttendanceWorkspace();
-    if (targetId === 'visitation-view') refreshVisitationView();
     if (targetId === 'servants-dashboard-view') refreshServantsDashboard();
     if (targetId === 'servants-notes-view') refreshServantsNotes();
     if (targetId === 'summary-view') refreshSummaryView();
@@ -5578,17 +5566,7 @@ window.deleteCompRound = async function (compId, roundId) {
     }
 };
 
-// Hook into the main navigation to render competitions when viewed
-document.addEventListener('DOMContentLoaded', () => {
-    const btns = document.querySelectorAll('.nav-btn');
-    btns.forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            if (btn.getAttribute('data-target') === 'competitions-view') {
-                renderCompetitions();
-            }
-        });
-    });
-});
+// Note: Competitions view rendering is handled automatically in navigateToView
 
 window.exportCompetitionScores = function (compId) {
     if (currentUserRole !== 'admin' && !currentPermissions.includes('reports-view')) {
