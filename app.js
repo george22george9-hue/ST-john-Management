@@ -114,7 +114,6 @@ function pushToCloud() {
         visitations: getVisitations(),
         servantRecords: getServantRecords(),
         servantNotes: getServantNotes(),
-        servantNotesPass: localStorage.getItem('church_servant_notes_pass') || '',
         waTasks: getWaTasks(),
         competitions: getCompetitions(),
         dayTypes: getDayTypes(),
@@ -184,7 +183,6 @@ function startFirebaseSync() {
         if (cloudData.visitations) localStorage.setItem('church_attendance_visitations', JSON.stringify(cloudData.visitations));
         if (cloudData.servantRecords) localStorage.setItem('church_servant_records', JSON.stringify(cloudData.servantRecords));
         if (cloudData.servantNotes) localStorage.setItem('church_servant_notes', JSON.stringify(cloudData.servantNotes));
-        if (cloudData.servantNotesPass) localStorage.setItem('church_servant_notes_pass', cloudData.servantNotesPass);
         if (cloudData.waTasks) localStorage.setItem('church_wa_tasks', JSON.stringify(cloudData.waTasks));
         if (cloudData.competitions) localStorage.setItem('church_competitions_data', JSON.stringify(cloudData.competitions));
         if (cloudData.dayTypes) localStorage.setItem('church_day_types', JSON.stringify(cloudData.dayTypes));
@@ -305,26 +303,6 @@ function saveServantNotes(notes) {
     if (typeof triggerCloudSync === "function") triggerCloudSync();
 }
 
-function getServantNotesPassword() {
-    return localStorage.getItem('church_servant_notes_pass') || 'STjohn';
-}
-
-function setServantNotesPassword(pass) {
-    localStorage.setItem('church_servant_notes_pass', pass);
-    if (typeof triggerCloudSync === 'function') triggerCloudSync();
-}
-
-function verifyServantNotesPassword(inputPass) {
-    if (!inputPass) return false;
-    const currentPass = getServantNotesPassword();
-    let adminPass = 'George-STjohn';
-    try {
-        const auth = getAuthData();
-        if (auth && auth.admin && auth.admin.password) adminPass = auth.admin.password;
-    } catch {}
-    return inputPass === currentPass || inputPass === adminPass || inputPass === 'STjohn';
-}
-
 const DB_KEY_WA_TASKS = 'church_wa_tasks';
 const DB_KEY_DAY_TYPES = 'church_day_types';
 
@@ -400,7 +378,26 @@ function enforcePermissions() {
         const btnAddNoteMain = document.getElementById('btn-add-servant-note-main');
         if (btnAddNoteMain) btnAddNoteMain.style.display = '';
         const btnManagePerms = document.getElementById('btn-manage-permissions');
-        if (btnManagePerms) btnManagePerms.style.display = '';
+        if (btnManagePerms) {
+            btnManagePerms.style.display = '';
+            const card = btnManagePerms.closest('.settings-card-nocturne');
+            if (card) card.style.display = '';
+        }
+        const btnImportData = document.getElementById('btn-import-data');
+        if (btnImportData) {
+            const card = btnImportData.closest('.settings-card-nocturne');
+            if (card) card.style.display = '';
+        }
+        const btnSyncCloud = document.getElementById('btn-sync-cloud');
+        if (btnSyncCloud) {
+            const card = btnSyncCloud.closest('.settings-card-nocturne');
+            if (card) card.style.display = '';
+        }
+        const btnManageMembersSettings = document.querySelector('#settings-view #btn-manage-members');
+        if (btnManageMembersSettings) {
+            const card = btnManageMembersSettings.closest('.settings-card-nocturne');
+            if (card) card.style.display = '';
+        }
 
         const btnDeleteComp = document.getElementById('btn-delete-comp') || document.getElementById('btn-delete-competition');
         if (btnDeleteComp) btnDeleteComp.style.display = '';
@@ -548,6 +545,23 @@ function enforcePermissions() {
     const btnManagePerms = document.getElementById('btn-manage-permissions');
     if (btnManagePerms) {
         btnManagePerms.style.display = (currentUserRole === 'admin') ? '' : 'none';
+        const card = btnManagePerms.closest('.settings-card-nocturne');
+        if (card) card.style.display = (currentUserRole === 'admin') ? '' : 'none';
+    }
+    const btnImportData = document.getElementById('btn-import-data');
+    if (btnImportData) {
+        const card = btnImportData.closest('.settings-card-nocturne');
+        if (card) card.style.display = (currentUserRole === 'admin') ? '' : 'none';
+    }
+    const btnSyncCloud = document.getElementById('btn-sync-cloud');
+    if (btnSyncCloud) {
+        const card = btnSyncCloud.closest('.settings-card-nocturne');
+        if (card) card.style.display = (currentUserRole === 'admin') ? '' : 'none';
+    }
+    const btnManageMembersSettings = document.querySelector('#settings-view #btn-manage-members');
+    if (btnManageMembersSettings) {
+        const card = btnManageMembersSettings.closest('.settings-card-nocturne');
+        if (card) card.style.display = (currentUserRole === 'admin' || canEditAdmin) ? '' : 'none';
     }
 }
 
@@ -620,39 +634,40 @@ function checkLoginAndApply() {
     }
 }
 
+function hasPermissionForView(targetId) {
+    if (!targetId) return false;
+    if (currentUserRole === 'admin') return true;
+    const baseName = targetId.replace('-view', '');
+    const hasDirectPerm = currentPermissions.includes(targetId);
+    const hasViewPerm = currentPermissions.includes(baseName + '-view');
+    const hasEditPerm = currentPermissions.includes(baseName + '-edit');
+    return hasDirectPerm || hasViewPerm || hasEditPerm;
+}
+window.hasPermissionForView = hasPermissionForView;
+
 function applyPermissions() {
-    document.querySelectorAll('.nav-btn').forEach(btn => {
+    document.querySelectorAll('.sidebar-nav .nav-btn').forEach(btn => {
         const target = btn.getAttribute('data-target');
-        const baseName = target.replace('-view', '');
-        const hasDirectPerm = currentPermissions.includes(target);
-        const hasViewPerm = currentPermissions.includes(baseName + '-view');
-        const hasEditPerm = currentPermissions.includes(baseName + '-edit');
-        
-        if (currentUserRole === 'admin' || hasDirectPerm || hasViewPerm || hasEditPerm) {
-            btn.style.display = 'flex';
-        } else {
-            btn.style.display = 'none';
-        }
+        const allowed = hasPermissionForView(target);
+        btn.style.display = allowed ? 'flex' : 'none';
     });
 
     document.querySelectorAll('.mobile-nav-item[data-target]').forEach(mItem => {
         const target = mItem.getAttribute('data-target');
-        const baseName = target.replace('-view', '');
-        const hasDirectPerm = currentPermissions.includes(target);
-        const hasViewPerm = currentPermissions.includes(baseName + '-view');
-        const hasEditPerm = currentPermissions.includes(baseName + '-edit');
-        
-        if (currentUserRole === 'admin' || hasDirectPerm || hasViewPerm || hasEditPerm) {
-            mItem.style.display = 'flex';
-        } else {
-            mItem.style.display = 'none';
-        }
+        const allowed = hasPermissionForView(target);
+        mItem.style.display = allowed ? 'flex' : 'none';
     });
 
-    const activeBtn = document.querySelector('.nav-btn.active');
-    if (activeBtn && activeBtn.style.display === 'none') {
-        const firstVisible = Array.from(document.querySelectorAll('.nav-btn')).find(b => b.style.display !== 'none');
-        if (firstVisible) firstVisible.click();
+    const activeSection = document.querySelector('.view-section.active');
+    const activeTarget = activeSection ? activeSection.id : null;
+    if (!activeTarget || !hasPermissionForView(activeTarget)) {
+        const firstVisibleBtn = Array.from(document.querySelectorAll('.sidebar-nav .nav-btn')).find(b => b.style.display !== 'none');
+        if (firstVisibleBtn) {
+            const firstTarget = firstVisibleBtn.getAttribute('data-target');
+            if (firstTarget && typeof window.navigateToView === 'function') {
+                window.navigateToView(firstTarget);
+            }
+        }
     }
     
     // Make sure we enforce permissions immediately on load
@@ -715,82 +730,61 @@ function showToast(message, type = 'success') {
 
 // --- Navigation ---
 window.navigateToView = async function(targetId) {
-    let passSuccess = true;
-
-    if (targetId === 'admin-view') {
-        if (!window.isAdminUnlocked) {
-            const pass = await customPrompt('برجاء إدخال كلمة المرور لدخول صفحة الإدارة:');
-            if (pass === 'STjohn') {
-                window.isAdminUnlocked = true;
-            } else {
-                showToast('كلمة المرور غير صحيحة!', 'error');
-                passSuccess = false;
+    if (!hasPermissionForView(targetId)) {
+        showToast('عفواً، لا تملك صلاحية لفتح هذه الصفحة', 'warning');
+        const firstVisibleBtn = Array.from(document.querySelectorAll('.sidebar-nav .nav-btn')).find(b => b.style.display !== 'none');
+        if (firstVisibleBtn) {
+            const fallback = firstVisibleBtn.getAttribute('data-target');
+            if (fallback && fallback !== targetId && hasPermissionForView(fallback)) {
+                return window.navigateToView(fallback);
             }
+        }
+        return;
+    }
+
+    // If mobile drawer is open, close it
+    if (window.innerWidth <= 900) {
+        const sidebar = document.querySelector('.sidebar');
+        if (sidebar && sidebar.classList.contains('mobile-open')) {
+            toggleMobileMenu();
         }
     }
 
-    if (targetId === 'servants-notes-view') {
-        if (!window.isServantNotesUnlocked) {
-            const pass = await customPrompt('🔒 برجاء إدخال كلمة المرور الخاصة لفتح ملاحظات الخدام:');
-            if (pass !== null) {
-                if (verifyServantNotesPassword(pass)) {
-                    window.isServantNotesUnlocked = true;
-                    showToast('تم فتح ملاحظات الخدام بنجاح 🔓', 'success');
-                } else {
-                    showToast('كلمة المرور غير صحيحة! ❌', 'error');
-                    passSuccess = false;
-                }
-            } else {
-                passSuccess = false;
-            }
-        }
+    // Remove active classes
+    navBtns.forEach(b => b.classList.remove('active'));
+    views.forEach(v => v.classList.remove('active'));
+
+    // Add active class to target sidebar button and section
+    const targetBtn = document.querySelector(`.sidebar-nav .nav-btn[data-target="${targetId}"]`);
+    if (targetBtn) targetBtn.classList.add('active');
+
+    const targetEl = document.getElementById(targetId);
+    if (targetEl) targetEl.classList.add('active');
+
+    // Sync mobile bottom navigation active state
+    document.querySelectorAll('.mobile-nav-item[data-target]').forEach(mItem => {
+        mItem.classList.toggle('active', mItem.getAttribute('data-target') === targetId);
+    });
+
+    // Toggle Mobile Floating Save Bar
+    const mobileSaveBar = document.getElementById('attendance-mobile-save-bar');
+    if (mobileSaveBar) {
+        const canEditAttendance = currentUserRole === 'admin' || currentPermissions.includes('attendance-edit');
+        mobileSaveBar.style.display = (targetId === 'attendance-view' && canEditAttendance && currentAttendanceDate) ? 'flex' : 'none';
     }
 
-    if (passSuccess) {
-        // If mobile drawer is open, close it
-        if (window.innerWidth <= 900) {
-            const sidebar = document.querySelector('.sidebar');
-            if (sidebar && sidebar.classList.contains('mobile-open')) {
-                toggleMobileMenu();
-            }
-        }
+    // View specific logic
+    if (targetId === 'dashboard-view') refreshDashboard();
+    if (targetId === 'followup-view') refreshFollowUp();
+    if (targetId === 'attendance-view') updateAttendanceWorkspace();
+    if (targetId === 'visitation-view') refreshVisitationView();
+    if (targetId === 'servants-dashboard-view') refreshServantsDashboard();
+    if (targetId === 'servants-notes-view') refreshServantsNotes();
+    if (targetId === 'summary-view') refreshSummaryView();
+    if (targetId === 'competitions-view') { if (typeof renderCompetitions === 'function') renderCompetitions(); }
+    if (targetId === 'admin-view') refreshAdminView();
 
-        // Remove active classes
-        navBtns.forEach(b => b.classList.remove('active'));
-        views.forEach(v => v.classList.remove('active'));
-
-        // Add active class to target sidebar button and section
-        const targetBtn = document.querySelector(`.sidebar-nav .nav-btn[data-target="${targetId}"]`);
-        if (targetBtn) targetBtn.classList.add('active');
-
-        const targetEl = document.getElementById(targetId);
-        if (targetEl) targetEl.classList.add('active');
-
-        // Sync mobile bottom navigation active state
-        document.querySelectorAll('.mobile-nav-item[data-target]').forEach(mItem => {
-            mItem.classList.toggle('active', mItem.getAttribute('data-target') === targetId);
-        });
-
-        // Toggle Mobile Floating Save Bar
-        const mobileSaveBar = document.getElementById('attendance-mobile-save-bar');
-        if (mobileSaveBar) {
-            const canEditAttendance = currentUserRole === 'admin' || currentPermissions.includes('attendance-edit');
-            mobileSaveBar.style.display = (targetId === 'attendance-view' && canEditAttendance && currentAttendanceDate) ? 'flex' : 'none';
-        }
-
-        // View specific logic
-        if (targetId === 'dashboard-view') refreshDashboard();
-        if (targetId === 'followup-view') refreshFollowUp();
-        if (targetId === 'attendance-view') updateAttendanceWorkspace();
-        if (targetId === 'visitation-view') refreshVisitationView();
-        if (targetId === 'servants-dashboard-view') refreshServantsDashboard();
-        if (targetId === 'servants-notes-view') refreshServantsNotes();
-        if (targetId === 'summary-view') refreshSummaryView();
-        if (targetId === 'competitions-view') { if (typeof renderCompetitions === 'function') renderCompetitions(); }
-        if (targetId === 'admin-view') refreshAdminView();
-
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
 };
 
 function setupNavigation() {
@@ -822,19 +816,13 @@ function setupNavigation() {
 // --- Modals & Management Logic ---
 function setupModals() {
     // Open Manage Members
-    document.getElementById('btn-manage-members').addEventListener('click', async () => {
-        if (!window.isAdminUnlocked) {
-            const pass = await customPrompt('برجاء إدخال كلمة المرور للإدارة:');
-            if (pass === 'STjohn') {
-                window.isAdminUnlocked = true;
-            } else {
-                showToast('كلمة المرور غير صحيحة ❌', 'error');
-                return;
-            }
-        }
-        populateDeleteList();
-        modalManageMembers.classList.add('active');
-    });
+    const btnManageMem = document.getElementById('btn-manage-members');
+    if (btnManageMem) {
+        btnManageMem.addEventListener('click', () => {
+            populateDeleteList();
+            if (modalManageMembers) modalManageMembers.classList.add('active');
+        });
+    }
 
     // Close
     document.querySelectorAll('.close-modal').forEach(btn => {
@@ -1856,77 +1844,7 @@ function syncPastPresentationNotes() {
 function setupServantsNotes() {
     syncPastPresentationNotes();
 
-    // 1. Gate unlock button & enter key
-    const btnUnlockGate = document.getElementById('btn-unlock-servants-notes-gate');
-    const gatePassInput = document.getElementById('servants-notes-gate-pass');
-    
-    const handleGateUnlock = () => {
-        const val = (gatePassInput ? gatePassInput.value : '').trim();
-        if (verifyServantNotesPassword(val)) {
-            window.isServantNotesUnlocked = true;
-            if (gatePassInput) gatePassInput.value = '';
-            showToast('تم فتح ملاحظات الخدام بنجاح 🔓', 'success');
-            refreshServantsNotes();
-        } else {
-            showToast('كلمة المرور غير صحيحة! ❌', 'error');
-        }
-    };
-
-    if (btnUnlockGate) btnUnlockGate.addEventListener('click', handleGateUnlock);
-    if (gatePassInput) {
-        gatePassInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') handleGateUnlock();
-        });
-    }
-
-    // 2. Lock button
-    const btnLockNotes = document.getElementById('btn-lock-servants-notes');
-    if (btnLockNotes) {
-        btnLockNotes.addEventListener('click', () => {
-            window.isServantNotesUnlocked = false;
-            showToast('تم قفل صفحة ملاحظات الخدام 🔒', 'warning');
-            refreshServantsNotes();
-        });
-    }
-
-    // 3. Change password button & modal
-    const btnChangePass = document.getElementById('btn-change-servants-notes-pass');
-    if (btnChangePass) {
-        btnChangePass.addEventListener('click', () => {
-            document.getElementById('notes-curr-pass').value = '';
-            document.getElementById('notes-new-pass').value = '';
-            document.getElementById('notes-confirm-pass').value = '';
-            document.getElementById('servants-notes-pass-modal-bg').classList.add('active');
-        });
-    }
-
-    const btnSavePass = document.getElementById('btn-save-notes-pass');
-    if (btnSavePass) {
-        btnSavePass.addEventListener('click', () => {
-            const curr = (document.getElementById('notes-curr-pass').value || '').trim();
-            const newP = (document.getElementById('notes-new-pass').value || '').trim();
-            const conf = (document.getElementById('notes-confirm-pass').value || '').trim();
-
-            if (!verifyServantNotesPassword(curr)) {
-                alert('كلمة المرور الحالية غير صحيحة!');
-                return;
-            }
-            if (!newP || newP.length < 3) {
-                alert('برجاء كتابة كلمة مرور جديدة لا تقل عن 3 أحرف/أرقام.');
-                return;
-            }
-            if (newP !== conf) {
-                alert('تأكيد كلمة المرور لا يطابق كلمة المرور الجديدة!');
-                return;
-            }
-
-            setServantNotesPassword(newP);
-            document.getElementById('servants-notes-pass-modal-bg').classList.remove('active');
-            showToast('تم تغيير كلمة المرور بنجاح 🔑', 'success');
-        });
-    }
-
-    // 4. Main add note button
+    // Main add note button
     const btnAddMain = document.getElementById('btn-add-servant-note-main');
     if (btnAddMain) {
         btnAddMain.addEventListener('click', () => {
@@ -2013,23 +1931,10 @@ function setupServantsNotes() {
 }
 
 function refreshServantsNotes() {
-    const gate = document.getElementById('servants-notes-locked-gate');
-    const content = document.getElementById('servants-notes-main-content');
-
-    if (!window.isServantNotesUnlocked) {
-        if (gate) gate.style.display = 'block';
-        if (content) content.style.display = 'none';
-        return;
-    }
-
-    if (gate) gate.style.display = 'none';
-    if (content) content.style.display = 'block';
-
     renderServantsNotesGrid();
 }
 
 function renderServantsNotesGrid() {
-    if (!window.isServantNotesUnlocked) return;
 
     const members = getMembers();
     const servants = members.filter(m => m.role === 'servant');
@@ -2549,22 +2454,39 @@ function refreshDashboard() {
     });
 
     document.getElementById('dash-highest-attendance').innerText = highestMonth;
-    document.getElementById('dash-highest-date').innerText = highestMonthDate !== '--' ? formatDate(highestMonthDate) : 'لا يوجد سجلات بالشهر';
+    const highestDateEl = document.getElementById('dash-highest-date');
+    if (highestDateEl) {
+        highestDateEl.innerText = highestMonthDate !== '--' ? `تاريخ: ${formatDate(highestMonthDate)}` : 'لا يوجد سجلات بالشهر';
+    }
 
     const avg = currentMonthMeetings > 0 ? (currentMonthCount / currentMonthMeetings) : 0;
     const prevAvg = prevMonthMeetings > 0 ? (prevMonthCount / prevMonthMeetings) : 0;
     const percentage = members.length > 0 ? Math.round((avg / members.length) * 100) : 0;
-    document.getElementById('dash-avg-attendance').innerText = `${percentage}% (${Math.round(avg)} شخص)`;
+    
+    const avgPercentEl = document.getElementById('dash-avg-percent');
+    const avgCountEl = document.getElementById('dash-avg-count');
+    const avgOldEl = document.getElementById('dash-avg-attendance');
+    if (avgPercentEl) avgPercentEl.innerText = `${percentage}%`;
+    if (avgCountEl) avgCountEl.innerText = `(${Math.round(avg)} شخص)`;
+    if (avgOldEl) avgOldEl.innerText = `${percentage}% (${Math.round(avg)} شخص)`;
 
-    const diff = avg - prevAvg;
+    const diff = Math.round(avg - prevAvg);
     const compareEl = document.getElementById('dash-month-compare');
     if (compareEl) {
         if (prevMonthMeetings === 0) {
-            compareEl.innerHTML = '-- مفيش بيانات للشهر اللي فات';
+            compareEl.innerHTML = '-- مفيش بيانات للشهر الفائت';
+            compareEl.className = 'stat-subtext';
         } else {
-            if (diff > 0) compareEl.innerHTML = `<i class="ph ph-trend-up"></i> زيادة ${Math.round(diff)} شخص عن الشهر اللي فات`;
-            else if (diff < 0) compareEl.innerHTML = `<i class="ph ph-trend-down"></i> نقص ${Math.abs(Math.round(diff))} شخص عن الشهر اللي فات`;
-            else compareEl.innerHTML = `ثابت زي الشهر اللي فات`;
+            if (diff > 0) {
+                compareEl.innerHTML = `<i class="ph ph-trend-up"></i> +${diff} أشخاص عن الشهر الفائت`;
+                compareEl.className = 'stat-subtext text-emerald';
+            } else if (diff < 0) {
+                compareEl.innerHTML = `<i class="ph ph-trend-down"></i> -${Math.abs(diff)} أشخاص عن الشهر الفائت`;
+                compareEl.className = 'stat-subtext text-danger';
+            } else {
+                compareEl.innerHTML = `مماثل للشهر الفائت`;
+                compareEl.className = 'stat-subtext';
+            }
         }
     }
 
@@ -5701,7 +5623,8 @@ function toggleMobileMenu() {
         'refreshSummaryView',
         'setupAdminTable',
         'refreshAdminView',
-        'renderServantsNotesGrid'
+        'renderServantsNotesGrid',
+        'openMemberProfile'
     ];
 
     functionsToProtect.forEach(wrapWithEnforce);
