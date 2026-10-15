@@ -1,3 +1,12 @@
+// Legacy password bypass and cleanup flags
+window.isAdminUnlocked = true;
+window.isServantNotesUnlocked = true;
+try {
+    localStorage.removeItem('church_servant_notes_pass');
+    localStorage.removeItem('church_servant_notes_unlocked');
+    localStorage.removeItem('church_admin_unlocked');
+} catch (e) {}
+
 // --- Custom UI Alerts & Prompts ---
 window.showToast = function (message, type = 'success') {
     const container = document.getElementById('toast-container');
@@ -626,20 +635,35 @@ function getAuthData() {
                 localStorage.setItem(DB_KEY_AUTH, JSON.stringify(parsed));
             }
 
-            // Ensure admin has servants-notes-view and reports-view permissions
-            if (parsed.admin && parsed.admin.permissions) {
-                let updated = false;
-                if (!parsed.admin.permissions.includes('servants-notes-view')) {
-                    parsed.admin.permissions.push('servants-notes-view');
-                    parsed.admin.permissions.push('servants-notes-edit');
-                    updated = true;
-                }
-                if (!parsed.admin.permissions.includes('reports-view')) {
-                    parsed.admin.permissions.push('reports-view');
-                    updated = true;
-                }
-                if (updated) {
+            // Ensure admin has full permissions
+            const defaultAdminPerms = [
+                'dashboard-view',
+                'attendance-view', 'attendance-edit',
+                'followup-view', 'followup-edit',
+                'servants-dashboard-view', 'servants-dashboard-edit',
+                'servants-notes-view', 'servants-notes-edit',
+                'competitions-view', 'competitions-edit',
+                'summary-view',
+                'admin-view', 'admin-edit',
+                'reports-view',
+                'settings-view'
+            ];
+
+            if (parsed.admin) {
+                if (!Array.isArray(parsed.admin.permissions) || parsed.admin.permissions.length === 0) {
+                    parsed.admin.permissions = [...defaultAdminPerms];
                     localStorage.setItem(DB_KEY_AUTH, JSON.stringify(parsed));
+                } else {
+                    let updated = false;
+                    defaultAdminPerms.forEach(p => {
+                        if (!parsed.admin.permissions.includes(p)) {
+                            parsed.admin.permissions.push(p);
+                            updated = true;
+                        }
+                    });
+                    if (updated) {
+                        localStorage.setItem(DB_KEY_AUTH, JSON.stringify(parsed));
+                    }
                 }
             }
             
@@ -669,7 +693,18 @@ function checkLoginAndApply() {
     if (loggedInId) {
         if (loggedInId === 'admin') {
             currentUserRole = 'admin';
-            currentPermissions = authData.admin.permissions;
+            currentPermissions = (authData.admin && Array.isArray(authData.admin.permissions)) ? authData.admin.permissions : [
+                'dashboard-view',
+                'attendance-view', 'attendance-edit',
+                'followup-view', 'followup-edit',
+                'servants-dashboard-view', 'servants-dashboard-edit',
+                'servants-notes-view', 'servants-notes-edit',
+                'competitions-view', 'competitions-edit',
+                'summary-view',
+                'admin-view', 'admin-edit',
+                'reports-view',
+                'settings-view'
+            ];
         } else if (loggedInId === 'supervisor') {
             currentUserRole = 'supervisor';
             currentPermissions = authData.supervisor.permissions;
