@@ -675,12 +675,12 @@
 
                 <div class="settings-sections-wrap">
                     <!-- Section 1: Security & Admin -->
-                    <div class="settings-section-divider">
+                    <div class="settings-section-divider" id="settings-sec-security-divider">
                         <span class="settings-sec-title">إجراءات الإدارة والأمان</span>
                         <span class="settings-sec-badge badge-indigo">نظام الأمان</span>
                     </div>
 
-                    <div class="settings-card-nocturne">
+                    <div class="settings-card-nocturne" id="card-manage-members-settings">
                         <div class="card-head">
                             <div class="card-icon-box box-indigo"><i class="ph ph-users"></i></div>
                             <h2 class="card-title">إدارة الأعضاء</h2>
@@ -692,7 +692,7 @@
                         </button>
                     </div>
 
-                    <div class="settings-card-nocturne">
+                    <div class="settings-card-nocturne" id="card-manage-perms-settings">
                         <div class="card-head">
                             <div class="card-icon-box box-amber"><i class="ph ph-shield-check"></i></div>
                             <h2 class="card-title">إدارة الصلاحيات</h2>
@@ -705,12 +705,12 @@
                     </div>
 
                     <!-- Section 2: Backup & Sync -->
-                    <div class="settings-section-divider">
+                    <div class="settings-section-divider" id="settings-sec-backup-divider">
                         <span class="settings-sec-title">النسخ الاحتياطي والمزامنة</span>
                         <span class="settings-sec-badge badge-emerald">سحابي ومحلي</span>
                     </div>
 
-                    <div class="settings-card-nocturne">
+                    <div class="settings-card-nocturne" id="card-backup-export">
                         <div class="card-head">
                             <div class="card-icon-box box-emerald"><i class="ph ph-cloud-arrow-down"></i></div>
                             <h2 class="card-title">نسخة احتياطية</h2>
@@ -722,7 +722,7 @@
                         </button>
                     </div>
 
-                    <div class="settings-card-nocturne">
+                    <div class="settings-card-nocturne" id="card-backup-import">
                         <div class="card-head">
                             <div class="card-icon-box box-amber"><i class="ph ph-cloud-arrow-up"></i></div>
                             <h2 class="card-title">استعادة البيانات</h2>
@@ -735,7 +735,7 @@
                         </button>
                     </div>
 
-                    <div class="settings-card-nocturne">
+                    <div class="settings-card-nocturne" id="card-sync-cloud">
                         <div class="card-head">
                             <div class="card-icon-box box-indigo"><i class="ph ph-arrows-clockwise"></i></div>
                             <h2 class="card-title">مزامنة مع الإكسيل</h2>
@@ -747,7 +747,7 @@
                         </button>
                     </div>
 
-                    <div class="settings-card-nocturne">
+                    <div class="settings-card-nocturne" id="card-export-excel">
                         <div class="card-head">
                             <div class="card-icon-box box-emerald"><i class="ph ph-file-xls"></i></div>
                             <h2 class="card-title">تصدير إكسيل المنظم</h2>
@@ -760,12 +760,12 @@
                     </div>
 
                     <!-- Section 3: Reports & Outputs -->
-                    <div class="settings-section-divider">
+                    <div class="settings-section-divider" id="settings-reports-divider">
                         <span class="settings-sec-title">التقارير والمخرجات</span>
                         <span class="settings-sec-badge badge-rose">PDF</span>
                     </div>
 
-                    <div class="settings-card-nocturne">
+                    <div class="settings-card-nocturne" id="card-report-monthly">
                         <div class="card-head">
                             <div class="card-icon-box box-rose"><i class="ph ph-file-pdf"></i></div>
                             <h2 class="card-title">تقارير شهرية</h2>
@@ -781,7 +781,7 @@
                         </button>
                     </div>
 
-                    <div class="settings-card-nocturne">
+                    <div class="settings-card-nocturne" id="card-report-visitation">
                         <div class="card-head">
                             <div class="card-icon-box box-rose"><i class="ph ph-users-three"></i></div>
                             <h2 class="card-title">تقارير الافتقاد</h2>
@@ -1423,15 +1423,22 @@
                         </select>
                     </div>
                     <div class="perm-row" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px;">
-                        <span>قاعدة البيانات (الإدارة)</span>
+                        <span>صفحة الإدارة وقاعدة البيانات</span>
                         <select class="perm-select form-control" data-section="admin" style="width: 150px; padding: 5px;">
-                            <option value="none">لا يوجد صلاحية</option>
-                            <option value="view">مشاهدة فقط</option>
-                            <option value="edit">مشاهدة وتعديل</option>
+                            <option value="none">لا يوجد صلاحية (ممنوعة ومخفية)</option>
+                            <option value="view">مشاهدة البيانات فقط</option>
+                            <option value="edit">مشاهدة وتعديل وإضافة</option>
+                        </select>
+                    </div>
+                    <div class="perm-row" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px;">
+                        <span>طباعة واستخراج التقارير (PDF / Excel)</span>
+                        <select class="perm-select form-control" data-section="reports" style="width: 150px; padding: 5px;">
+                            <option value="none">لا يوجد صلاحية (ممنوع)</option>
+                            <option value="view">السماح بالطباعة والتحميل</option>
                         </select>
                     </div>
                     <div class="perm-row" style="display: flex; justify-content: space-between; align-items: center;">
-                        <span>الإعدادات (خطر)</span>
+                        <span>الإعدادات والنسخ الاحتياطي (خطر)</span>
                         <select class="perm-select form-control" data-section="settings" style="width: 150px; padding: 5px;">
                             <option value="none">لا يوجد صلاحية</option>
                             <option value="view">السماح بالدخول</option>
@@ -1603,6 +1610,6 @@
     <script src="firebase-firestore.js"></script>
     
     <!-- Script -->
-    <script src="app.js?v=25"></script>
+    <script src="app.js?v=26"></script>
 </body>
 </html>

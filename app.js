@@ -399,6 +399,25 @@ function enforcePermissions() {
             if (card) card.style.display = '';
         }
 
+        // Show all settings sections & reports for Admin
+        ['settings-sec-security-divider', 'card-manage-members-settings', 'card-manage-perms-settings',
+         'settings-sec-backup-divider', 'card-backup-export', 'card-backup-import', 'card-sync-cloud',
+         'settings-reports-divider', 'card-report-monthly', 'card-report-visitation', 'card-export-excel'
+        ].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.style.display = '';
+        });
+        const btnExportServantNotesAdmin = document.getElementById('btn-export-servant-notes');
+        if (btnExportServantNotesAdmin) btnExportServantNotesAdmin.style.display = '';
+        const btnPrintCompAdmin = document.getElementById('btn-print-comp-result');
+        if (btnPrintCompAdmin) btnPrintCompAdmin.style.display = '';
+        const btnCloudHeaderAdmin = document.querySelector('.settings-header-btn');
+        if (btnCloudHeaderAdmin) btnCloudHeaderAdmin.style.display = '';
+        const settingsTitleAdmin = document.querySelector('.settings-title');
+        const settingsSubtitleAdmin = document.querySelector('.settings-subtitle');
+        if (settingsTitleAdmin) settingsTitleAdmin.textContent = 'الإعدادات والبيانات';
+        if (settingsSubtitleAdmin) settingsSubtitleAdmin.textContent = 'إدارة بيانات البرنامج والنسخ الاحتياطي';
+
         const btnDeleteComp = document.getElementById('btn-delete-comp') || document.getElementById('btn-delete-competition');
         if (btnDeleteComp) btnDeleteComp.style.display = '';
 
@@ -541,28 +560,54 @@ function enforcePermissions() {
         b.style.display = canEditNotes ? '' : 'none';
     });
 
-    // 7. Settings View (الإعدادات)
-    const btnManagePerms = document.getElementById('btn-manage-permissions');
-    if (btnManagePerms) {
-        btnManagePerms.style.display = (currentUserRole === 'admin') ? '' : 'none';
-        const card = btnManagePerms.closest('.settings-card-nocturne');
-        if (card) card.style.display = (currentUserRole === 'admin') ? '' : 'none';
+    // 7. Settings & Backup (الإعدادات والنسخ)
+    const canSettings = (currentUserRole === 'admin') || currentPermissions.includes('settings-view');
+    const secSecurityDivider = document.getElementById('settings-sec-security-divider');
+    const cardManageMembers = document.getElementById('card-manage-members-settings');
+    const cardManagePerms = document.getElementById('card-manage-perms-settings');
+    const secBackupDivider = document.getElementById('settings-sec-backup-divider');
+    const cardBackupExport = document.getElementById('card-backup-export');
+    const cardBackupImport = document.getElementById('card-backup-import');
+    const cardSyncCloud = document.getElementById('card-sync-cloud');
+    const btnCloudHeader = document.querySelector('.settings-header-btn');
+
+    if (secSecurityDivider) secSecurityDivider.style.display = (currentUserRole === 'admin') ? '' : 'none';
+    if (cardManageMembers) cardManageMembers.style.display = (currentUserRole === 'admin' || canEditAdmin) ? '' : 'none';
+    if (cardManagePerms) cardManagePerms.style.display = (currentUserRole === 'admin') ? '' : 'none';
+
+    if (secBackupDivider) secBackupDivider.style.display = canSettings ? '' : 'none';
+    if (cardBackupExport) cardBackupExport.style.display = canSettings ? '' : 'none';
+    if (cardBackupImport) cardBackupImport.style.display = (currentUserRole === 'admin') ? '' : 'none';
+    if (cardSyncCloud) cardSyncCloud.style.display = (currentUserRole === 'admin') ? '' : 'none';
+    if (btnCloudHeader) btnCloudHeader.style.display = (currentUserRole === 'admin') ? '' : 'none';
+
+    const settingsTitle = document.querySelector('.settings-title');
+    const settingsSubtitle = document.querySelector('.settings-subtitle');
+    if (settingsTitle && settingsSubtitle) {
+        if (!canSettings && currentPermissions.includes('reports-view')) {
+            settingsTitle.textContent = 'التقارير والمخرجات';
+            settingsSubtitle.textContent = 'استخراج وطباعة تقارير الحضور والافتقاد وملفات الإكسيل';
+        } else {
+            settingsTitle.textContent = 'الإعدادات والبيانات';
+            settingsSubtitle.textContent = 'إدارة بيانات البرنامج والنسخ الاحتياطي';
+        }
     }
-    const btnImportData = document.getElementById('btn-import-data');
-    if (btnImportData) {
-        const card = btnImportData.closest('.settings-card-nocturne');
-        if (card) card.style.display = (currentUserRole === 'admin') ? '' : 'none';
-    }
-    const btnSyncCloud = document.getElementById('btn-sync-cloud');
-    if (btnSyncCloud) {
-        const card = btnSyncCloud.closest('.settings-card-nocturne');
-        if (card) card.style.display = (currentUserRole === 'admin') ? '' : 'none';
-    }
-    const btnManageMembersSettings = document.querySelector('#settings-view #btn-manage-members');
-    if (btnManageMembersSettings) {
-        const card = btnManageMembersSettings.closest('.settings-card-nocturne');
-        if (card) card.style.display = (currentUserRole === 'admin' || canEditAdmin) ? '' : 'none';
-    }
+
+    // 8. Reports & Printing Permissions (التقارير والمخرجات)
+    const canPrintReports = (currentUserRole === 'admin') || currentPermissions.includes('reports-view');
+    const secReportsDivider = document.getElementById('settings-reports-divider');
+    const cardReportMonthly = document.getElementById('card-report-monthly');
+    const cardReportVisitation = document.getElementById('card-report-visitation');
+    const cardExportExcel = document.getElementById('card-export-excel');
+    const btnExportNotes = document.getElementById('btn-export-servant-notes');
+    const btnPrintComp = document.getElementById('btn-print-comp-result');
+
+    if (secReportsDivider) secReportsDivider.style.display = canPrintReports ? '' : 'none';
+    if (cardReportMonthly) cardReportMonthly.style.display = canPrintReports ? '' : 'none';
+    if (cardReportVisitation) cardReportVisitation.style.display = canPrintReports ? '' : 'none';
+    if (cardExportExcel) cardExportExcel.style.display = canPrintReports ? '' : 'none';
+    if (btnExportNotes) btnExportNotes.style.display = canPrintReports ? '' : 'none';
+    if (btnPrintComp) btnPrintComp.style.display = canPrintReports ? '' : 'none';
 }
 
 const DB_KEY_AUTH = 'church_app_auth';
@@ -581,18 +626,28 @@ function getAuthData() {
                 localStorage.setItem(DB_KEY_AUTH, JSON.stringify(parsed));
             }
 
-            // Ensure admin has servants-notes-view permission
-            if (parsed.admin && parsed.admin.permissions && !parsed.admin.permissions.includes('servants-notes-view')) {
-                parsed.admin.permissions.push('servants-notes-view');
-                parsed.admin.permissions.push('servants-notes-edit');
-                localStorage.setItem(DB_KEY_AUTH, JSON.stringify(parsed));
+            // Ensure admin has servants-notes-view and reports-view permissions
+            if (parsed.admin && parsed.admin.permissions) {
+                let updated = false;
+                if (!parsed.admin.permissions.includes('servants-notes-view')) {
+                    parsed.admin.permissions.push('servants-notes-view');
+                    parsed.admin.permissions.push('servants-notes-edit');
+                    updated = true;
+                }
+                if (!parsed.admin.permissions.includes('reports-view')) {
+                    parsed.admin.permissions.push('reports-view');
+                    updated = true;
+                }
+                if (updated) {
+                    localStorage.setItem(DB_KEY_AUTH, JSON.stringify(parsed));
+                }
             }
             
             return parsed;
         }
     } catch { }
     return {
-        admin: { password: 'George-STjohn', permissions: ['dashboard-view', 'attendance-view', 'followup-view', 'servants-dashboard-view', 'servants-notes-view', 'competitions-view', 'summary-view', 'admin-view', 'settings-view'] },
+        admin: { password: 'George-STjohn', permissions: ['dashboard-view', 'attendance-view', 'followup-view', 'servants-dashboard-view', 'servants-notes-view', 'competitions-view', 'summary-view', 'admin-view', 'reports-view', 'settings-view'] },
         supervisor: { password: 'stjohn123', permissions: ['dashboard-view'] },
         servants: {}
     };
@@ -637,6 +692,9 @@ function checkLoginAndApply() {
 function hasPermissionForView(targetId) {
     if (!targetId) return false;
     if (currentUserRole === 'admin') return true;
+    if (targetId === 'settings-view') {
+        return currentPermissions.includes('settings-view') || currentPermissions.includes('reports-view');
+    }
     const baseName = targetId.replace('-view', '');
     const hasDirectPerm = currentPermissions.includes(targetId);
     const hasViewPerm = currentPermissions.includes(baseName + '-view');
@@ -657,6 +715,24 @@ function applyPermissions() {
         const allowed = hasPermissionForView(target);
         mItem.style.display = allowed ? 'flex' : 'none';
     });
+
+    // Update settings nav button label if user has only reports permission
+    const settingsNavBtn = document.querySelector('.sidebar-nav .nav-btn[data-target="settings-view"]');
+    if (settingsNavBtn) {
+        if (currentUserRole !== 'admin' && !currentPermissions.includes('settings-view') && currentPermissions.includes('reports-view')) {
+            settingsNavBtn.innerHTML = '<i class="ph ph-file-pdf"></i><span>التقارير والمخرجات</span>';
+        } else {
+            settingsNavBtn.innerHTML = '<i class="ph ph-gear"></i><span>الإعدادات والنسخ</span>';
+        }
+    }
+    const mobileSettingsBtn = document.querySelector('.mobile-nav-item[data-target="settings-view"]');
+    if (mobileSettingsBtn) {
+        if (currentUserRole !== 'admin' && !currentPermissions.includes('settings-view') && currentPermissions.includes('reports-view')) {
+            mobileSettingsBtn.innerHTML = '<i class="ph ph-file-pdf"></i><span>التقارير</span>';
+        } else {
+            mobileSettingsBtn.innerHTML = '<i class="ph ph-gear"></i><span>الإعدادات</span>';
+        }
+    }
 
     const activeSection = document.querySelector('.view-section.active');
     const activeTarget = activeSection ? activeSection.id : null;
@@ -819,6 +895,10 @@ function setupModals() {
     const btnManageMem = document.getElementById('btn-manage-members');
     if (btnManageMem) {
         btnManageMem.addEventListener('click', () => {
+            if (currentUserRole !== 'admin' && !currentPermissions.includes('admin-edit')) {
+                alert('عفواً، لا تملك صلاحية إدارة أو تعديل الأعضاء.');
+                return;
+            }
             populateDeleteList();
             if (modalManageMembers) modalManageMembers.classList.add('active');
         });
@@ -923,6 +1003,10 @@ function populateDeleteList() {
 }
 
 window.toggleMemberRole = function (id) {
+    if (currentUserRole !== 'admin' && !currentPermissions.includes('admin-edit')) {
+        alert('عفواً، لا تملك صلاحية تعديل رتبة الأعضاء.');
+        return;
+    }
     let members = getMembers();
     const memberIndex = members.findIndex(m => m.id === id);
     if (memberIndex !== -1) {
@@ -933,6 +1017,10 @@ window.toggleMemberRole = function (id) {
 }
 
 window.editMemberAddress = function (id) {
+    if (currentUserRole !== 'admin' && !currentPermissions.includes('admin-edit')) {
+        alert('عفواً، لا تملك صلاحية تعديل بيانات الأعضاء.');
+        return;
+    }
     let members = getMembers();
     const memberIndex = members.findIndex(m => m.id === id);
     if (memberIndex !== -1) {
@@ -1028,6 +1116,10 @@ window.deleteMemberFromModal = function (id) {
 function setupSettings() {
     // Export Data
     document.getElementById('btn-export-data').addEventListener('click', () => {
+        if (currentUserRole !== 'admin' && !currentPermissions.includes('settings-view')) {
+            alert('عفواً، لا تملك صلاحية تحميل النسخة الاحتياطية.');
+            return;
+        }
         const data = {
             members: getMembers(),
             attendance: getAttendanceRecords(),
@@ -1047,7 +1139,13 @@ function setupSettings() {
 
     // Import Data
     const fileInput = document.getElementById('file-import');
-    document.getElementById('btn-import-data').addEventListener('click', () => fileInput.click());
+    document.getElementById('btn-import-data').addEventListener('click', () => {
+        if (currentUserRole !== 'admin') {
+            alert('عفواً، استعادة النسخة الاحتياطية مقتصرة على مدير النظام فقط.');
+            return;
+        }
+        fileInput.click();
+    });
 
     fileInput.addEventListener('change', (e) => {
         const file = e.target.files[0];
@@ -1197,6 +1295,10 @@ function setupSettings() {
 
     // Sync with Google Sheets
     document.getElementById('btn-sync-cloud').addEventListener('click', async () => {
+        if (currentUserRole !== 'admin') {
+            alert('عفواً، مزامنة السحابة مقتصرة على مدير النظام فقط.');
+            return;
+        }
         const btn = document.getElementById('btn-sync-cloud');
         const originalText = btn.innerHTML;
         btn.innerHTML = '<i class="ph ph-spinner"></i> جاري المزامنة...';
@@ -1257,6 +1359,10 @@ function setupSettings() {
     const btnExportCsv = document.getElementById('btn-export-csv');
     if (btnExportCsv) {
         btnExportCsv.addEventListener('click', () => {
+            if (currentUserRole !== 'admin' && !currentPermissions.includes('reports-view')) {
+                alert('عفواً، لا تملك صلاحية استخراج ملف الإكسيل.');
+                return;
+            }
             if (typeof XLSX === 'undefined') {
                 alert('عذراً، مكتبة الإكسيل لم يتم تحميلها بعد. تأكد من اتصالك بالإنترنت.');
                 return;
@@ -1587,6 +1693,10 @@ function getSegmented(groupId) {
 }
 
 window.openPersonModal = function (id) {
+    if (currentUserRole !== 'admin' && !currentPermissions.includes('admin-edit')) {
+        alert('عفواً، لا تملك صلاحية إضافة أو تعديل البيانات.');
+        return;
+    }
     const person = id ? getMembers().find(m => m.id === id) : null;
     if (id && !person) return;
 
@@ -2368,6 +2478,10 @@ window.deleteServantNote = async function(noteId) {
 };
 
 function exportServantNotesToExcel() {
+    if (currentUserRole !== 'admin' && !currentPermissions.includes('reports-view')) {
+        alert('عفواً، لا تملك صلاحية استخراج تقارير الإكسيل.');
+        return;
+    }
     if (typeof XLSX === 'undefined') {
         alert('مكتبة تصدير الإكسيل غير متوفرة');
         return;
@@ -3833,6 +3947,10 @@ window.openMemberProfile = function (memberId) {
 
 // --- PDF Generation Logic ---
 function generatePDFReport(year, month) {
+    if (currentUserRole !== 'admin' && !currentPermissions.includes('reports-view')) {
+        alert('عفواً، لا تملك صلاحية طباعة أو استخراج التقارير.');
+        return;
+    }
     const members = getMembers();
     const records = getAttendanceRecords();
     const visitations = getVisitations();
@@ -3964,6 +4082,10 @@ function generatePDFReport(year, month) {
 }
 
 function generateVisitationPDFReport(year, month) {
+    if (currentUserRole !== 'admin' && !currentPermissions.includes('reports-view')) {
+        alert('عفواً، لا تملك صلاحية طباعة أو استخراج التقارير.');
+        return;
+    }
     const members = getMembers();
     const visitations = getVisitations();
 
@@ -4626,6 +4748,7 @@ function setupAuth() {
                     'competitions-view', 'competitions-edit',
                     'summary-view',
                     'admin-view', 'admin-edit',
+                    'reports-view',
                     'settings-view'
                 ];
             } else if (id === 'supervisor') {
@@ -5127,6 +5250,10 @@ function setupCompetitions() {
     const btnPrintResult = document.getElementById('btn-print-comp-result');
     if (btnPrintResult) {
         btnPrintResult.addEventListener('click', () => {
+            if (currentUserRole !== 'admin' && !currentPermissions.includes('reports-view')) {
+                alert('عفواً، لا تملك صلاحية طباعة أو استخراج نتائج المسابقة.');
+                return;
+            }
             const compId = document.getElementById('current-comp-id').value;
             if (!compId) return;
             if (typeof copyCompetitionResultToClipboard === 'function') {
@@ -5429,6 +5556,10 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 window.exportCompetitionScores = function (compId) {
+    if (currentUserRole !== 'admin' && !currentPermissions.includes('reports-view')) {
+        alert('عفواً، لا تملك صلاحية تصدير نتائج المسابقات.');
+        return;
+    }
     if (typeof XLSX === 'undefined') {
         alert('مكتبة التصدير غير موجودة');
         return;
