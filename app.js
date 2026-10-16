@@ -3136,9 +3136,11 @@ function updateAttendanceWorkspace() {
                 const evalRow = servantsListContainer.querySelector(`.servant-eval-row[data-id="${member.id}"]`);
                 if (evalRow) {
                     evalRow.setAttribute('data-attended', 'true');
-                    const query = (document.getElementById('search-attendance').value || '').toLowerCase();
-                    const evalName = (evalRow.querySelector('.servant-eval-name')?.textContent || evalRow.querySelector('.member-name')?.textContent || '').toLowerCase();
-                    evalRow.style.display = evalName.includes(query) ? 'flex' : 'none';
+                    const rawQuery = (document.getElementById('search-attendance').value || '').trim();
+                    const normQuery = typeof normalizeAr === 'function' ? normalizeAr(rawQuery) : rawQuery.toLowerCase();
+                    const evalName = (evalRow.querySelector('.servant-eval-name')?.textContent || evalRow.querySelector('.member-name')?.textContent || '');
+                    const normName = typeof normalizeAr === 'function' ? normalizeAr(evalName) : evalName.toLowerCase();
+                    evalRow.style.display = (!normQuery || normName.includes(normQuery)) ? 'flex' : 'none';
                 }
                 updateServantsEvalNotice();
             }
@@ -3171,8 +3173,10 @@ function updateAttendanceWorkspace() {
             evalRow.setAttribute('data-id', member.id);
             evalRow.setAttribute('data-attended', isAttending ? 'true' : 'false');
 
-            const query = (document.getElementById('search-attendance').value || '').toLowerCase();
-            const nameMatch = member.name.toLowerCase().includes(query);
+            const rawQuery = (document.getElementById('search-attendance').value || '').trim();
+            const normQuery = typeof normalizeAr === 'function' ? normalizeAr(rawQuery) : rawQuery.toLowerCase();
+            const normName = typeof normalizeAr === 'function' ? normalizeAr(member.name) : member.name.toLowerCase();
+            const nameMatch = !normQuery || normName.includes(normQuery);
             evalRow.style.display = (isAttending && nameMatch) ? 'flex' : 'none';
 
             const initial = (member.name || '').trim().charAt(0) || 'خ';
@@ -3233,12 +3237,14 @@ function updateServantsEvalNotice() {
     const servantsList = document.getElementById('attendance-servants-list');
     const emptyNotice = document.getElementById('servants-eval-empty-notice');
     if (!servantsList || !emptyNotice) return;
-    const query = (document.getElementById('search-attendance')?.value || '').toLowerCase();
+    const rawQuery = (document.getElementById('search-attendance')?.value || '').trim();
+    const normQuery = typeof normalizeAr === 'function' ? normalizeAr(rawQuery) : rawQuery.toLowerCase();
     let visibleCount = 0;
     servantsList.querySelectorAll('.servant-eval-row').forEach(row => {
         const isAttended = row.getAttribute('data-attended') === 'true';
-        const name = (row.querySelector('.servant-eval-name')?.textContent || '').toLowerCase();
-        if (isAttended && (!query || name.includes(query))) {
+        const nameText = (row.querySelector('.servant-eval-name')?.textContent || row.querySelector('.member-name')?.textContent || '');
+        const normName = typeof normalizeAr === 'function' ? normalizeAr(nameText) : nameText.toLowerCase();
+        if (isAttended && (!normQuery || normName.includes(normQuery))) {
             visibleCount++;
         }
     });
