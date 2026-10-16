@@ -126,6 +126,7 @@ function pushToCloud() {
         servantNotes: getServantNotes(),
         waTasks: getWaTasks(),
         competitions: getCompetitions(),
+        trips: (typeof getTrips === 'function') ? getTrips() : [],
         dayTypes: getDayTypes(),
         auth: localStorage.getItem('church_app_auth') || '{}',
         lastUpdated: firebase.firestore.FieldValue.serverTimestamp(),
@@ -195,6 +196,7 @@ function startFirebaseSync() {
         if (cloudData.servantNotes) localStorage.setItem('church_servant_notes', JSON.stringify(cloudData.servantNotes));
         if (cloudData.waTasks) localStorage.setItem('church_wa_tasks', JSON.stringify(cloudData.waTasks));
         if (cloudData.competitions) localStorage.setItem('church_competitions_data', JSON.stringify(cloudData.competitions));
+        if (cloudData.trips && Array.isArray(cloudData.trips)) localStorage.setItem('church_trips_data', JSON.stringify(cloudData.trips));
         if (cloudData.dayTypes) localStorage.setItem('church_day_types', JSON.stringify(cloudData.dayTypes));
         if (cloudData.auth) localStorage.setItem('church_app_auth', cloudData.auth);
         
@@ -207,6 +209,7 @@ function startFirebaseSync() {
         if (typeof refreshServantsDashboard === 'function') refreshServantsDashboard();
         if (typeof refreshServantsNotes === 'function') refreshServantsNotes();
         if (typeof renderCompetitions === 'function') renderCompetitions();
+        if (typeof refreshTripsView === 'function') refreshTripsView();
         if (typeof setupAdminTable === 'function') setupAdminTable();
         if (typeof refreshAdminView === 'function') refreshAdminView();
         if (typeof refreshSummaryView === 'function') refreshSummaryView();
@@ -249,6 +252,26 @@ function saveCompetitions(comps) {
     catch (e) { if (e.name === 'QuotaExceededError') alert('مساحة التخزين ممتلئة! يرجى أخذ نسخة احتياطية ومسح بعض البيانات.'); }
     if (typeof triggerCloudSync === "function") triggerCloudSync();
     
+}
+
+const DB_KEY_TRIPS = 'church_trips_data';
+
+function getTrips() {
+    try {
+        const raw = localStorage.getItem(DB_KEY_TRIPS);
+        return raw ? JSON.parse(raw) : [];
+    } catch {
+        return [];
+    }
+}
+
+function saveTrips(trips) {
+    try {
+        localStorage.setItem(DB_KEY_TRIPS, JSON.stringify(trips));
+    } catch (e) {
+        if (e.name === 'QuotaExceededError') alert('مساحة التخزين ممتلئة! يرجى أخذ نسخة احتياطية ومسح بعض البيانات القديمة.');
+    }
+    if (typeof triggerCloudSync === "function") triggerCloudSync();
 }
 
 
@@ -444,6 +467,23 @@ function enforcePermissions() {
             b.style.display = '';
         });
 
+        // Trips admin controls
+        const btnCreateTripAdmin = document.getElementById('btn-create-trip');
+        if (btnCreateTripAdmin) btnCreateTripAdmin.style.display = '';
+        const btnCreateTripEmptyAdmin = document.getElementById('btn-create-trip-empty');
+        if (btnCreateTripEmptyAdmin) btnCreateTripEmptyAdmin.style.display = '';
+        const btnEditTripAdmin = document.getElementById('btn-edit-trip');
+        if (btnEditTripAdmin) btnEditTripAdmin.style.display = '';
+        const btnDeleteTripAdmin = document.getElementById('btn-delete-trip');
+        if (btnDeleteTripAdmin) btnDeleteTripAdmin.style.display = '';
+        const btnAddBookingAdmin = document.getElementById('btn-add-booking');
+        if (btnAddBookingAdmin) btnAddBookingAdmin.style.display = '';
+        const tripsBannerAdmin = document.getElementById('trips-view-only-banner');
+        if (tripsBannerAdmin) tripsBannerAdmin.style.display = 'none';
+        document.querySelectorAll('.trips-table [data-action], .bookings-mobile-cards [data-action]').forEach(b => {
+            b.style.display = '';
+        });
+
         return;
     }
     
@@ -540,6 +580,26 @@ function enforcePermissions() {
     if (btnAddRound) btnAddRound.style.display = canEditCompetitions ? '' : 'none';
     if (btnFinishComp) btnFinishComp.style.display = canEditCompetitions ? '' : 'none';
     if (btnDeleteComp) btnDeleteComp.style.display = canEditCompetitions ? '' : 'none';
+
+    // 4.5 Trips & Conferences View (الرحلات والمؤتمرات)
+    const canEditTrips = currentPermissions.includes('trips-edit');
+    const btnCreateTrip = document.getElementById('btn-create-trip');
+    const btnCreateTripEmpty = document.getElementById('btn-create-trip-empty');
+    const btnEditTrip = document.getElementById('btn-edit-trip');
+    const btnDeleteTrip = document.getElementById('btn-delete-trip');
+    const btnAddBooking = document.getElementById('btn-add-booking');
+    const tripsBanner = document.getElementById('trips-view-only-banner');
+
+    if (btnCreateTrip) btnCreateTrip.style.display = canEditTrips ? '' : 'none';
+    if (btnCreateTripEmpty) btnCreateTripEmpty.style.display = canEditTrips ? '' : 'none';
+    if (btnEditTrip) btnEditTrip.style.display = canEditTrips ? '' : 'none';
+    if (btnDeleteTrip) btnDeleteTrip.style.display = canEditTrips ? '' : 'none';
+    if (btnAddBooking) btnAddBooking.style.display = canEditTrips ? '' : 'none';
+    if (tripsBanner) tripsBanner.style.display = canEditTrips ? 'none' : 'flex';
+
+    document.querySelectorAll('.trips-table [data-action], .bookings-mobile-cards [data-action]').forEach(b => {
+        b.style.display = canEditTrips ? '' : 'none';
+    });
 
     // 5. Admin View (قاعدة البيانات)
     const canEditAdmin = currentPermissions.includes('admin-edit');
@@ -644,6 +704,7 @@ function getAuthData() {
                 'servants-dashboard-view', 'servants-dashboard-edit',
                 'servants-notes-view', 'servants-notes-edit',
                 'competitions-view', 'competitions-edit',
+                'trips-view', 'trips-edit',
                 'summary-view',
                 'admin-view', 'admin-edit',
                 'reports-view',
@@ -672,7 +733,7 @@ function getAuthData() {
         }
     } catch { }
     return {
-        admin: { password: 'George-STjohn', permissions: ['dashboard-view', 'attendance-view', 'followup-view', 'servants-dashboard-view', 'servants-notes-view', 'competitions-view', 'summary-view', 'admin-view', 'reports-view', 'settings-view'] },
+        admin: { password: 'George-STjohn', permissions: ['dashboard-view', 'attendance-view', 'followup-view', 'servants-dashboard-view', 'servants-notes-view', 'competitions-view', 'trips-view', 'trips-edit', 'summary-view', 'admin-view', 'reports-view', 'settings-view'] },
         supervisor: { password: 'stjohn123', permissions: ['dashboard-view'] },
         servants: {}
     };
@@ -701,6 +762,7 @@ function checkLoginAndApply() {
                 'servants-dashboard-view', 'servants-dashboard-edit',
                 'servants-notes-view', 'servants-notes-edit',
                 'competitions-view', 'competitions-edit',
+                'trips-view', 'trips-edit',
                 'summary-view',
                 'admin-view', 'admin-edit',
                 'reports-view',
@@ -881,6 +943,7 @@ window.navigateToView = async function(targetId) {
     if (targetId === 'servants-notes-view') refreshServantsNotes();
     if (targetId === 'summary-view') refreshSummaryView();
     if (targetId === 'competitions-view') { if (typeof renderCompetitions === 'function') renderCompetitions(); }
+    if (targetId === 'trips-view') { if (typeof refreshTripsView === 'function') refreshTripsView(); }
     if (targetId === 'admin-view') refreshAdminView();
 
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1149,6 +1212,8 @@ function setupSettings() {
             visitations: getVisitations(),
             servantRecords: getServantRecords(),
             waTasks: getWaTasks(),
+            competitions: getCompetitions(),
+            trips: getTrips(),
             version: '1.0',
             exportedAt: todayLocal()
         };
@@ -1184,11 +1249,14 @@ function setupSettings() {
                         if (data.visitations) saveVisitations(data.visitations);
                         if (data.servantRecords) saveServantRecords(data.servantRecords);
                         if (data.waTasks) saveWaTasks(data.waTasks);
+                        if (data.competitions) saveCompetitions(data.competitions);
+                        if (data.trips) saveTrips(data.trips);
                         alert('تم استعادة البيانات بنجاح!');
 
                         if (typeof refreshDashboard === 'function') refreshDashboard();
                         if (typeof refreshFollowUp === 'function') refreshFollowUp();
                         if (typeof refreshServantsDashboard === 'function') refreshServantsDashboard();
+                        if (typeof refreshTripsView === 'function') refreshTripsView();
                         if (typeof refreshSummaryView === 'function') refreshSummaryView();
                         if (typeof refreshAdminView === 'function') refreshAdminView();
                         if (typeof populateDeleteList === 'function') populateDeleteList();
@@ -4775,6 +4843,7 @@ function setupAuth() {
                     'servants-dashboard-view', 'servants-dashboard-edit',
                     'servants-notes-view', 'servants-notes-edit',
                     'competitions-view', 'competitions-edit',
+                    'trips-view', 'trips-edit',
                     'summary-view',
                     'admin-view', 'admin-edit',
                     'reports-view',
@@ -4820,6 +4889,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setupKeyboardShortcuts();
     setupCompetitions();
     setupServantsNotes();
+    setupTrips();
 
     setupAuth();
     checkLoginAndApply();
@@ -5770,6 +5840,7 @@ function toggleMobileMenu() {
         'refreshServantsDashboard',
         'refreshServantsNotes',
         'renderCompetitions',
+        'refreshTripsView',
         'refreshSummaryView',
         'setupAdminTable',
         'refreshAdminView',
@@ -5779,3 +5850,1017 @@ function toggleMobileMenu() {
 
     functionsToProtect.forEach(wrapWithEnforce);
 })();
+
+// ==========================================
+// TRIPS & CONFERENCES LOGIC (الرحلات والمؤتمرات)
+// ==========================================
+
+let selectedTripId = null;
+let currentBookingFilter = 'all';
+let currentBookingSearch = '';
+
+function setupTrips() {
+    // 1. Hero / Header Add Trip buttons
+    const btnCreateTrip = document.getElementById('btn-create-trip');
+    if (btnCreateTrip) {
+        btnCreateTrip.addEventListener('click', () => openTripModal());
+    }
+
+    const btnCreateTripEmpty = document.getElementById('btn-create-trip-empty');
+    if (btnCreateTripEmpty) {
+        btnCreateTripEmpty.addEventListener('click', () => openTripModal());
+    }
+
+    // 2. Edit & Delete active trip buttons
+    const btnEditTrip = document.getElementById('btn-edit-trip');
+    if (btnEditTrip) {
+        btnEditTrip.addEventListener('click', () => {
+            if (!selectedTripId) return;
+            openTripModal(selectedTripId);
+        });
+    }
+
+    const btnDeleteTrip = document.getElementById('btn-delete-trip');
+    if (btnDeleteTrip) {
+        btnDeleteTrip.addEventListener('click', () => {
+            if (!selectedTripId) return;
+            deleteTrip(selectedTripId);
+        });
+    }
+
+    // 3. Save Trip in Modal
+    const btnSaveTrip = document.getElementById('btn-save-trip');
+    if (btnSaveTrip) {
+        btnSaveTrip.addEventListener('click', saveTripData);
+    }
+
+    // 4. Add Booking button
+    const btnAddBooking = document.getElementById('btn-add-booking');
+    if (btnAddBooking) {
+        btnAddBooking.addEventListener('click', () => openBookingModal());
+    }
+
+    // 5. Booking Modal: Member selector and type pills
+    const bookingTypePills = document.querySelectorAll('.booking-type-pill');
+    bookingTypePills.forEach(pill => {
+        pill.addEventListener('click', () => {
+            bookingTypePills.forEach(p => p.classList.remove('active'));
+            pill.classList.add('active');
+            const radio = pill.querySelector('input[type="radio"]');
+            if (radio) {
+                radio.checked = true;
+                populateBookingMemberSelect(radio.value);
+            }
+        });
+    });
+
+    const bookingMemberSelect = document.getElementById('booking-member-select');
+    if (bookingMemberSelect) {
+        bookingMemberSelect.addEventListener('change', () => {
+            const memberId = bookingMemberSelect.value;
+            if (!memberId) return;
+            const members = getMembers();
+            const member = members.find(m => String(m.id) === String(memberId));
+            if (member) {
+                const nameInput = document.getElementById('booking-input-name');
+                const phoneInput = document.getElementById('booking-input-phone');
+                if (nameInput) nameInput.value = member.name || '';
+                if (phoneInput) phoneInput.value = member.phone || '';
+            }
+        });
+    }
+
+    // Live remaining calculation in booking modal
+    const bookingPriceInput = document.getElementById('booking-input-price');
+    const bookingPaidInput = document.getElementById('booking-input-paid');
+    const updateBookingCalc = () => {
+        const price = Math.max(0, parseFloat(bookingPriceInput ? bookingPriceInput.value : 0) || 0);
+        const paid = Math.max(0, parseFloat(bookingPaidInput ? bookingPaidInput.value : 0) || 0);
+        const remaining = Math.max(0, price - paid);
+        
+        const remainingEl = document.getElementById('booking-calc-remaining');
+        const statusEl = document.getElementById('booking-calc-status');
+        if (remainingEl) remainingEl.textContent = `${remaining.toLocaleString()} ج.م`;
+
+        if (statusEl) {
+            if (price === 0 && paid === 0) {
+                statusEl.textContent = 'أدخل السعر';
+                statusEl.className = 'calc-status-badge';
+            } else if (remaining === 0 && paid > 0) {
+                statusEl.textContent = 'خالص بالكامل 🟢';
+                statusEl.className = 'calc-status-badge text-emerald';
+            } else if (paid > 0 && remaining > 0) {
+                statusEl.textContent = `فاضل ${remaining.toLocaleString()} ج.م 🟡`;
+                statusEl.className = 'calc-status-badge text-amber';
+            } else {
+                statusEl.textContent = 'لم يسدد بعد 🔴';
+                statusEl.className = 'calc-status-badge text-danger';
+            }
+        }
+    };
+    if (bookingPriceInput) bookingPriceInput.addEventListener('input', updateBookingCalc);
+    if (bookingPaidInput) bookingPaidInput.addEventListener('input', updateBookingCalc);
+
+    // Save Booking button
+    const btnSaveBooking = document.getElementById('btn-save-booking');
+    if (btnSaveBooking) {
+        btnSaveBooking.addEventListener('click', saveBookingData);
+    }
+
+    // Quick Pay Modal inputs & confirm button
+    const quickPayInput = document.getElementById('quick-pay-input-amount');
+    if (quickPayInput) {
+        quickPayInput.addEventListener('input', () => {
+            const bookingId = document.getElementById('quick-pay-booking-id')?.value;
+            if (!bookingId || !selectedTripId) return;
+            const trip = getTrips().find(t => t.id === selectedTripId);
+            const b = trip?.bookings?.find(item => item.id === bookingId);
+            if (!b) return;
+            const currentRemaining = Math.max(0, (Number(b.price) || 0) - (Number(b.paid) || 0));
+            const payingNow = Math.max(0, parseFloat(quickPayInput.value) || 0);
+            const newRemaining = Math.max(0, currentRemaining - payingNow);
+            const newRemainingEl = document.getElementById('quick-pay-new-remaining');
+            if (newRemainingEl) newRemainingEl.textContent = `${newRemaining.toLocaleString()} ج.م`;
+        });
+    }
+
+    const btnSaveQuickPay = document.getElementById('btn-save-quick-pay');
+    if (btnSaveQuickPay) {
+        btnSaveQuickPay.addEventListener('click', saveQuickPayment);
+    }
+
+    // Search filter input
+    const searchInput = document.getElementById('trip-search-input');
+    if (searchInput) {
+        searchInput.addEventListener('input', (e) => {
+            currentBookingSearch = e.target.value.trim();
+            renderBookingsList();
+        });
+    }
+
+    // Filter pills
+    const filterPills = document.querySelectorAll('#booking-filter-pills .trip-filter-pill');
+    filterPills.forEach(pill => {
+        pill.addEventListener('click', () => {
+            filterPills.forEach(p => p.classList.remove('active'));
+            pill.classList.add('active');
+            currentBookingFilter = pill.getAttribute('data-filter') || 'all';
+            renderBookingsList();
+        });
+    });
+
+    // Export to Excel button
+    const btnExportExcel = document.getElementById('btn-export-trip-excel');
+    if (btnExportExcel) {
+        btnExportExcel.addEventListener('click', exportTripToExcel);
+    }
+
+    // Print Trip Sheet button
+    const btnPrintTrip = document.getElementById('btn-print-trip');
+    if (btnPrintTrip) {
+        btnPrintTrip.addEventListener('click', printTripReport);
+    }
+
+    // Delegated actions on bookings table & mobile cards
+    const bookingsTableBody = document.getElementById('trip-bookings-tbody');
+    if (bookingsTableBody) {
+        bookingsTableBody.addEventListener('click', handleBookingActionClick);
+    }
+    const mobileCardsContainer = document.getElementById('trip-bookings-mobile-cards');
+    if (mobileCardsContainer) {
+        mobileCardsContainer.addEventListener('click', handleBookingActionClick);
+    }
+}
+
+function handleBookingActionClick(e) {
+    const btn = e.target.closest('[data-action]');
+    if (!btn) return;
+    const action = btn.getAttribute('data-action');
+    const bookingId = btn.getAttribute('data-booking-id');
+    if (!bookingId) return;
+
+    if (action === 'quick-pay') {
+        openQuickPayModal(bookingId);
+    } else if (action === 'edit-booking') {
+        openBookingModal(bookingId);
+    } else if (action === 'delete-booking') {
+        deleteBooking(bookingId);
+    }
+}
+
+function refreshTripsView() {
+    const trips = getTrips();
+    const noTripsEl = document.getElementById('no-trips-empty-state');
+    const detailsContainer = document.getElementById('trip-details-container');
+    const selectorBar = document.getElementById('trips-selector-bar');
+
+    if (!trips || trips.length === 0) {
+        if (noTripsEl) noTripsEl.style.display = 'block';
+        if (detailsContainer) detailsContainer.style.display = 'none';
+        if (selectorBar) selectorBar.style.display = 'none';
+        return;
+    }
+
+    if (noTripsEl) noTripsEl.style.display = 'none';
+    if (detailsContainer) detailsContainer.style.display = 'block';
+    if (selectorBar) selectorBar.style.display = 'block';
+
+    // Verify or select active trip
+    if (!selectedTripId || !trips.some(t => t.id === selectedTripId)) {
+        selectedTripId = trips[0].id;
+    }
+
+    // Render Pills
+    const pillsContainer = document.getElementById('trips-pills-container');
+    if (pillsContainer) {
+        pillsContainer.innerHTML = '';
+        trips.forEach(t => {
+            const btn = document.createElement('button');
+            btn.className = `trip-pill-btn ${t.id === selectedTripId ? 'active' : ''}`;
+            btn.setAttribute('data-trip-id', t.id);
+            btn.innerHTML = `
+                <span>${esc(t.title)}</span>
+                <span class="trip-pill-badge">${(t.bookings || []).length}</span>
+            `;
+            btn.addEventListener('click', () => {
+                selectedTripId = t.id;
+                refreshTripsView();
+            });
+            pillsContainer.appendChild(btn);
+        });
+    }
+
+    const currentTrip = trips.find(t => t.id === selectedTripId) || trips[0];
+    if (!currentTrip) return;
+
+    // Render Trip Meta Card
+    const nameEl = document.getElementById('trip-detail-name');
+    const destEl = document.getElementById('trip-detail-destination');
+    const priceEl = document.getElementById('trip-detail-price');
+    const dateEl = document.getElementById('trip-detail-date');
+    const notesEl = document.getElementById('trip-detail-notes');
+    const statusBadge = document.getElementById('trip-status-badge');
+
+    if (nameEl) nameEl.textContent = currentTrip.title || '--';
+    if (destEl) destEl.textContent = currentTrip.destination || '--';
+    if (priceEl) priceEl.textContent = `${(Number(currentTrip.price) || 0).toLocaleString()} ج.م`;
+    
+    let dateStr = currentTrip.date ? formatDate(currentTrip.date) : '--';
+    if (currentTrip.endDate && currentTrip.endDate !== currentTrip.date) {
+        dateStr += ` إلى ${formatDate(currentTrip.endDate)}`;
+    }
+    if (dateEl) dateEl.textContent = dateStr;
+
+    if (notesEl) {
+        if (currentTrip.notes && currentTrip.notes.trim()) {
+            notesEl.textContent = currentTrip.notes.trim();
+            notesEl.style.display = 'block';
+        } else {
+            notesEl.style.display = 'none';
+        }
+    }
+
+    if (statusBadge) {
+        const isCompleted = currentTrip.status === 'completed';
+        statusBadge.textContent = isCompleted ? 'منتهية (أرشيف)' : 'جارية (حالية)';
+        statusBadge.className = `trip-status-badge ${isCompleted ? 'completed' : ''}`;
+    }
+
+    // Financial KPIs (Exact user requirements: المبلغ الإجمالي، المبلغ المحصل، المبلغ المطلوب)
+    const bookings = currentTrip.bookings || [];
+    const totalExpected = bookings.reduce((sum, b) => sum + (Number(b.price) || 0), 0);
+    const totalCollected = bookings.reduce((sum, b) => sum + (Number(b.paid) || 0), 0);
+    const totalRemaining = Math.max(0, totalExpected - totalCollected);
+
+    const kpiTotalEl = document.getElementById('kpi-total-amount');
+    const kpiCollectedEl = document.getElementById('kpi-collected-amount');
+    const kpiRemainingEl = document.getElementById('kpi-remaining-amount');
+    const kpiCollectedSub = document.getElementById('kpi-collected-subtext');
+    const kpiProgressBar = document.getElementById('kpi-progress-bar');
+    const kpiProgressPercent = document.getElementById('kpi-progress-percent');
+    const kpiBreakdown = document.getElementById('kpi-participants-breakdown');
+
+    if (kpiTotalEl) kpiTotalEl.textContent = totalExpected.toLocaleString();
+    if (kpiCollectedEl) kpiCollectedEl.textContent = totalCollected.toLocaleString();
+    if (kpiRemainingEl) kpiRemainingEl.textContent = totalRemaining.toLocaleString();
+
+    const percent = totalExpected > 0 ? Math.round((totalCollected / totalExpected) * 100) : (bookings.length > 0 ? 100 : 0);
+    if (kpiCollectedSub) kpiCollectedSub.textContent = `${percent}% من إجمالي المطلوب`;
+    if (kpiProgressPercent) kpiProgressPercent.textContent = `${percent}%`;
+    if (kpiProgressBar) kpiProgressBar.style.width = `${Math.min(100, percent)}%`;
+
+    const servantsCount = bookings.filter(b => b.type === 'servant').length;
+    const membersCount = bookings.filter(b => b.type === 'member').length;
+    const guestsCount = bookings.filter(b => b.type === 'guest').length;
+    const fullyPaidCount = bookings.filter(b => (Number(b.remaining) || 0) <= 0).length;
+    const remainingCount = bookings.filter(b => (Number(b.remaining) || 0) > 0).length;
+
+    if (kpiBreakdown) {
+        kpiBreakdown.textContent = `${bookings.length} مشترك (${servantsCount} خادم • ${membersCount} مخدوم${guestsCount ? ' • ' + guestsCount + ' ضيف' : ''})`;
+    }
+
+    // Update filter counts
+    const countAll = document.getElementById('count-filter-all');
+    const countServants = document.getElementById('count-filter-servants');
+    const countMembers = document.getElementById('count-filter-members');
+    const countRemaining = document.getElementById('count-filter-remaining');
+    const countPaid = document.getElementById('count-filter-paid');
+
+    if (countAll) countAll.textContent = bookings.length;
+    if (countServants) countServants.textContent = servantsCount;
+    if (countMembers) countMembers.textContent = membersCount;
+    if (countRemaining) countRemaining.textContent = remainingCount;
+    if (countPaid) countPaid.textContent = fullyPaidCount;
+
+    // Render Bookings List
+    renderBookingsList();
+}
+
+function renderBookingsList() {
+    const trips = getTrips();
+    const currentTrip = trips.find(t => t.id === selectedTripId);
+    if (!currentTrip) return;
+
+    const bookings = currentTrip.bookings || [];
+    let filtered = [...bookings];
+
+    // Filter by type or payment status
+    if (currentBookingFilter === 'servants') {
+        filtered = filtered.filter(b => b.type === 'servant');
+    } else if (currentBookingFilter === 'members') {
+        filtered = filtered.filter(b => b.type === 'member');
+    } else if (currentBookingFilter === 'remaining') {
+        filtered = filtered.filter(b => (Number(b.remaining) || 0) > 0);
+    } else if (currentBookingFilter === 'paid') {
+        filtered = filtered.filter(b => (Number(b.remaining) || 0) <= 0);
+    }
+
+    // Search filter
+    if (currentBookingSearch) {
+        const q = normalizeAr(currentBookingSearch);
+        filtered = filtered.filter(b => normalizeAr(b.name).includes(q) || (b.phone && b.phone.includes(q)));
+    }
+
+    const tbody = document.getElementById('trip-bookings-tbody');
+    const mobileContainer = document.getElementById('trip-bookings-mobile-cards');
+    const emptyNotice = document.getElementById('trip-bookings-empty');
+
+    if (filtered.length === 0) {
+        if (tbody) tbody.innerHTML = '';
+        if (mobileContainer) mobileContainer.innerHTML = '';
+        if (emptyNotice) emptyNotice.style.display = 'block';
+        return;
+    }
+
+    if (emptyNotice) emptyNotice.style.display = 'none';
+
+    // 1. Desktop Table
+    if (tbody) {
+        tbody.innerHTML = filtered.map((b, idx) => {
+            const roleBadge = b.type === 'servant'
+                ? '<span class="role-chip servant"><i class="ph ph-star"></i> خادم</span>'
+                : b.type === 'member'
+                ? '<span class="role-chip member"><i class="ph ph-user"></i> مخدوم</span>'
+                : '<span class="role-chip guest"><i class="ph ph-users"></i> ضيف</span>';
+
+            const remainingVal = Number(b.remaining) || 0;
+            const paidVal = Number(b.paid) || 0;
+            const priceVal = Number(b.price) || 0;
+
+            const paymentBadge = remainingVal <= 0
+                ? '<span class="payment-badge paid-full"><i class="ph ph-check-circle"></i> خالص بالكامل</span>'
+                : paidVal > 0
+                ? `<span class="payment-badge paid-partial"><i class="ph ph-clock"></i> فاضل ${remainingVal.toLocaleString()} ج.م</span>`
+                : '<span class="payment-badge paid-zero"><i class="ph ph-warning-circle"></i> لم يدفع</span>';
+
+            const phoneLink = b.phone 
+                ? `<a href="tel:${b.phone}" style="color: #94a3b8; text-decoration: none; display: flex; align-items: center; gap: 4px;"><i class="ph ph-phone"></i> ${b.phone}</a>`
+                : '<span style="color: var(--text-muted); font-size: 0.78rem;">--</span>';
+
+            return `
+                <tr>
+                    <td style="color: var(--text-muted); font-size: 0.78rem;">${idx + 1}</td>
+                    <td>
+                        <div class="person-cell">
+                            <span class="person-name">${esc(b.name)}</span>
+                            ${roleBadge}
+                        </div>
+                    </td>
+                    <td>${phoneLink}</td>
+                    <td style="font-weight: 700; font-family: 'Rubik', sans-serif;">${priceVal.toLocaleString()} ج.م</td>
+                    <td style="font-weight: 700; font-family: 'Rubik', sans-serif; color: #34d399;">${paidVal.toLocaleString()} ج.م</td>
+                    <td style="font-weight: 700; font-family: 'Rubik', sans-serif; color: ${remainingVal > 0 ? '#fbbf24' : '#34d399'};">
+                        ${remainingVal.toLocaleString()} ج.م
+                    </td>
+                    <td>${paymentBadge}</td>
+                    <td style="font-size: 0.78rem; color: #cbd5e1; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                        ${b.notes ? esc(b.notes) : '<span style="color: rgba(255,255,255,0.2);">--</span>'}
+                    </td>
+                    <td class="actions-col">
+                        <div style="display: flex; gap: 6px; align-items: center;">
+                            ${remainingVal > 0 ? `
+                            <button class="btn btn-outline btn-sm text-emerald" data-action="quick-pay" data-booking-id="${b.id}" title="سداد دفعة جديدة">
+                                <i class="ph ph-hand-coins"></i> سداد
+                            </button>
+                            ` : ''}
+                            <button class="btn btn-outline btn-sm" data-action="edit-booking" data-booking-id="${b.id}" title="تعديل الحجز">
+                                <i class="ph ph-pencil"></i>
+                            </button>
+                            <button class="btn btn-outline btn-sm text-danger" data-action="delete-booking" data-booking-id="${b.id}" title="حذف الحجز">
+                                <i class="ph ph-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    }
+
+    // 2. Mobile Cards
+    if (mobileContainer) {
+        mobileContainer.innerHTML = filtered.map(b => {
+            const roleBadge = b.type === 'servant'
+                ? '<span class="role-chip servant"><i class="ph ph-star"></i> خادم</span>'
+                : b.type === 'member'
+                ? '<span class="role-chip member"><i class="ph ph-user"></i> مخدوم</span>'
+                : '<span class="role-chip guest"><i class="ph ph-users"></i> ضيف</span>';
+
+            const remainingVal = Number(b.remaining) || 0;
+            const paidVal = Number(b.paid) || 0;
+            const priceVal = Number(b.price) || 0;
+
+            const paymentBadge = remainingVal <= 0
+                ? '<span class="payment-badge paid-full"><i class="ph ph-check-circle"></i> خالص</span>'
+                : paidVal > 0
+                ? `<span class="payment-badge paid-partial"><i class="ph ph-clock"></i> فاضل ${remainingVal} ج.م</span>`
+                : '<span class="payment-badge paid-zero"><i class="ph ph-warning-circle"></i> لم يدفع</span>';
+
+            return `
+                <div class="booking-mobile-card">
+                    <div class="bmc-top">
+                        <div class="bmc-person">
+                            <span class="bmc-name">${esc(b.name)}</span>
+                            <div style="display: flex; align-items: center; gap: 6px;">
+                                ${roleBadge}
+                                ${b.phone ? `<a href="tel:${b.phone}" class="bmc-phone"><i class="ph ph-phone"></i> ${b.phone}</a>` : ''}
+                            </div>
+                        </div>
+                        <div>${paymentBadge}</div>
+                    </div>
+
+                    <div class="bmc-financials">
+                        <div class="bmc-fin-item">
+                            <span class="bmc-fin-label">سعر الرحلة</span>
+                            <span class="bmc-fin-val" style="color: #fff;">${priceVal.toLocaleString()}</span>
+                        </div>
+                        <div class="bmc-fin-item">
+                            <span class="bmc-fin-label">المدفوع</span>
+                            <span class="bmc-fin-val text-emerald">${paidVal.toLocaleString()}</span>
+                        </div>
+                        <div class="bmc-fin-item">
+                            <span class="bmc-fin-label">المتبقي</span>
+                            <span class="bmc-fin-val ${remainingVal > 0 ? 'text-amber' : 'text-emerald'}">${remainingVal.toLocaleString()}</span>
+                        </div>
+                    </div>
+
+                    ${b.notes ? `<div class="bmc-notes"><i class="ph ph-note"></i> ${esc(b.notes)}</div>` : ''}
+
+                    <div class="bmc-actions">
+                        ${remainingVal > 0 ? `
+                        <button class="btn btn-outline btn-sm text-emerald" data-action="quick-pay" data-booking-id="${b.id}">
+                            <i class="ph ph-hand-coins"></i> سداد دفعة
+                        </button>
+                        ` : ''}
+                        <button class="btn btn-outline btn-sm" data-action="edit-booking" data-booking-id="${b.id}" title="تعديل">
+                            <i class="ph ph-pencil"></i> تعديل
+                        </button>
+                        <button class="btn btn-outline btn-sm text-danger" data-action="delete-booking" data-booking-id="${b.id}" title="حذف">
+                            <i class="ph ph-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    if (typeof enforcePermissions === 'function') enforcePermissions();
+}
+
+function populateBookingMemberSelect(roleType) {
+    const select = document.getElementById('booking-member-select');
+    if (!select) return;
+
+    select.innerHTML = '<option value="">-- اختر اسماً مسجلاً لتعبئة البيانات تلقائياً --</option>';
+    const allMembers = getMembers();
+
+    let list = [];
+    if (roleType === 'servant') {
+        list = allMembers.filter(m => m.role === 'servant');
+    } else if (roleType === 'member') {
+        list = allMembers.filter(m => m.role !== 'servant');
+    } else {
+        list = allMembers;
+    }
+
+    list.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ar'));
+
+    list.forEach(m => {
+        const opt = document.createElement('option');
+        opt.value = m.id;
+        opt.textContent = `${m.name} ${m.phone ? `(${m.phone})` : ''}`;
+        select.appendChild(opt);
+    });
+}
+
+function openTripModal(tripId) {
+    if (currentUserRole !== 'admin' && !currentPermissions.includes('trips-edit')) {
+        showToast('عفواً، لا تملك صلاحية إضافة أو تعديل الرحلات', 'warning');
+        return;
+    }
+
+    const editIdInput = document.getElementById('trip-edit-id');
+    const titleInput = document.getElementById('trip-input-title');
+    const destInput = document.getElementById('trip-input-destination');
+    const priceInput = document.getElementById('trip-input-price');
+    const dateInput = document.getElementById('trip-input-date');
+    const endDateInput = document.getElementById('trip-input-end-date');
+    const capacityInput = document.getElementById('trip-input-capacity');
+    const statusSelect = document.getElementById('trip-input-status');
+    const notesInput = document.getElementById('trip-input-notes');
+    const modalTitle = document.getElementById('trip-modal-title');
+
+    if (tripId) {
+        const trip = getTrips().find(t => t.id === tripId);
+        if (!trip) return;
+
+        if (editIdInput) editIdInput.value = trip.id;
+        if (titleInput) titleInput.value = trip.title || '';
+        if (destInput) destInput.value = trip.destination || '';
+        if (priceInput) priceInput.value = trip.price || 0;
+        if (dateInput) dateInput.value = trip.date || todayLocal();
+        if (endDateInput) endDateInput.value = trip.endDate || '';
+        if (capacityInput) capacityInput.value = trip.capacity || '';
+        if (statusSelect) statusSelect.value = trip.status || 'active';
+        if (notesInput) notesInput.value = trip.notes || '';
+        if (modalTitle) modalTitle.innerHTML = '<i class="ph ph-compass"></i> تعديل بيانات الرحلة';
+    } else {
+        if (editIdInput) editIdInput.value = '';
+        if (titleInput) titleInput.value = '';
+        if (destInput) destInput.value = '';
+        if (priceInput) priceInput.value = '';
+        if (dateInput) dateInput.value = todayLocal();
+        if (endDateInput) endDateInput.value = '';
+        if (capacityInput) capacityInput.value = '';
+        if (statusSelect) statusSelect.value = 'active';
+        if (notesInput) notesInput.value = '';
+        if (modalTitle) modalTitle.innerHTML = '<i class="ph ph-compass"></i> إضافة رحلة أو مؤتمر جديد';
+    }
+
+    const modal = document.getElementById('trip-modal');
+    if (modal) modal.classList.add('active');
+}
+
+function saveTripData() {
+    if (currentUserRole !== 'admin' && !currentPermissions.includes('trips-edit')) {
+        showToast('عفواً، لا تملك صلاحية حفظ أو تعديل الرحلات', 'warning');
+        return;
+    }
+
+    const editId = document.getElementById('trip-edit-id')?.value;
+    const title = document.getElementById('trip-input-title')?.value.trim();
+    const destination = document.getElementById('trip-input-destination')?.value.trim();
+    const price = parseFloat(document.getElementById('trip-input-price')?.value) || 0;
+    const date = document.getElementById('trip-input-date')?.value || todayLocal();
+    const endDate = document.getElementById('trip-input-end-date')?.value || '';
+    const capacity = parseInt(document.getElementById('trip-input-capacity')?.value) || null;
+    const status = document.getElementById('trip-input-status')?.value || 'active';
+    const notes = document.getElementById('trip-input-notes')?.value.trim();
+
+    if (!title) return alert('يرجى كتابة اسم الرحلة أو المؤتمر');
+    if (!destination) return alert('يرجى تحديد مكان ووجهة الرحلة');
+    if (price <= 0) return alert('يرجى إدخال سعر الفرد بشكل صحيح (أكبر من صفر)');
+
+    const trips = getTrips();
+
+    if (editId) {
+        const trip = trips.find(t => t.id === editId);
+        if (trip) {
+            trip.title = title;
+            trip.destination = destination;
+            trip.price = price;
+            trip.date = date;
+            trip.endDate = endDate;
+            trip.capacity = capacity;
+            trip.status = status;
+            trip.notes = notes;
+            trip.updatedAt = todayLocal();
+        }
+    } else {
+        const newTrip = {
+            id: 'trip_' + Date.now(),
+            title,
+            destination,
+            price,
+            date,
+            endDate,
+            capacity,
+            status,
+            notes,
+            bookings: [],
+            createdAt: todayLocal()
+        };
+        trips.unshift(newTrip);
+        selectedTripId = newTrip.id;
+    }
+
+    saveTrips(trips);
+    document.getElementById('trip-modal')?.classList.remove('active');
+    showToast('تم حفظ بيانات الرحلة بنجاح!', 'success');
+    refreshTripsView();
+}
+
+function deleteTrip(tripId) {
+    if (currentUserRole !== 'admin' && !currentPermissions.includes('trips-edit')) {
+        showToast('عفواً، لا تملك صلاحية حذف الرحلات', 'warning');
+        return;
+    }
+
+    if (!confirm('هل أنت متأكد من حذف هذه الرحلة بجميع حجوزاتها وسجلاتها المالية؟ لا يمكن التراجع عن هذا الإجراء!')) {
+        return;
+    }
+
+    let trips = getTrips().filter(t => t.id !== tripId);
+    saveTrips(trips);
+    selectedTripId = trips.length > 0 ? trips[0].id : null;
+    showToast('تم حذف الرحلة بنجاح', 'info');
+    refreshTripsView();
+}
+
+function openBookingModal(bookingId) {
+    if (currentUserRole !== 'admin' && !currentPermissions.includes('trips-edit')) {
+        showToast('عفواً، لا تملك صلاحية إضافة أو تعديل الحجوزات', 'warning');
+        return;
+    }
+
+    const trip = getTrips().find(t => t.id === selectedTripId);
+    if (!trip) {
+        showToast('برجاء اختيار رحلة أولاً لإضافة الحجز إليها', 'warning');
+        return;
+    }
+
+    const editIdInput = document.getElementById('booking-edit-id');
+    const nameInput = document.getElementById('booking-input-name');
+    const phoneInput = document.getElementById('booking-input-phone');
+    const priceInput = document.getElementById('booking-input-price');
+    const paidInput = document.getElementById('booking-input-paid');
+    const notesInput = document.getElementById('booking-input-notes');
+    const modalTitle = document.getElementById('booking-modal-title');
+
+    if (bookingId) {
+        const booking = trip.bookings?.find(b => b.id === bookingId);
+        if (!booking) return;
+
+        if (editIdInput) editIdInput.value = booking.id;
+        if (nameInput) nameInput.value = booking.name || '';
+        if (phoneInput) phoneInput.value = booking.phone || '';
+        if (priceInput) priceInput.value = booking.price ?? trip.price;
+        if (paidInput) paidInput.value = booking.paid ?? 0;
+        if (notesInput) notesInput.value = booking.notes || '';
+
+        // Select type pill
+        const type = booking.type || 'member';
+        const radio = document.querySelector(`input[name="booking-person-type"][value="${type}"]`);
+        if (radio) {
+            radio.checked = true;
+            document.querySelectorAll('.booking-type-pill').forEach(p => p.classList.remove('active'));
+            radio.closest('.booking-type-pill')?.classList.add('active');
+        }
+        populateBookingMemberSelect(type);
+
+        if (modalTitle) modalTitle.innerHTML = '<i class="ph ph-pencil-simple"></i> تعديل بيانات الحجز';
+    } else {
+        if (editIdInput) editIdInput.value = '';
+        if (nameInput) nameInput.value = '';
+        if (phoneInput) phoneInput.value = '';
+        if (priceInput) priceInput.value = trip.price || 0;
+        if (paidInput) paidInput.value = 0;
+        if (notesInput) notesInput.value = '';
+
+        // Default to member
+        const defaultRadio = document.querySelector('input[name="booking-person-type"][value="member"]');
+        if (defaultRadio) {
+            defaultRadio.checked = true;
+            document.querySelectorAll('.booking-type-pill').forEach(p => p.classList.remove('active'));
+            defaultRadio.closest('.booking-type-pill')?.classList.add('active');
+        }
+        populateBookingMemberSelect('member');
+
+        if (modalTitle) modalTitle.innerHTML = '<i class="ph ph-user-plus"></i> إضافة حجز جديد';
+    }
+
+    // Trigger remaining calculation
+    if (priceInput) priceInput.dispatchEvent(new Event('input'));
+
+    const modal = document.getElementById('booking-modal');
+    if (modal) modal.classList.add('active');
+}
+
+function saveBookingData() {
+    if (currentUserRole !== 'admin' && !currentPermissions.includes('trips-edit')) {
+        showToast('عفواً، لا تملك صلاحية حفظ الحجوزات', 'warning');
+        return;
+    }
+
+    const trips = getTrips();
+    const trip = trips.find(t => t.id === selectedTripId);
+    if (!trip) return;
+
+    const editId = document.getElementById('booking-edit-id')?.value;
+    const name = document.getElementById('booking-input-name')?.value.trim();
+    const phone = document.getElementById('booking-input-phone')?.value.trim();
+    const price = Math.max(0, parseFloat(document.getElementById('booking-input-price')?.value) || 0);
+    const paid = Math.max(0, parseFloat(document.getElementById('booking-input-paid')?.value) || 0);
+    const notes = document.getElementById('booking-input-notes')?.value.trim();
+    const typeRadio = document.querySelector('input[name="booking-person-type"]:checked');
+    const type = typeRadio ? typeRadio.value : 'member';
+    const memberId = document.getElementById('booking-member-select')?.value || null;
+
+    if (!name) return alert('يرجى كتابة اسم المشترك بالكامل');
+    if (price <= 0) return alert('يرجى إدخال سعر الحجز بشكل صحيح');
+
+    const remaining = Math.max(0, price - paid);
+
+    trip.bookings = trip.bookings || [];
+
+    if (editId) {
+        const booking = trip.bookings.find(b => b.id === editId);
+        if (booking) {
+            booking.name = name;
+            booking.phone = phone;
+            booking.price = price;
+            booking.paid = paid;
+            booking.remaining = remaining;
+            booking.type = type;
+            booking.notes = notes;
+            if (memberId) booking.memberId = memberId;
+            booking.updatedAt = todayLocal();
+        }
+    } else {
+        const newBooking = {
+            id: 'b_' + Date.now() + Math.random().toString(36).substr(2, 4),
+            name,
+            phone,
+            type,
+            price,
+            paid,
+            remaining,
+            notes,
+            memberId,
+            createdAt: todayLocal(),
+            history: [{ amount: paid, date: todayLocal(), note: 'دفعة أولى' }]
+        };
+        trip.bookings.unshift(newBooking);
+    }
+
+    saveTrips(trips);
+    document.getElementById('booking-modal')?.classList.remove('active');
+    showToast('تم حفظ الحجز بنجاح!', 'success');
+    refreshTripsView();
+}
+
+function openQuickPayModal(bookingId) {
+    if (currentUserRole !== 'admin' && !currentPermissions.includes('trips-edit')) {
+        showToast('عفواً، لا تملك صلاحية تسجيل دفعات السداد', 'warning');
+        return;
+    }
+
+    const trip = getTrips().find(t => t.id === selectedTripId);
+    const booking = trip?.bookings?.find(b => b.id === bookingId);
+    if (!booking) return;
+
+    const idInput = document.getElementById('quick-pay-booking-id');
+    const nameEl = document.getElementById('quick-pay-name');
+    const totalEl = document.getElementById('quick-pay-total-price');
+    const alreadyEl = document.getElementById('quick-pay-already-paid');
+    const currentRemEl = document.getElementById('quick-pay-current-remaining');
+    const amountInput = document.getElementById('quick-pay-input-amount');
+    const noteInput = document.getElementById('quick-pay-input-note');
+    const newRemEl = document.getElementById('quick-pay-new-remaining');
+
+    const price = Number(booking.price) || 0;
+    const paid = Number(booking.paid) || 0;
+    const remaining = Math.max(0, price - paid);
+
+    if (idInput) idInput.value = booking.id;
+    if (nameEl) nameEl.textContent = booking.name;
+    if (totalEl) totalEl.textContent = price.toLocaleString();
+    if (alreadyEl) alreadyEl.textContent = paid.toLocaleString();
+    if (currentRemEl) currentRemEl.textContent = remaining.toLocaleString();
+    if (amountInput) amountInput.value = remaining > 0 ? remaining : '';
+    if (noteInput) noteInput.value = '';
+    if (newRemEl) newRemEl.textContent = '0 ج.م';
+
+    const modal = document.getElementById('quick-pay-modal');
+    if (modal) modal.classList.add('active');
+}
+
+function saveQuickPayment() {
+    if (currentUserRole !== 'admin' && !currentPermissions.includes('trips-edit')) {
+        showToast('عفواً، لا تملك صلاحية تسجيل دفعات السداد', 'warning');
+        return;
+    }
+
+    const bookingId = document.getElementById('quick-pay-booking-id')?.value;
+    const amount = parseFloat(document.getElementById('quick-pay-input-amount')?.value) || 0;
+    const note = document.getElementById('quick-pay-input-note')?.value.trim();
+
+    if (amount <= 0) return alert('يرجى إدخال مبلغ دفع صالح أكبر من صفر');
+
+    const trips = getTrips();
+    const trip = trips.find(t => t.id === selectedTripId);
+    const booking = trip?.bookings?.find(b => b.id === bookingId);
+    if (!booking) return;
+
+    booking.paid = (Number(booking.paid) || 0) + amount;
+    booking.remaining = Math.max(0, (Number(booking.price) || 0) - booking.paid);
+    booking.history = booking.history || [];
+    booking.history.push({
+        amount,
+        date: todayLocal(),
+        note: note || 'دفعة سداد'
+    });
+
+    saveTrips(trips);
+    document.getElementById('quick-pay-modal')?.classList.remove('active');
+    showToast(`تم تسجيل سداد ${amount.toLocaleString()} ج.م بنجاح!`, 'success');
+    refreshTripsView();
+}
+
+function deleteBooking(bookingId) {
+    if (currentUserRole !== 'admin' && !currentPermissions.includes('trips-edit')) {
+        showToast('عفواً، لا تملك صلاحية حذف الحجوزات', 'warning');
+        return;
+    }
+
+    if (!confirm('هل أنت متأكد من حذف هذا الحجز نهائياً؟')) return;
+
+    const trips = getTrips();
+    const trip = trips.find(t => t.id === selectedTripId);
+    if (!trip) return;
+
+    trip.bookings = (trip.bookings || []).filter(b => b.id !== bookingId);
+    saveTrips(trips);
+    showToast('تم حذف الحجز بنجاح', 'info');
+    refreshTripsView();
+}
+
+function exportTripToExcel() {
+    const trip = getTrips().find(t => t.id === selectedTripId);
+    if (!trip || !(trip.bookings || []).length) {
+        showToast('لا توجد حجوزات لتصديرها في هذه الرحلة', 'warning');
+        return;
+    }
+
+    if (typeof XLSX === 'undefined') {
+        alert('مكتبة الإكسيل غير محملة، يرجى التحقق من الاتصال بالإنترنت.');
+        return;
+    }
+
+    const rows = trip.bookings.map((b, idx) => {
+        const rem = Number(b.remaining) || 0;
+        const paid = Number(b.paid) || 0;
+        const price = Number(b.price) || 0;
+        const statusText = rem <= 0 ? 'خالص بالكامل' : paid > 0 ? `متبقي ${rem} ج.م` : 'لم يسدد';
+
+        return {
+            'م': idx + 1,
+            'الاسم': b.name,
+            'الصفة': b.type === 'servant' ? 'خادم' : b.type === 'member' ? 'مخدوم' : 'ضيف',
+            'رقم التليفون': b.phone || '',
+            'سعر الحجز (ج.م)': price,
+            'المدفوع (ج.م)': paid,
+            'المتبقي (ج.م)': rem,
+            'حالة السداد': statusText,
+            'ملاحظات': b.notes || ''
+        };
+    });
+
+    const worksheet = XLSX.utils.json_to_sheet(rows);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'كشف الحجوزات');
+
+    const cleanTitle = (trip.title || 'رحلة').replace(/[\/\\?%*:|"<>]/g, '_');
+    XLSX.writeFile(workbook, `كشف_حجوزات_${cleanTitle}_${todayLocal()}.xlsx`);
+    showToast('تم تصدير ملف الإكسيل بنجاح!', 'success');
+}
+
+function printTripReport() {
+    const trip = getTrips().find(t => t.id === selectedTripId);
+    if (!trip || !(trip.bookings || []).length) {
+        showToast('لا توجد حجوزات للطباعة في هذه الرحلة', 'warning');
+        return;
+    }
+
+    const bookings = trip.bookings || [];
+    const totalExpected = bookings.reduce((sum, b) => sum + (Number(b.price) || 0), 0);
+    const totalCollected = bookings.reduce((sum, b) => sum + (Number(b.paid) || 0), 0);
+    const totalRemaining = Math.max(0, totalExpected - totalCollected);
+
+    const printWin = window.open('', '_blank');
+    if (!printWin) {
+        alert('يرجى السماح بالنوافذ المنبثقة لطباعة الكشف');
+        return;
+    }
+
+    const tableRows = bookings.map((b, idx) => {
+        const rem = Number(b.remaining) || 0;
+        const paid = Number(b.paid) || 0;
+        const price = Number(b.price) || 0;
+        const roleLabel = b.type === 'servant' ? 'خادم' : b.type === 'member' ? 'مخدوم' : 'ضيف';
+        const statusLabel = rem <= 0 ? 'خالص' : `باقي ${rem}`;
+
+        return `
+            <tr>
+                <td style="text-align: center;">${idx + 1}</td>
+                <td><strong>${esc(b.name)}</strong></td>
+                <td style="text-align: center;">${roleLabel}</td>
+                <td style="direction: ltr; text-align: center;">${esc(b.phone || '')}</td>
+                <td style="text-align: center;">${price}</td>
+                <td style="text-align: center; color: #047857;">${paid}</td>
+                <td style="text-align: center; color: ${rem > 0 ? '#b45309' : '#047857'}; font-weight: bold;">${statusLabel}</td>
+                <td>${esc(b.notes || '')}</td>
+                <td style="width: 70px; border-bottom: 1px dotted #ccc;"></td>
+            </tr>
+        `;
+    }).join('');
+
+    printWin.document.write(`
+        <!DOCTYPE html>
+        <html lang="ar" dir="rtl">
+        <head>
+            <meta charset="UTF-8">
+            <title>كشف ${esc(trip.title)}</title>
+            <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+            <style>
+                body { font-family: 'Cairo', sans-serif; padding: 20px; color: #111; direction: rtl; }
+                .header { text-align: center; border-bottom: 2px solid #333; padding-bottom: 12px; margin-bottom: 15px; }
+                .header h1 { margin: 0 0 6px; font-size: 1.5rem; }
+                .header h2 { margin: 0 0 8px; font-size: 1.2rem; color: #444; }
+                .meta-strip { display: flex; justify-content: space-around; background: #f1f5f9; padding: 8px; border-radius: 6px; font-size: 0.9rem; margin-bottom: 15px; }
+                .stats-strip { display: flex; justify-content: space-around; border: 1px solid #cbd5e1; padding: 8px; border-radius: 6px; font-size: 0.95rem; margin-bottom: 15px; background: #fafafa; font-weight: bold; }
+                table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+                th, td { border: 1px solid #94a3b8; padding: 6px 8px; }
+                th { background: #e2e8f0; font-weight: bold; }
+                @media print {
+                    button { display: none; }
+                    body { padding: 0; }
+                }
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <h1>اجتماع القديس يوحنا الحبيب</h1>
+                <h2>كشف حجز: ${esc(trip.title)}</h2>
+            </div>
+            <div class="meta-strip">
+                <span>المكان: <strong>${esc(trip.destination || '--')}</strong></span>
+                <span>سعر الفرد: <strong>${(Number(trip.price) || 0)} ج.م</strong></span>
+                <span>التاريخ: <strong>${trip.date ? formatDate(trip.date) : '--'}</strong></span>
+                <span>إجمالي المشتركين: <strong>${bookings.length}</strong></span>
+            </div>
+            <div class="stats-strip">
+                <span>المبلغ الإجمالي: ${(totalExpected).toLocaleString()} ج.م</span>
+                <span style="color: #047857;">المحصل (الي اتلم): ${(totalCollected).toLocaleString()} ج.م</span>
+                <span style="color: #b45309;">المطلوب (الي فاضل): ${(totalRemaining).toLocaleString()} ج.م</span>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 35px;">#</th>
+                        <th>الاسم</th>
+                        <th style="width: 70px;">الصفة</th>
+                        <th style="width: 100px;">التليفون</th>
+                        <th style="width: 60px;">السعر</th>
+                        <th style="width: 60px;">المدفوع</th>
+                        <th style="width: 80px;">المتبقي</th>
+                        <th>ملاحظات</th>
+                        <th style="width: 70px;">حضور الباص</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${tableRows}
+                </tbody>
+            </table>
+            <div style="margin-top: 25px; display: flex; justify-content: space-between; font-size: 0.9rem;">
+                <div>تاريخ الطباعة: ${todayLocal()}</div>
+                <div>توقيع أمين الرحلة: ..........................</div>
+            </div>
+            <script>
+                window.onload = function() { window.print(); }
+            <\/script>
+        </body>
+        </html>
+    `);
+    printWin.document.close();
+}
+

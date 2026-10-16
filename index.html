@@ -20,7 +20,7 @@
     <!-- SheetJS for Excel generation -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <!-- Styles -->
-    <link rel="stylesheet" href="style.css?v=23">
+    <link rel="stylesheet" href="style.css?v=20261017_trips_v1">
 </head>
 <body>
     <!-- Mobile Top Header (Fixed at top on Mobile) -->
@@ -72,6 +72,9 @@
                 </button>
                 <button class="nav-btn" data-target="competitions-view">
                     <i class="ph ph-trophy"></i> المسابقات
+                </button>
+                <button class="nav-btn" data-target="trips-view">
+                    <i class="ph ph-compass"></i> الرحلات والمؤتمرات
                 </button>
                 <button class="nav-btn" data-target="summary-view">
                     <i class="ph ph-list-numbers"></i> الملخص
@@ -519,6 +522,212 @@
 
                 <div class="competitions-list-container" id="competitions-list-container">
                     <!-- Competitions will be injected here via JS -->
+                </div>
+            </section>
+
+            <!-- Trips & Conferences View (Nocturne Ecclesia Design) -->
+            <section id="trips-view" class="view-section">
+                <header class="view-header trips-header">
+                    <div class="trips-header-top">
+                        <div class="trips-brand">
+                            <div class="trips-avatar-wrap">
+                                <i class="ph ph-compass"></i>
+                            </div>
+                            <div>
+                                <span class="trips-subtitle">اجتماع القديس يوحنا الحبيب</span>
+                                <h1 class="trips-title">الرحلات والمؤتمرات</h1>
+                            </div>
+                        </div>
+                        <div class="trips-header-actions">
+                            <button class="trips-header-action" onclick="if(typeof triggerCloudSync === 'function') triggerCloudSync()" title="مزامنة فورية">
+                                <i class="ph ph-arrows-clockwise"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <p class="trips-desc">تنظيم الرحلات والمؤتمرات، تسجيل الحجوزات، ومتابعة المبالغ المحصلة والمتبقية لكل مشترك بدقة.</p>
+                    <div class="trips-top-buttons">
+                        <button class="btn-hero-add-trip" id="btn-create-trip">
+                            <i class="ph ph-plus-circle"></i>
+                            <span>إضافة رحلة أو مؤتمر جديد</span>
+                        </button>
+                    </div>
+                </header>
+
+                <!-- View-only banner (shown when user has view-only permission) -->
+                <div id="trips-view-only-banner" class="glass view-only-banner" style="display: none; margin-bottom: 16px;">
+                    <i class="ph ph-eye" style="font-size: 1.25rem;"></i>
+                    <span>وضع المشاهدة فقط: يمكنك استعراض بيانات الرحلة والحجوزات والمبالغ دون صلاحية التعديل.</span>
+                </div>
+
+                <!-- Active Trips Selector / Bar -->
+                <div class="trips-selector-bar" id="trips-selector-bar">
+                    <div class="trips-selector-header">
+                        <div class="trips-selector-title">
+                            <i class="ph ph-folder-open"></i>
+                            <span>اختر الرحلة أو المؤتمر:</span>
+                        </div>
+                        <div class="trips-pills-wrap" id="trips-pills-container">
+                            <!-- Populated via JS: pills for each trip -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Main Trip Content Container (shown if there's a selected trip) -->
+                <div id="trip-details-container">
+                    <!-- Trip Info Card & Actions -->
+                    <div class="trip-meta-card glass mb-4" id="trip-meta-card">
+                        <div class="trip-meta-main">
+                            <div class="trip-meta-badge-wrap">
+                                <span class="trip-status-badge" id="trip-status-badge">جارية</span>
+                            </div>
+                            <h2 class="trip-meta-name" id="trip-detail-name">--</h2>
+                            <div class="trip-meta-tags">
+                                <span class="trip-meta-tag"><i class="ph ph-map-pin"></i> المكان: <strong id="trip-detail-destination">--</strong></span>
+                                <span class="trip-meta-tag"><i class="ph ph-tag"></i> سعر الفرد: <strong id="trip-detail-price">0 ج.م</strong></span>
+                                <span class="trip-meta-tag"><i class="ph ph-calendar"></i> التاريخ: <strong id="trip-detail-date">--</strong></span>
+                            </div>
+                            <p class="trip-meta-notes" id="trip-detail-notes" style="display: none;"></p>
+                        </div>
+                        <div class="trip-meta-actions">
+                            <button class="btn btn-outline btn-sm" id="btn-edit-trip" title="تعديل بيانات الرحلة">
+                                <i class="ph ph-pencil-simple"></i> تعديل الرحلة
+                            </button>
+                            <button class="btn btn-outline btn-sm text-danger" id="btn-delete-trip" title="حذف الرحلة">
+                                <i class="ph ph-trash"></i> حذف
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 3 Essential Financial KPI Cards (Exact user requirement) -->
+                    <div class="stats-grid trips-kpi-grid mb-4">
+                        <!-- 1. Total Expected Revenue (المبلغ الإجمالي) -->
+                        <div class="stat-card glass-card kpi-card-total">
+                            <div class="stat-card-top">
+                                <span class="stat-label">المبلغ الإجمالي</span>
+                                <div class="stat-icon-box box-blue"><i class="ph ph-coins"></i></div>
+                            </div>
+                            <div class="stat-card-main">
+                                <div class="kpi-amount-wrap">
+                                    <span class="stat-value text-blue" id="kpi-total-amount">0</span>
+                                    <span class="kpi-currency">ج.م</span>
+                                </div>
+                                <span class="stat-subtext" id="kpi-total-subtext">إجمالي قيمة كل الحجوزات</span>
+                            </div>
+                        </div>
+
+                        <!-- 2. Collected Amount (المبلغ المحصل - الي اتلم) -->
+                        <div class="stat-card glass-card kpi-card-collected">
+                            <div class="stat-card-top">
+                                <span class="stat-label">المبلغ المحصل (الي اتلم)</span>
+                                <div class="stat-icon-box box-emerald"><i class="ph ph-hand-coins"></i></div>
+                            </div>
+                            <div class="stat-card-main">
+                                <div class="kpi-amount-wrap">
+                                    <span class="stat-value text-emerald" id="kpi-collected-amount">0</span>
+                                    <span class="kpi-currency text-emerald">ج.م</span>
+                                </div>
+                                <span class="stat-subtext text-emerald" id="kpi-collected-subtext">0% من الإجمالي</span>
+                            </div>
+                        </div>
+
+                        <!-- 3. Remaining Amount (المبلغ المطلوب - الي فاضل) -->
+                        <div class="stat-card glass-card kpi-card-remaining">
+                            <div class="stat-card-top">
+                                <span class="stat-label">المبلغ المطلوب (الي فاضل)</span>
+                                <div class="stat-icon-box box-amber"><i class="ph ph-receipt"></i></div>
+                            </div>
+                            <div class="stat-card-main">
+                                <div class="kpi-amount-wrap">
+                                    <span class="stat-value text-amber" id="kpi-remaining-amount">0</span>
+                                    <span class="kpi-currency text-amber">ج.م</span>
+                                </div>
+                                <span class="stat-subtext text-amber" id="kpi-remaining-subtext">باقي للتحصيل</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Collection Progress Bar & Quick Stats Strip -->
+                    <div class="trips-progress-strip glass mb-4">
+                        <div class="progress-info-row">
+                            <span>نسبة التحصيل: <strong id="kpi-progress-percent">0%</strong></span>
+                            <span id="kpi-participants-breakdown">0 مشترك (0 خادم • 0 مخدوم)</span>
+                        </div>
+                        <div class="progress-bar-track">
+                            <div class="progress-bar-fill" id="kpi-progress-bar" style="width: 0%;"></div>
+                        </div>
+                    </div>
+
+                    <!-- Bookings Section Header & Actions -->
+                    <div class="bookings-control-panel glass mb-3">
+                        <div class="bookings-actions-bar">
+                            <button class="btn btn-primary" id="btn-add-booking">
+                                <i class="ph ph-user-plus"></i> إضافة حجز جديد
+                            </button>
+                            <div class="search-input-wrap">
+                                <i class="ph ph-magnifying-glass search-icon"></i>
+                                <input type="text" id="trip-search-input" class="form-control" placeholder="ابحث بالاسم أو التليفون...">
+                            </div>
+                            <button class="btn btn-outline" id="btn-export-trip-excel" title="تصدير كشف إكسيل">
+                                <i class="ph ph-file-xls"></i> تصدير إكسيل
+                            </button>
+                            <button class="btn btn-outline" id="btn-print-trip" title="طباعة كشف الرحلة">
+                                <i class="ph ph-printer"></i> طباعة الكشف
+                            </button>
+                        </div>
+
+                        <!-- Filter Pills -->
+                        <div class="booking-filter-pills mt-2" id="booking-filter-pills">
+                            <button class="trip-filter-pill active" data-filter="all">الكل (<span id="count-filter-all">0</span>)</button>
+                            <button class="trip-filter-pill" data-filter="servants">الخدام (<span id="count-filter-servants">0</span>)</button>
+                            <button class="trip-filter-pill" data-filter="members">المخدومين (<span id="count-filter-members">0</span>)</button>
+                            <button class="trip-filter-pill text-amber" data-filter="remaining">فاضل عليه فلوس (<span id="count-filter-remaining">0</span>)</button>
+                            <button class="trip-filter-pill text-emerald" data-filter="paid">خالص بالكامل (<span id="count-filter-paid">0</span>)</button>
+                        </div>
+                    </div>
+
+                    <!-- Bookings List Table & Mobile Cards -->
+                    <div class="glass bookings-table-container">
+                        <div class="table-responsive desktop-only">
+                            <table class="data-table trips-table">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 40px;">#</th>
+                                        <th>الاسم والصفة</th>
+                                        <th>رقم التليفون</th>
+                                        <th>سعر الحجز</th>
+                                        <th>دفع كام</th>
+                                        <th>فاضل كام</th>
+                                        <th>حالة السداد</th>
+                                        <th>ملاحظات</th>
+                                        <th class="actions-col" style="width: 140px;">إجراءات</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="trip-bookings-tbody">
+                                    <!-- Bookings rows injected via JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                        <!-- Mobile Cards Container -->
+                        <div class="bookings-mobile-cards mobile-only" id="trip-bookings-mobile-cards">
+                            <!-- Mobile booking cards injected via JS -->
+                        </div>
+                        <div id="trip-bookings-empty" class="empty-state-wrap" style="display: none; padding: 40px; text-align: center;">
+                            <i class="ph ph-users" style="font-size: 3rem; color: var(--text-muted); opacity: 0.6;"></i>
+                            <p style="margin-top: 10px; color: var(--text-muted);">لا توجد حجوزات مسجلة تطابق البحث أو الفلتر المختار.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Empty State (When no trips exist) -->
+                <div id="no-trips-empty-state" class="glass empty-state-card" style="display: none;">
+                    <div class="empty-icon-wrap">
+                        <i class="ph ph-compass"></i>
+                    </div>
+                    <h3>لا توجد رحلات أو مؤتمرات مسجلة بعد</h3>
+                    <p>ابدأ الآن بإضافة أول رحلة أو مؤتمر، وحدد المكان وسعر الفرد، وابدأ بتسجيل الحجوزات ومتابعة سداد المبالغ المالية بكل سهولة.</p>
+                    <button class="btn btn-primary btn-lg" id="btn-create-trip-empty">
+                        <i class="ph ph-plus-circle"></i> إضافة أول رحلة أو مؤتمر
+                    </button>
                 </div>
             </section>
 
@@ -1419,6 +1628,14 @@
                         </select>
                     </div>
                     <div class="perm-row" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px;">
+                        <span>الرحلات والمؤتمرات</span>
+                        <select class="perm-select form-control" data-section="trips" style="width: 150px; padding: 5px;">
+                            <option value="none">لا يوجد صلاحية (مخفية وممنوعة)</option>
+                            <option value="view">مشاهدة فقط</option>
+                            <option value="edit">مشاهدة وتعديل وإضافة</option>
+                        </select>
+                    </div>
+                    <div class="perm-row" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px;">
                         <span>الملخص</span>
                         <select class="perm-select form-control" data-section="summary" style="width: 150px; padding: 5px;">
                             <option value="none">لا يوجد صلاحية</option>
@@ -1563,6 +1780,193 @@
         </div>
     </div>
 
+    <!-- Add / Edit Trip Modal -->
+    <div class="modal-overlay" id="trip-modal">
+        <div class="modal glass" style="max-width: 600px;">
+            <div class="modal-header">
+                <h3 id="trip-modal-title"><i class="ph ph-compass"></i> إضافة رحلة أو مؤتمر جديد</h3>
+                <button class="close-modal"><span style="font-size: 1.5rem; font-weight: bold; line-height: 1;">&times;</span></button>
+            </div>
+            <div class="modal-body" style="max-height: 75vh; overflow-y: auto;">
+                <input type="hidden" id="trip-edit-id">
+                
+                <div class="form-group mb-3">
+                    <label>اسم الرحلة أو المؤتمر <span class="text-danger">*</span></label>
+                    <input type="text" id="trip-input-title" class="form-control" placeholder="مثال: رحلة دير الأنبا بولا والأنبا أنطونيوس أو مؤتمر الصيف">
+                </div>
+
+                <div class="form-row" style="display: flex; gap: 12px; margin-bottom: 12px; flex-wrap: wrap;">
+                    <div class="form-group" style="flex: 1; min-width: 200px;">
+                        <label>مكان الرحلة / الوجهة <span class="text-danger">*</span></label>
+                        <input type="text" id="trip-input-destination" class="form-control" placeholder="مثال: وادي النطرون، الإسكندرية، دير درنكة">
+                    </div>
+                    <div class="form-group" style="flex: 1; min-width: 150px;">
+                        <label>سعر الفرد (ج.م) <span class="text-danger">*</span></label>
+                        <input type="number" id="trip-input-price" class="form-control" placeholder="مثال: 350" min="0">
+                    </div>
+                </div>
+
+                <div class="form-row" style="display: flex; gap: 12px; margin-bottom: 12px; flex-wrap: wrap;">
+                    <div class="form-group" style="flex: 1; min-width: 180px;">
+                        <label>تاريخ الرحلة (من) <span class="text-danger">*</span></label>
+                        <input type="date" id="trip-input-date" class="form-control">
+                    </div>
+                    <div class="form-group" style="flex: 1; min-width: 180px;">
+                        <label>تاريخ النهاية (إلى - اختياري للمؤتمرات)</label>
+                        <input type="date" id="trip-input-end-date" class="form-control">
+                    </div>
+                </div>
+
+                <div class="form-row" style="display: flex; gap: 12px; margin-bottom: 12px; flex-wrap: wrap;">
+                    <div class="form-group" style="flex: 1; min-width: 180px;">
+                        <label>الحد الأقصى للأفراد (اختياري)</label>
+                        <input type="number" id="trip-input-capacity" class="form-control" placeholder="مثال: 50 كرسي باص" min="0">
+                    </div>
+                    <div class="form-group" style="flex: 1; min-width: 180px;">
+                        <label>حالة الرحلة</label>
+                        <select id="trip-input-status" class="form-control">
+                            <option value="active">جارية (حالية ومفتوحة للحجز)</option>
+                            <option value="completed">منتهية (أرشيف)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>ملاحظات وتفاصيل التجمع</label>
+                    <textarea id="trip-input-notes" class="form-control" rows="3" placeholder="مثال: التجمع الساعة 6:00 صباحاً أمام باب الكنيسة الرئيسي، إحضار البطاقة الشخصية..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline close-modal">إلغاء</button>
+                <button class="btn btn-success" id="btn-save-trip"><i class="ph ph-check-circle"></i> حفظ بيانات الرحلة</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add / Edit Booking Modal -->
+    <div class="modal-overlay" id="booking-modal">
+        <div class="modal glass" style="max-width: 600px;">
+            <div class="modal-header">
+                <h3 id="booking-modal-title"><i class="ph ph-user-plus"></i> إضافة حجز جديد</h3>
+                <button class="close-modal"><span style="font-size: 1.5rem; font-weight: bold; line-height: 1;">&times;</span></button>
+            </div>
+            <div class="modal-body" style="max-height: 75vh; overflow-y: auto;">
+                <input type="hidden" id="booking-edit-id">
+
+                <!-- Type Selector: Servant / Member / Guest -->
+                <div class="form-group mb-3">
+                    <label>نوع المشترك <span class="text-danger">*</span></label>
+                    <div class="booking-type-pills" id="booking-type-pills">
+                        <label class="booking-type-pill active" data-type="member">
+                            <input type="radio" name="booking-person-type" value="member" checked>
+                            <i class="ph ph-user"></i>
+                            <span>مخدوم</span>
+                        </label>
+                        <label class="booking-type-pill" data-type="servant">
+                            <input type="radio" name="booking-person-type" value="servant">
+                            <i class="ph ph-star"></i>
+                            <span>خادم</span>
+                        </label>
+                        <label class="booking-type-pill" data-type="guest">
+                            <input type="radio" name="booking-person-type" value="guest">
+                            <i class="ph ph-users"></i>
+                            <span>ضيف / خارجي</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Quick Member Selection Dropdown -->
+                <div class="form-group mb-3" id="booking-member-select-wrap">
+                    <label>اختر من الأسماء المسجلة بالخدمة <small style="color: var(--text-muted);">(أو اكتب يدوياً بالأسفل)</small></label>
+                    <select id="booking-member-select" class="form-control">
+                        <option value="">-- اختر اسماً مسجلاً لتعبئة البيانات تلقائياً --</option>
+                    </select>
+                </div>
+
+                <div class="form-row" style="display: flex; gap: 12px; margin-bottom: 12px; flex-wrap: wrap;">
+                    <div class="form-group" style="flex: 1.4; min-width: 200px;">
+                        <label>الاسم بالكامل <span class="text-danger">*</span></label>
+                        <input type="text" id="booking-input-name" class="form-control" placeholder="اسم المشترك...">
+                    </div>
+                    <div class="form-group" style="flex: 1; min-width: 150px;">
+                        <label>رقم التليفون</label>
+                        <input type="tel" id="booking-input-phone" class="form-control" placeholder="01xxxxxxxxx">
+                    </div>
+                </div>
+
+                <!-- Price & Payment Row with Live Remaining Calculation -->
+                <div class="form-row" style="display: flex; gap: 12px; margin-bottom: 12px; flex-wrap: wrap;">
+                    <div class="form-group" style="flex: 1; min-width: 140px;">
+                        <label>سعر الحجز (ج.م) <span class="text-danger">*</span></label>
+                        <input type="number" id="booking-input-price" class="form-control" placeholder="350" min="0">
+                    </div>
+                    <div class="form-group" style="flex: 1; min-width: 140px;">
+                        <label>دفع كام (المدفوع) <span class="text-danger">*</span></label>
+                        <input type="number" id="booking-input-paid" class="form-control" placeholder="0" min="0" value="0">
+                    </div>
+                </div>
+
+                <!-- Live Calculation Banner (Direct user request) -->
+                <div class="booking-calc-banner glass mb-3" id="booking-calc-banner">
+                    <div class="calc-row">
+                        <span class="calc-label">المبلغ المتبقي (فاضل كام):</span>
+                        <strong class="calc-remaining-val" id="booking-calc-remaining">0 ج.م</strong>
+                    </div>
+                    <div class="calc-status-badge" id="booking-calc-status">لم يدفع بعد</div>
+                </div>
+
+                <div class="form-group">
+                    <label>ملاحظات إضافية (رقم الباص، السكن، طريقة الدفع...)</label>
+                    <textarea id="booking-input-notes" class="form-control" rows="2" placeholder="مثال: باص رقم 1، كرسي بجوار الشباك، كاش في الاجتماع..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline close-modal">إلغاء</button>
+                <button class="btn btn-success" id="btn-save-booking"><i class="ph ph-check-circle"></i> حفظ الحجز</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Payment Modal -->
+    <div class="modal-overlay" id="quick-pay-modal">
+        <div class="modal glass" style="max-width: 440px;">
+            <div class="modal-header">
+                <h3><i class="ph ph-hand-coins"></i> تسجيل دفعة جديدة</h3>
+                <button class="close-modal"><span style="font-size: 1.5rem; font-weight: bold; line-height: 1;">&times;</span></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="quick-pay-booking-id">
+                <div class="quick-pay-summary glass p-3 mb-3" style="border-radius: 12px; background: rgba(0,0,0,0.25);">
+                    <div style="font-weight: 700; font-size: 1.15rem; color: #fff;" id="quick-pay-name">--</div>
+                    <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 6px; line-height: 1.6;">
+                        سعر الحجز: <strong id="quick-pay-total-price" style="color: #fff;">0</strong> ج.م • 
+                        المدفوع سابقاً: <strong id="quick-pay-already-paid" class="text-emerald">0</strong> ج.م • 
+                        المتبقي حالياً: <strong id="quick-pay-current-remaining" class="text-amber">0</strong> ج.م
+                    </div>
+                </div>
+
+                <div class="form-group mb-3">
+                    <label>المبلغ المدفوع الآن (ج.م) <span class="text-danger">*</span></label>
+                    <input type="number" id="quick-pay-input-amount" class="form-control" placeholder="أدخل المبلغ المستلم..." min="1" style="font-size: 1.25rem; font-weight: 700; text-align: center; color: #10b981;">
+                </div>
+
+                <div class="form-group mb-2">
+                    <label>ملاحظة على الدفعة (اختياري)</label>
+                    <input type="text" id="quick-pay-input-note" class="form-control" placeholder="مثال: دفعة ثانية، كاش بالاجتماع، فودافون كاش...">
+                </div>
+
+                <div class="calc-row mt-3 p-2" style="background: rgba(16, 185, 129, 0.1); border-radius: 8px; border: 1px solid rgba(16, 185, 129, 0.2); display: flex; justify-content: space-between; align-items: center;">
+                    <span style="font-size: 0.9rem;">المتبقي بعد هذه الدفعة:</span>
+                    <strong id="quick-pay-new-remaining" class="text-emerald" style="font-size: 1.15rem;">0 ج.م</strong>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline close-modal">إلغاء</button>
+                <button class="btn btn-success" id="btn-save-quick-pay"><i class="ph ph-check"></i> تأكيد وحفظ الدفعة</button>
+            </div>
+        </div>
+    </div>
+
 
 
     
@@ -1613,6 +2017,6 @@
     <script src="firebase-firestore.js"></script>
     
     <!-- Script -->
-    <script src="app.js?v=20261016_servant_eval_fix_v101"></script>
+    <script src="app.js?v=20261017_trips_v1"></script>
 </body>
 </html>
