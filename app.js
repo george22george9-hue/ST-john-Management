@@ -5858,6 +5858,7 @@ function toggleMobileMenu() {
 let selectedTripId = null;
 let currentBookingFilter = 'all';
 let currentBookingSearch = '';
+let tripsActiveViewMode = 'single'; // 'single' | 'overview'
 
 function setupTrips() {
     // 1. Hero / Header Add Trip buttons
@@ -5885,6 +5886,30 @@ function setupTrips() {
         btnDeleteTrip.addEventListener('click', () => {
             if (!selectedTripId) return;
             deleteTrip(selectedTripId);
+        });
+    }
+
+    // Trips View Mode Buttons (Single Trip File vs All Trips Comparison Grid)
+    const btnModeSingle = document.getElementById('btn-mode-single-trip');
+    const btnModeAll = document.getElementById('btn-mode-all-trips');
+    const btnBackToActive = document.getElementById('btn-back-to-active-trip');
+
+    if (btnModeSingle) {
+        btnModeSingle.addEventListener('click', () => {
+            tripsActiveViewMode = 'single';
+            updateTripsViewModeDisplay();
+        });
+    }
+    if (btnModeAll) {
+        btnModeAll.addEventListener('click', () => {
+            tripsActiveViewMode = 'overview';
+            updateTripsViewModeDisplay();
+        });
+    }
+    if (btnBackToActive) {
+        btnBackToActive.addEventListener('click', () => {
+            tripsActiveViewMode = 'single';
+            updateTripsViewModeDisplay();
         });
     }
 
@@ -6032,6 +6057,129 @@ function setupTrips() {
     }
 }
 
+function updateTripsViewModeDisplay() {
+    const singleContainer = document.getElementById('trip-details-container');
+    const overviewContainer = document.getElementById('all-trips-overview-container');
+    const btnModeSingle = document.getElementById('btn-mode-single-trip');
+    const btnModeAll = document.getElementById('btn-mode-all-trips');
+
+    if (tripsActiveViewMode === 'overview') {
+        if (singleContainer) singleContainer.style.display = 'none';
+        if (overviewContainer) overviewContainer.style.display = 'block';
+        if (btnModeSingle) btnModeSingle.classList.remove('active');
+        if (btnModeAll) btnModeAll.classList.add('active');
+        renderAllTripsOverviewCards(getTrips());
+    } else {
+        if (singleContainer) singleContainer.style.display = 'block';
+        if (overviewContainer) overviewContainer.style.display = 'none';
+        if (btnModeSingle) btnModeSingle.classList.add('active');
+        if (btnModeAll) btnModeAll.classList.remove('active');
+    }
+}
+
+function renderAllTripsOverviewCards(trips) {
+    const grid = document.getElementById('all-trips-cards-grid');
+    if (!grid) return;
+
+    if (!trips || trips.length === 0) {
+        grid.innerHTML = '<p class="text-muted" style="grid-column: 1/-1; text-align: center; padding: 30px;">لا توجد رحلات أو مؤتمرات مسجلة بعد.</p>';
+        return;
+    }
+
+    grid.innerHTML = trips.map(t => {
+        const bookings = t.bookings || [];
+        const totalExpected = bookings.reduce((sum, b) => sum + (Number(b.price) || 0), 0);
+        const totalCollected = bookings.reduce((sum, b) => sum + (Number(b.paid) || 0), 0);
+        const totalRemaining = Math.max(0, totalExpected - totalCollected);
+        const percent = totalExpected > 0 ? Math.round((totalCollected / totalExpected) * 100) : (bookings.length > 0 ? 100 : 0);
+        const servantsCount = bookings.filter(b => b.type === 'servant').length;
+        const membersCount = bookings.filter(b => b.type === 'member').length;
+        const isCurrent = t.id === selectedTripId;
+        const isCompleted = t.status === 'completed';
+
+        let dateDisplay = t.date ? formatDate(t.date) : '--';
+        if (t.endDate && t.endDate !== t.date) {
+            dateDisplay += ` إلى ${formatDate(t.endDate)}`;
+        }
+
+        return `
+            <div class="all-trip-independent-card ${isCurrent ? 'is-active-trip' : ''}">
+                <div class="atic-top">
+                    <div class="atic-heading">
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                            <span class="trip-status-badge ${isCompleted ? 'completed' : ''}">
+                                ${isCompleted ? 'منتهية (أرشيف)' : 'جارية (حالية)'}
+                            </span>
+                            ${isCurrent ? '<span style="font-size: 0.72rem; color: #38bdf8; font-weight: 700; background: rgba(56, 189, 248, 0.15); padding: 2px 8px; border-radius: 8px;"><i class="ph ph-check"></i> الرحلة المحددة حالياً</span>' : ''}
+                        </div>
+                        <h3 class="atic-title">${esc(t.title)}</h3>
+                        <div class="atic-meta-row">
+                            <span><i class="ph ph-map-pin"></i> ${esc(t.destination || '--')}</span>
+                            <span><i class="ph ph-tag"></i> <strong>${(Number(t.price) || 0).toLocaleString()} ج.م</strong> للفرد</span>
+                            <span><i class="ph ph-calendar"></i> ${dateDisplay}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3 Independent KPI Ledger Boxes -->
+                <div class="atic-ledger">
+                    <div class="atic-ledger-box">
+                        <span class="atic-ledger-label">إجمالي المطلوب</span>
+                        <span class="atic-ledger-amount blue">${totalExpected.toLocaleString()}</span>
+                        <span class="atic-ledger-currency">ج.م</span>
+                    </div>
+                    <div class="atic-ledger-box">
+                        <span class="atic-ledger-label">المحصل (اتلم)</span>
+                        <span class="atic-ledger-amount emerald">${totalCollected.toLocaleString()}</span>
+                        <span class="atic-ledger-currency">ج.م</span>
+                    </div>
+                    <div class="atic-ledger-box">
+                        <span class="atic-ledger-label">المطلوب (فاضل)</span>
+                        <span class="atic-ledger-amount amber">${totalRemaining.toLocaleString()}</span>
+                        <span class="atic-ledger-currency">ج.م</span>
+                    </div>
+                </div>
+
+                <!-- Progress & Participants -->
+                <div class="atic-progress-wrap">
+                    <div class="atic-progress-info">
+                        <span>نسبة التحصيل المستقلة: <strong>${percent}%</strong></span>
+                        <span>${bookings.length} مشترك (${servantsCount} خادم • ${membersCount} مخدوم)</span>
+                    </div>
+                    <div class="atic-progress-bar-track">
+                        <div class="atic-progress-bar-fill" style="width: ${Math.min(100, percent)}%;"></div>
+                    </div>
+                </div>
+
+                <!-- Card Actions -->
+                <div class="atic-actions">
+                    <button class="btn ${isCurrent ? 'btn-primary' : 'btn-outline'} btn-sm" onclick="selectTripAndFocus('${t.id}')">
+                        <i class="ph ph-folder-open"></i> فتح حسابات وكشف الرحلة
+                    </button>
+                    <button class="btn btn-outline btn-sm" onclick="quickAddBookingForTrip('${t.id}')" title="إضافة حجز مباشر لهذه الرحلة">
+                        <i class="ph ph-user-plus"></i> حجز
+                    </button>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+function selectTripAndFocus(tripId) {
+    selectedTripId = tripId;
+    tripsActiveViewMode = 'single';
+    refreshTripsView();
+}
+window.selectTripAndFocus = selectTripAndFocus;
+
+function quickAddBookingForTrip(tripId) {
+    selectedTripId = tripId;
+    tripsActiveViewMode = 'single';
+    refreshTripsView();
+    openBookingModal();
+}
+window.quickAddBookingForTrip = quickAddBookingForTrip;
+
 function handleBookingActionClick(e) {
     const btn = e.target.closest('[data-action]');
     if (!btn) return;
@@ -6052,38 +6200,58 @@ function refreshTripsView() {
     const trips = getTrips();
     const noTripsEl = document.getElementById('no-trips-empty-state');
     const detailsContainer = document.getElementById('trip-details-container');
+    const overviewContainer = document.getElementById('all-trips-overview-container');
     const selectorBar = document.getElementById('trips-selector-bar');
+    const modeBar = document.getElementById('trips-view-mode-bar');
 
     if (!trips || trips.length === 0) {
         if (noTripsEl) noTripsEl.style.display = 'block';
         if (detailsContainer) detailsContainer.style.display = 'none';
+        if (overviewContainer) overviewContainer.style.display = 'none';
         if (selectorBar) selectorBar.style.display = 'none';
+        if (modeBar) modeBar.style.display = 'none';
         return;
     }
 
     if (noTripsEl) noTripsEl.style.display = 'none';
-    if (detailsContainer) detailsContainer.style.display = 'block';
     if (selectorBar) selectorBar.style.display = 'block';
+    if (modeBar) modeBar.style.display = 'flex';
 
     // Verify or select active trip
     if (!selectedTripId || !trips.some(t => t.id === selectedTripId)) {
         selectedTripId = trips[0].id;
     }
 
-    // Render Pills
+    // Render Selector Pills with Independent Financial Tags
     const pillsContainer = document.getElementById('trips-pills-container');
     if (pillsContainer) {
         pillsContainer.innerHTML = '';
         trips.forEach(t => {
+            const tBookings = t.bookings || [];
+            const tTotal = tBookings.reduce((sum, b) => sum + (Number(b.price) || 0), 0);
+            const tCollected = tBookings.reduce((sum, b) => sum + (Number(b.paid) || 0), 0);
+            const tRemaining = Math.max(0, tTotal - tCollected);
+
             const btn = document.createElement('button');
             btn.className = `trip-pill-btn ${t.id === selectedTripId ? 'active' : ''}`;
             btn.setAttribute('data-trip-id', t.id);
             btn.innerHTML = `
-                <span>${esc(t.title)}</span>
-                <span class="trip-pill-badge">${(t.bookings || []).length}</span>
+                <div class="trip-pill-btn-content">
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                        <i class="ph ph-compass"></i>
+                        <span class="trip-pill-title">${esc(t.title)}</span>
+                        <span class="trip-pill-badge">${tBookings.length}</span>
+                    </div>
+                    <div class="trip-pill-fin-summary">
+                        <span class="trip-pill-fin-collected">محصل: ${tCollected.toLocaleString()} ج.م</span>
+                        <span>|</span>
+                        <span class="trip-pill-fin-remaining">فاضل: ${tRemaining.toLocaleString()} ج.م</span>
+                    </div>
+                </div>
             `;
             btn.addEventListener('click', () => {
                 selectedTripId = t.id;
+                tripsActiveViewMode = 'single';
                 refreshTripsView();
             });
             pillsContainer.appendChild(btn);
@@ -6092,6 +6260,12 @@ function refreshTripsView() {
 
     const currentTrip = trips.find(t => t.id === selectedTripId) || trips[0];
     if (!currentTrip) return;
+
+    // Update Mode Bar Labels
+    const modeActiveTripName = document.getElementById('mode-active-trip-name');
+    if (modeActiveTripName) modeActiveTripName.textContent = currentTrip.title || '--';
+    const modeAllTripsCount = document.getElementById('mode-all-trips-count');
+    if (modeAllTripsCount) modeAllTripsCount.textContent = trips.length;
 
     // Render Trip Meta Card
     const nameEl = document.getElementById('trip-detail-name');
@@ -6126,16 +6300,29 @@ function refreshTripsView() {
         statusBadge.className = `trip-status-badge ${isCompleted ? 'completed' : ''}`;
     }
 
-    // Financial KPIs (Exact user requirements: المبلغ الإجمالي، المبلغ المحصل، المبلغ المطلوب)
+    // Financial KPIs (Strictly scoped to currentTrip)
     const bookings = currentTrip.bookings || [];
     const totalExpected = bookings.reduce((sum, b) => sum + (Number(b.price) || 0), 0);
     const totalCollected = bookings.reduce((sum, b) => sum + (Number(b.paid) || 0), 0);
     const totalRemaining = Math.max(0, totalExpected - totalCollected);
 
+    // Update Dossier Banner & Card Titles
+    const kpiTripIndependentName = document.getElementById('kpi-trip-independent-name');
+    if (kpiTripIndependentName) kpiTripIndependentName.textContent = currentTrip.title || '--';
+
+    document.querySelectorAll('.kpi-trip-scoped-title').forEach(el => {
+        el.textContent = currentTrip.title || '--';
+    });
+
+    const bookingsTripTitle = document.getElementById('bookings-trip-title');
+    if (bookingsTripTitle) bookingsTripTitle.textContent = currentTrip.title || '--';
+
     const kpiTotalEl = document.getElementById('kpi-total-amount');
     const kpiCollectedEl = document.getElementById('kpi-collected-amount');
     const kpiRemainingEl = document.getElementById('kpi-remaining-amount');
+    const kpiTotalSub = document.getElementById('kpi-total-subtext');
     const kpiCollectedSub = document.getElementById('kpi-collected-subtext');
+    const kpiRemainingSub = document.getElementById('kpi-remaining-subtext');
     const kpiProgressBar = document.getElementById('kpi-progress-bar');
     const kpiProgressPercent = document.getElementById('kpi-progress-percent');
     const kpiBreakdown = document.getElementById('kpi-participants-breakdown');
@@ -6145,7 +6332,9 @@ function refreshTripsView() {
     if (kpiRemainingEl) kpiRemainingEl.textContent = totalRemaining.toLocaleString();
 
     const percent = totalExpected > 0 ? Math.round((totalCollected / totalExpected) * 100) : (bookings.length > 0 ? 100 : 0);
-    if (kpiCollectedSub) kpiCollectedSub.textContent = `${percent}% من إجمالي المطلوب`;
+    if (kpiTotalSub) kpiTotalSub.textContent = `إجمالي حجوزات رحلة (${currentTrip.title}) فقط`;
+    if (kpiCollectedSub) kpiCollectedSub.textContent = `${percent}% من إجمالي المطلوب لرحلة (${currentTrip.title})`;
+    if (kpiRemainingSub) kpiRemainingSub.textContent = `باقي للتحصيل من رحلة (${currentTrip.title})`;
     if (kpiProgressPercent) kpiProgressPercent.textContent = `${percent}%`;
     if (kpiProgressBar) kpiProgressBar.style.width = `${Math.min(100, percent)}%`;
 
@@ -6171,6 +6360,9 @@ function refreshTripsView() {
     if (countMembers) countMembers.textContent = membersCount;
     if (countRemaining) countRemaining.textContent = remainingCount;
     if (countPaid) countPaid.textContent = fullyPaidCount;
+
+    // Apply view mode display (Single Dossier vs All Trips Comparison)
+    updateTripsViewModeDisplay();
 
     // Render Bookings List
     renderBookingsList();

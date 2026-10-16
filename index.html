@@ -20,7 +20,7 @@
     <!-- SheetJS for Excel generation -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <!-- Styles -->
-    <link rel="stylesheet" href="style.css?v=20261017_trips_v1">
+    <link rel="stylesheet" href="style.css?v=20261017_trips_independent_v2">
 </head>
 <body>
     <!-- Mobile Top Header (Fixed at top on Mobile) -->
@@ -572,10 +572,22 @@
                     </div>
                 </div>
 
+                <!-- Trips View Mode Switcher (Active Trip Dossier vs All Trips Cards) -->
+                <div class="trips-view-mode-bar mb-3" id="trips-view-mode-bar">
+                    <button class="trips-mode-btn active" id="btn-mode-single-trip" data-mode="single">
+                        <i class="ph ph-folder-open"></i>
+                        <span>ملف وحسابات الرحلة المحددة: <strong id="mode-active-trip-name">--</strong></span>
+                    </button>
+                    <button class="trips-mode-btn" id="btn-mode-all-trips" data-mode="overview">
+                        <i class="ph ph-squares-four"></i>
+                        <span>مقارنة حسابات كل رحلة على حدة (<span id="mode-all-trips-count">0</span> رحلات)</span>
+                    </button>
+                </div>
+
                 <!-- Main Trip Content Container (shown if there's a selected trip) -->
                 <div id="trip-details-container">
                     <!-- Trip Info Card & Actions -->
-                    <div class="trip-meta-card glass mb-4" id="trip-meta-card">
+                    <div class="trip-meta-card glass mb-3" id="trip-meta-card">
                         <div class="trip-meta-main">
                             <div class="trip-meta-badge-wrap">
                                 <span class="trip-status-badge" id="trip-status-badge">جارية</span>
@@ -598,12 +610,27 @@
                         </div>
                     </div>
 
-                    <!-- 3 Essential Financial KPI Cards (Exact user requirement) -->
-                    <div class="stats-grid trips-kpi-grid mb-4">
-                        <!-- 1. Total Expected Revenue (المبلغ الإجمالي) -->
+                    <!-- Independent Financial Dossier Banner (Shows total financial independence) -->
+                    <div class="trip-dossier-tag-bar mb-3">
+                        <div class="dossier-tag-right">
+                            <div class="dossier-icon-box"><i class="ph ph-receipt"></i></div>
+                            <div>
+                                <span class="dossier-badge-pill">خزينة وحسابات مالية مستقلة 100%</span>
+                                <h3 class="dossier-heading">الميزانية والتحصيل الخاص بـ: <strong id="kpi-trip-independent-name">--</strong></h3>
+                            </div>
+                        </div>
+                        <div class="dossier-tag-note">
+                            <i class="ph ph-shield-check"></i>
+                            <span>الحسابات والأرقام بالأسفل تخص هذه الرحلة فقط ولا تختلط بأي رحلة أخرى نهائياً.</span>
+                        </div>
+                    </div>
+
+                    <!-- 3 Essential Financial KPI Cards (Strictly Scoped to Active Trip) -->
+                    <div class="stats-grid trips-kpi-grid mb-3">
+                        <!-- 1. Total Expected Revenue (المبلغ الإجمالي لهذه الرحلة) -->
                         <div class="stat-card glass-card kpi-card-total">
                             <div class="stat-card-top">
-                                <span class="stat-label">المبلغ الإجمالي</span>
+                                <span class="stat-label">المبلغ الإجمالي لرحلة (<span class="kpi-trip-scoped-title">--</span>)</span>
                                 <div class="stat-icon-box box-blue"><i class="ph ph-coins"></i></div>
                             </div>
                             <div class="stat-card-main">
@@ -611,14 +638,14 @@
                                     <span class="stat-value text-blue" id="kpi-total-amount">0</span>
                                     <span class="kpi-currency">ج.م</span>
                                 </div>
-                                <span class="stat-subtext" id="kpi-total-subtext">إجمالي قيمة كل الحجوزات</span>
+                                <span class="stat-subtext" id="kpi-total-subtext">إجمالي حجوزات هذه الرحلة فقط</span>
                             </div>
                         </div>
 
                         <!-- 2. Collected Amount (المبلغ المحصل - الي اتلم) -->
                         <div class="stat-card glass-card kpi-card-collected">
                             <div class="stat-card-top">
-                                <span class="stat-label">المبلغ المحصل (الي اتلم)</span>
+                                <span class="stat-label">المحصل من هذه الرحلة (الي اتلم)</span>
                                 <div class="stat-icon-box box-emerald"><i class="ph ph-hand-coins"></i></div>
                             </div>
                             <div class="stat-card-main">
@@ -626,14 +653,14 @@
                                     <span class="stat-value text-emerald" id="kpi-collected-amount">0</span>
                                     <span class="kpi-currency text-emerald">ج.م</span>
                                 </div>
-                                <span class="stat-subtext text-emerald" id="kpi-collected-subtext">0% من الإجمالي</span>
+                                <span class="stat-subtext text-emerald" id="kpi-collected-subtext">المستلم لحساب هذه الرحلة</span>
                             </div>
                         </div>
 
                         <!-- 3. Remaining Amount (المبلغ المطلوب - الي فاضل) -->
                         <div class="stat-card glass-card kpi-card-remaining">
                             <div class="stat-card-top">
-                                <span class="stat-label">المبلغ المطلوب (الي فاضل)</span>
+                                <span class="stat-label">المطلوب من هذه الرحلة (الي فاضل)</span>
                                 <div class="stat-icon-box box-amber"><i class="ph ph-receipt"></i></div>
                             </div>
                             <div class="stat-card-main">
@@ -641,7 +668,7 @@
                                     <span class="stat-value text-amber" id="kpi-remaining-amount">0</span>
                                     <span class="kpi-currency text-amber">ج.م</span>
                                 </div>
-                                <span class="stat-subtext text-amber" id="kpi-remaining-subtext">باقي للتحصيل</span>
+                                <span class="stat-subtext text-amber" id="kpi-remaining-subtext">باقي للتحصيل لهذه الرحلة</span>
                             </div>
                         </div>
                     </div>
@@ -649,7 +676,7 @@
                     <!-- Collection Progress Bar & Quick Stats Strip -->
                     <div class="trips-progress-strip glass mb-4">
                         <div class="progress-info-row">
-                            <span>نسبة التحصيل: <strong id="kpi-progress-percent">0%</strong></span>
+                            <span>نسبة التحصيل لهذه الرحلة: <strong id="kpi-progress-percent">0%</strong></span>
                             <span id="kpi-participants-breakdown">0 مشترك (0 خادم • 0 مخدوم)</span>
                         </div>
                         <div class="progress-bar-track">
@@ -659,6 +686,13 @@
 
                     <!-- Bookings Section Header & Actions -->
                     <div class="bookings-control-panel glass mb-3">
+                        <div class="bookings-title-bar mb-3">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <i class="ph ph-users" style="color: #38bdf8; font-size: 1.25rem;"></i>
+                                <h3 style="margin: 0; font-size: 1.05rem; font-weight: 700; color: #fff;">كشف حجوزات ومدفوعات: <strong id="bookings-trip-title" style="color: #38bdf8;">--</strong></h3>
+                            </div>
+                            <span class="bookings-independent-tag"><i class="ph ph-check-circle"></i> حجوزات مستقلة لهذه الرحلة فقط</span>
+                        </div>
                         <div class="bookings-actions-bar">
                             <button class="btn btn-primary" id="btn-add-booking">
                                 <i class="ph ph-user-plus"></i> إضافة حجز جديد
@@ -715,6 +749,26 @@
                             <i class="ph ph-users" style="font-size: 3rem; color: var(--text-muted); opacity: 0.6;"></i>
                             <p style="margin-top: 10px; color: var(--text-muted);">لا توجد حجوزات مسجلة تطابق البحث أو الفلتر المختار.</p>
                         </div>
+                    </div>
+                </div>
+
+                <!-- All Trips Independent Cards Overview (Side-by-Side Comparison) -->
+                <div id="all-trips-overview-container" style="display: none;">
+                    <div class="all-trips-overview-head mb-4">
+                        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                            <div>
+                                <h2 style="font-size: 1.25rem; font-weight: 800; color: #fff; margin-bottom: 4px; display: flex; align-items: center; gap: 8px;">
+                                    <i class="ph ph-squares-four" style="color: #38bdf8;"></i> كروت الحسابات المستقلة لكل رحلة
+                                </h2>
+                                <p style="font-size: 0.82rem; color: #94a3b8; margin: 0;">كل رحلة تظهر هنا ككيان مستقل تماماً بحساباتها وميزانيتها الخاصة ومبالغها المحصلة والمطلوبة.</p>
+                            </div>
+                            <button class="btn btn-outline btn-sm" id="btn-back-to-active-trip">
+                                <i class="ph ph-arrow-right"></i> العودة لملف الرحلة الحالية
+                            </button>
+                        </div>
+                    </div>
+                    <div class="all-trips-cards-grid" id="all-trips-cards-grid">
+                        <!-- Populated via JS: independent financial overview cards for each trip -->
                     </div>
                 </div>
 
@@ -2017,6 +2071,6 @@
     <script src="firebase-firestore.js"></script>
     
     <!-- Script -->
-    <script src="app.js?v=20261017_trips_v1"></script>
+    <script src="app.js?v=20261017_trips_independent_v2"></script>
 </body>
 </html>
