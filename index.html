@@ -20,9 +20,23 @@
     <!-- SheetJS for Excel generation -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <!-- Styles -->
-    <link rel="stylesheet" href="style.css?v=20261017_trips_independent_v2">
+    <link rel="stylesheet" href="style.css?v=20261023_servant_report_v2">
+    <!-- Immediate Authentication Check (Prevents Dashboard Flash Before Scripts Load) -->
+    <script>
+        (function() {
+            try {
+                if (localStorage.getItem('church_logged_in_user')) {
+                    document.documentElement.classList.add('is-logged-in');
+                } else {
+                    document.documentElement.classList.add('is-not-logged-in');
+                }
+            } catch(e) {
+                document.documentElement.classList.add('is-not-logged-in');
+            }
+        })();
+    </script>
 </head>
-<body>
+<body class="not-logged-in">
     <!-- Mobile Top Header (Fixed at top on Mobile) -->
     <header class="mobile-header" id="mobile-header">
         <div class="mobile-header-branding">
@@ -371,9 +385,16 @@
 
             <!-- Servants Dashboard View -->
             <section id="servants-dashboard-view" class="view-section">
-                <header class="view-header">
-                    <h1>متابعة الخدام</h1>
-                    <p class="subtitle">إحصائيات شاملة عن خدمة كل خادم</p>
+                <header class="view-header flex-between" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                    <div>
+                        <h1>متابعة الخدام</h1>
+                        <p class="subtitle">إحصائيات شاملة عن خدمة كل خادم</p>
+                    </div>
+                    <div class="header-actions">
+                        <button class="btn btn-primary" onclick="openServantReportModal('all')">
+                            <i class="ph ph-clipboard-text"></i> نسخ تقرير الخدام (رسالة)
+                        </button>
+                    </div>
                 </header>
 
                 <input type="text" id="search-servants" class="form-control" placeholder="بحث باسم الخادم..." style="margin-bottom: 15px; max-width: 300px;">
@@ -389,6 +410,7 @@
                                     <th style="padding: 15px; text-align: center; color: var(--primary);">قدم فقرة</th>
                                     <th style="padding: 15px; text-align: center; color: var(--primary);">مسؤول اليوم</th>
                                     <th style="padding: 15px; text-align: right; color: var(--primary);">تحليل الحضور</th>
+                                    <th style="padding: 15px; text-align: center; color: var(--primary);">تقرير الخادم</th>
                                 </tr>
                             </thead>
                             <tbody id="servants-dashboard-list">
@@ -412,6 +434,9 @@
                             <p class="subtitle">سجل خاص لتدوين ومتابعة الملاحظات الإيجابية والسلبية لكل خادم بالاجتماع</p>
                         </div>
                         <div class="header-actions" style="display: flex; gap: 8px; flex-wrap: wrap;">
+                            <button class="btn btn-outline" onclick="openServantReportModal('all')" title="تجهيز ونسخ تقرير رسالة للخدام">
+                                <i class="ph ph-clipboard-text"></i> تقرير الخدام (رسالة)
+                            </button>
                             <button class="btn btn-primary" id="btn-add-servant-note-main">
                                 <i class="ph ph-plus-circle"></i> إضافة ملاحظة
                             </button>
@@ -1062,6 +1087,31 @@
                             <span>تحميل تقرير الافتقاد</span>
                         </button>
                     </div>
+
+                    <div class="settings-card-nocturne" id="card-report-servants-copy">
+                        <div class="card-head">
+                            <div class="card-icon-box box-amber"><i class="ph ph-clipboard-text"></i></div>
+                            <h2 class="card-title">تقرير الخدام (رسالة جاهزة)</h2>
+                        </div>
+                        <p class="card-desc">توليد رسالة نصية جاهزة للنسخ والمشاركة عن إحصائيات الخادم (الحضور، الفقرات، الافتقادات، والملاحظات الإيجابية والسلبية).</p>
+                        <button class="btn-nocturne btn-amber" id="btn-open-servant-report-from-settings" onclick="openServantReportModal('all')">
+                            <i class="ph ph-copy"></i>
+                            <span>نسخ ومشاركة تقرير الخدام</span>
+                        </button>
+                    </div>
+
+                    <!-- Section: Logout -->
+                    <div class="settings-card-nocturne" id="card-logout-settings" style="border-color: rgba(239, 68, 68, 0.35); background: rgba(239, 68, 68, 0.04);">
+                        <div class="card-head">
+                            <div class="card-icon-box" style="background: rgba(239, 68, 68, 0.15); color: #f87171;"><i class="ph ph-sign-out"></i></div>
+                            <h2 class="card-title" style="color: #f87171;">تسجيل الخروج</h2>
+                        </div>
+                        <p class="card-desc">تسجيل الخروج من الحساب الحالي وقفل شاشة البرنامج على هذا الجهاز.</p>
+                        <button class="btn-nocturne" id="btn-logout-settings" style="background: linear-gradient(135deg, #ef4444, #dc2626); color: #fff;">
+                            <i class="ph ph-sign-out"></i>
+                            <span>تسجيل الخروج الآن</span>
+                        </button>
+                    </div>
                 </div>
             </section>
 
@@ -1587,25 +1637,40 @@
     </div>
 
     <!-- Login Modal (Full Screen Overlay) -->
-    <div class="modal-overlay" id="login-modal-bg" style="z-index: 20000; background: var(--bg-color);">
-        <div class="modal glass" style="max-width: 400px; text-align: center; padding: 30px;">
-            <div class="logo-container" style="margin: 0 auto 20px;">
-                <i class="ph ph-lock-key" style="font-size: 2.5rem; color: var(--primary);"></i>
+    <div class="modal-overlay active" id="login-modal-bg">
+        <div class="modal glass login-modal-box">
+            <div class="logo-container" style="margin: 0 auto 16px;">
+                <div class="login-avatar-glow">
+                    <i class="ph ph-church"></i>
+                </div>
             </div>
-            <h2 style="margin-bottom: 20px;">تسجيل الدخول</h2>
+            <h2 style="margin-bottom: 4px; font-weight: 800; font-size: 1.35rem; color: #ffffff;">تسجيل الدخول</h2>
+            <p style="color: #94a3b8; font-size: 0.85rem; margin-bottom: 22px;">اجتماع القديس يوحنا الحبيب</p>
+
             <div class="form-group text-right" style="text-align: right;">
-                <label>الاسم</label>
-                <select id="login-username" class="form-control">
+                <label style="font-weight: 600; margin-bottom: 6px; display: block; color: #cbd5e1;">الاسم أو الحساب</label>
+                <select id="login-username" class="form-control" style="width: 100%; height: 44px; border-radius: 10px;">
                     <option value="admin">الأدمن (مدير النظام)</option>
                     <option value="supervisor">المشرف</option>
                     <!-- Servants populated by JS -->
                 </select>
             </div>
+
             <div class="form-group text-right mt-3" style="text-align: right;">
-                <label>كلمة المرور</label>
-                <input type="password" id="login-password" class="form-control" placeholder="أدخل كلمة المرور...">
+                <label style="font-weight: 600; margin-bottom: 6px; display: block; color: #cbd5e1;">كلمة المرور</label>
+                <div class="password-input-wrapper">
+                    <input type="password" id="login-password" class="form-control" placeholder="أدخل كلمة المرور..." autocomplete="current-password" style="width: 100%; height: 44px; border-radius: 10px;">
+                    <button type="button" class="btn-toggle-password" id="btn-toggle-login-password" aria-label="إظهار / إخفاء كلمة المرور" title="إظهار كلمة المرور">
+                        <i class="ph ph-eye" id="login-pass-icon"></i>
+                    </button>
+                </div>
+                <div id="login-error-msg" style="display: none; color: #f87171; background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.3); padding: 8px 12px; border-radius: 8px; font-size: 0.85rem; margin-top: 10px; font-weight: 600; text-align: right;"></div>
             </div>
-            <button class="btn btn-primary mt-4" id="btn-login" style="width: 100%;">دخول</button>
+
+            <button class="btn btn-primary mt-4" id="btn-login" style="width: 100%; height: 46px; border-radius: 10px; font-size: 1rem; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                <i class="ph ph-sign-in"></i>
+                <span>دخول</span>
+            </button>
         </div>
     </div>
 
@@ -1628,7 +1693,12 @@
                 
                 <div class="form-group mt-3">
                     <label>كلمة مرور الحساب (لتسجيل الدخول)</label>
-                    <input type="text" id="perm-password" class="form-control" placeholder="أدخل كلمة مرور جديدة للتغيير...">
+                    <div class="password-input-wrapper">
+                        <input type="password" id="perm-password" class="form-control" placeholder="أدخل كلمة مرور جديدة للتغيير..." autocomplete="new-password">
+                        <button type="button" class="btn-toggle-password" id="btn-toggle-perm-password" aria-label="إظهار / إخفاء كلمة المرور" title="إظهار كلمة المرور">
+                            <i class="ph ph-eye" id="perm-pass-icon"></i>
+                        </button>
+                    </div>
                     <small id="perm-pass-hint" style="color: var(--primary); display: block; margin-top: 6px; font-weight: 600; font-size: 0.88rem;"></small>
                 </div>
 
@@ -1811,9 +1881,14 @@
                         <span style="color: #34d399;">🟢 إيجابي: <b id="history-stat-pos">0</b></span>
                         <span style="color: #f87171;">🔴 سلبي: <b id="history-stat-neg">0</b></span>
                     </div>
-                    <button class="btn btn-primary btn-sm" id="btn-history-quick-add">
-                        <i class="ph ph-plus"></i> إضافة ملاحظة جديدة
-                    </button>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <button class="btn btn-outline btn-sm" id="btn-history-copy-report" onclick="if(currentHistoryServantId) openServantReportModal(currentHistoryServantId)" title="نسخ تقرير هذا الخادم كرسالة">
+                            <i class="ph ph-copy"></i> نسخ التقرير
+                        </button>
+                        <button class="btn btn-primary btn-sm" id="btn-history-quick-add">
+                            <i class="ph ph-plus"></i> إضافة ملاحظة جديدة
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Internal Filter Pills -->
@@ -1830,6 +1905,55 @@
             </div>
             <div class="modal-footer">
                 <button class="btn btn-outline close-modal">إغلاق</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Servant Report Copy Modal -->
+    <div class="modal-overlay" id="servant-report-modal-bg" style="z-index: 10006;">
+        <div class="modal glass" style="max-width: 660px; width: 100%;">
+            <div class="modal-header flex-between" style="padding: 16px 20px; border-bottom: 1px solid var(--glass-border); display: flex; justify-content: space-between; align-items: center;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <div style="width: 38px; height: 38px; border-radius: 10px; background: rgba(99, 102, 241, 0.15); color: #818cf8; display: flex; align-items: center; justify-content: center; font-size: 1.3rem;">
+                        <i class="ph ph-clipboard-text"></i>
+                    </div>
+                    <div>
+                        <h3 style="margin: 0; font-size: 1.15rem; font-weight: 700;">تقرير الخدام (رسالة جاهزة للنسخ)</h3>
+                        <p style="margin: 0; font-size: 0.78rem; color: var(--text-muted);">إحصائيات شاملة، الحضور، الفقرات، الافتقاد، والملاحظات</p>
+                    </div>
+                </div>
+                <button class="close-modal"><span style="font-size: 1.5rem; font-weight: bold; line-height: 1;">&times;</span></button>
+            </div>
+            <div class="modal-body" style="padding: 20px; max-height: 75vh; overflow-y: auto;">
+                <!-- Servant Selection Dropdown -->
+                <div class="form-group" style="margin-bottom: 16px;">
+                    <label style="font-weight: 600; margin-bottom: 6px; display: block; color: var(--text-color);">اختر الخادم المطلوب:</label>
+                    <select id="servant-report-select" class="form-control" style="width: 100%; height: 42px; border-radius: 10px;">
+                        <option value="all">📊 تقرير شامل مجمع لكل الخدام</option>
+                        <!-- Populated by JS -->
+                    </select>
+                </div>
+
+                <!-- Preview Textarea -->
+                <div class="form-group" style="margin-bottom: 16px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                        <label style="font-weight: 600; color: var(--text-color); margin: 0;">معاينة نص الرسالة:</label>
+                        <span style="font-size: 0.78rem; color: #818cf8; font-weight: 600;">جاهزة للمشاركة على واتساب 📲</span>
+                    </div>
+                    <textarea id="servant-report-preview" class="form-control" rows="12" style="width: 100%; font-family: 'Rubik', 'Cairo', sans-serif; font-size: 0.88rem; line-height: 1.6; border-radius: 12px; background: #080d1a; color: #f1f5f9; padding: 14px; resize: vertical;" readonly></textarea>
+                </div>
+
+                <!-- Modal Action Buttons -->
+                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                    <button class="btn btn-primary" id="btn-copy-servant-report-text" style="flex: 2; height: 46px; border-radius: 10px; font-weight: 700; font-size: 1rem; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                        <i class="ph ph-copy"></i>
+                        <span>نسخ الرسالة</span>
+                    </button>
+                    <button class="btn btn-success" id="btn-share-servant-report-whatsapp" style="flex: 1; height: 46px; border-radius: 10px; font-weight: 700; font-size: 0.95rem; display: flex; align-items: center; justify-content: center; gap: 8px; background: #25D366; border-color: #25D366; color: #fff;">
+                        <i class="ph ph-whatsapp-logo" style="font-size: 1.25rem;"></i>
+                        <span>مشاركة واتساب</span>
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -2071,6 +2195,6 @@
     <script src="firebase-firestore.js"></script>
     
     <!-- Script -->
-    <script src="app.js?v=20261017_trips_independent_v2"></script>
+    <script src="app.js?v=20261023_servant_report_v2"></script>
 </body>
 </html>

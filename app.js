@@ -776,14 +776,27 @@ function checkLoginAndApply() {
             currentPermissions = authData.servants[loggedInId].permissions || ['dashboard-view'];
         } else {
             localStorage.removeItem('church_logged_in_user');
-            loginModal.classList.add('active');
+            currentUserRole = null;
+            currentPermissions = [];
+            document.documentElement.classList.remove('is-logged-in');
+            document.documentElement.classList.add('is-not-logged-in');
+            document.body.classList.add('not-logged-in');
+            if (loginModal) loginModal.classList.add('active');
             return;
         }
 
-        loginModal.classList.remove('active');
+        document.documentElement.classList.add('is-logged-in');
+        document.documentElement.classList.remove('is-not-logged-in');
+        document.body.classList.remove('not-logged-in');
+        if (loginModal) loginModal.classList.remove('active');
         applyPermissions();
     } else {
-        loginModal.classList.add('active');
+        currentUserRole = null;
+        currentPermissions = [];
+        document.documentElement.classList.remove('is-logged-in');
+        document.documentElement.classList.add('is-not-logged-in');
+        document.body.classList.add('not-logged-in');
+        if (loginModal) loginModal.classList.add('active');
     }
 }
 
@@ -892,6 +905,10 @@ function normalizeAr(value) {
 
 // --- Navigation ---
 window.navigateToView = async function(targetId) {
+    if (!localStorage.getItem('church_logged_in_user') || !currentUserRole) {
+        checkLoginAndApply();
+        return;
+    }
     if (!hasPermissionForView(targetId)) {
         showToast('عفواً، لا تملك صلاحية لفتح هذه الصفحة', 'warning');
         const firstVisibleBtn = Array.from(document.querySelectorAll('.sidebar-nav .nav-btn')).find(b => b.style.display !== 'none');
@@ -1894,12 +1911,19 @@ function setupPersonModal() {
 function setupModalDismiss() {
     document.querySelectorAll('.modal-overlay').forEach(overlay => {
         overlay.addEventListener('mousedown', (e) => {
+            if (overlay.id === 'login-modal-bg') return; // NEVER dismiss login modal!
             if (e.target === overlay) overlay.classList.remove('active');
         });
+        overlay.addEventListener('touchstart', (e) => {
+            if (overlay.id === 'login-modal-bg') return; // NEVER dismiss login modal!
+        }, { passive: true });
     });
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
-            document.querySelectorAll('.modal-overlay.active').forEach(o => o.classList.remove('active'));
+            document.querySelectorAll('.modal-overlay.active').forEach(o => {
+                if (o.id === 'login-modal-bg') return; // NEVER dismiss login modal!
+                o.classList.remove('active');
+            });
         }
     });
 }
@@ -1926,7 +1950,7 @@ function refreshServantsDashboard() {
     const servants = members.filter(m => m.role === 'servant');
 
     if (servants.length === 0) {
-        list.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 20px;">لا يوجد خدام مسجلين</td></tr>';
+        list.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 20px;">لا يوجد خدام مسجلين</td></tr>';
         return;
     }
 
@@ -1945,7 +1969,7 @@ function refreshServantsDashboard() {
 
         // Calculate Attendance and Servant Stats
         Object.keys(records).forEach(date => {
-            if (records[date].includes(servant.id)) {
+            if (records[date] && records[date].includes(servant.id)) {
                 attendedCount++;
             }
             if (servantRecords[date] && servantRecords[date][servant.id]) {
@@ -1960,10 +1984,11 @@ function refreshServantsDashboard() {
 
         // Calculate Visitations
         Object.values(visitations).forEach(mVisits => {
+            if (!Array.isArray(mVisits)) return;
             mVisits.forEach(v => {
-                if (Array.isArray(v.servants) && v.servants.includes(servant.id)) {
+                if (Array.isArray(v.servants) && (v.servants.includes(servant.id) || v.servants.includes(servant.name))) {
                     visitsMade++;
-                } else if (typeof v.servants === 'string' && v.servants.includes(servant.name.split(' ')[0])) {
+                } else if (typeof v.servants === 'string' && (v.servants.includes(servant.id) || v.servants.includes(servant.name) || (servant.name.split(' ')[0] && v.servants.includes(servant.name.split(' ')[0])))) {
                     visitsMade++;
                 }
             });
@@ -1989,6 +2014,11 @@ function refreshServantsDashboard() {
             <td style="padding: 15px; text-align: center;">${presentedCount}</td>
             <td style="padding: 15px; text-align: center;">${leaderCount}</td>
             <td style="padding: 15px; text-align: right;">${arrivalHtml}</td>
+            <td style="padding: 15px; text-align: center;">
+                <button class="btn btn-outline btn-sm" onclick="openServantReportModal('${servant.id}')" title="عرض ونسخ تقرير الخادم كرسالة">
+                    <i class="ph ph-copy"></i> تقرير
+                </button>
+            </td>
         `;
 
         list.appendChild(tr);
@@ -2128,6 +2158,28 @@ function setupServantsNotes() {
     const btnExport = document.getElementById('btn-export-servant-notes');
     if (btnExport) {
         btnExport.addEventListener('click', exportServantNotesToExcel);
+    }
+
+    // 10. Servant Report Copy & Share Listeners
+    const btnCopyReportText = document.getElementById('btn-copy-servant-report-text');
+    if (btnCopyReportText) {
+        btnCopyReportText.addEventListener('click', () => {
+            const preview = document.getElementById('servant-report-preview');
+            if (!preview || !preview.value) return;
+            copyTextToClipboardHelper(preview.value, () => {
+                showToast('تم نسخ تقرير الخدام للحافظة بنجاح! 📋 جاهز للمشاركة', 'success');
+            });
+        });
+    }
+
+    const btnShareWhatsapp = document.getElementById('btn-share-servant-report-whatsapp');
+    if (btnShareWhatsapp) {
+        btnShareWhatsapp.addEventListener('click', () => {
+            const preview = document.getElementById('servant-report-preview');
+            if (!preview || !preview.value) return;
+            const waUrl = `https://wa.me/?text=${encodeURIComponent(preview.value)}`;
+            window.open(waUrl, '_blank');
+        });
     }
 }
 
@@ -2331,6 +2383,9 @@ function renderServantsNotesGrid() {
                 ${addNoteBtnHtml}
                 <button class="btn btn-outline btn-sm" onclick="openServantNotesHistoryModal('${servant.id}')">
                     <i class="ph ph-notebook"></i> السجل (${total})
+                </button>
+                <button class="btn btn-outline btn-sm" onclick="openServantReportModal('${servant.id}')" title="عرض ونسخ تقرير الخادم كرسالة">
+                    <i class="ph ph-copy"></i> نسخ التقرير
                 </button>
             </div>
         `;
@@ -2603,6 +2658,306 @@ function exportServantNotesToExcel() {
     XLSX.utils.book_append_sheet(wb, ws, "ملاحظات الخدام");
     XLSX.writeFile(wb, `ملاحظات_خدام_الاجتماع_${todayLocal()}.xlsx`);
     showToast('تم تصدير ملف الإكسيل بنجاح 📊', 'success');
+}
+
+// ==========================================
+// SERVANT REPORT COPY GENERATOR (تقرير الخدام - رسالة كوبي)
+// ==========================================
+
+function getServantFullStats(servantId) {
+    const members = getMembers();
+    const servant = members.find(m => m.id === servantId);
+    if (!servant) return null;
+
+    const records = getAttendanceRecords();
+    const servantRecords = getServantRecords();
+    const visitations = getVisitations();
+    const allNotes = getServantNotes();
+
+    const totalMeetings = Object.keys(records).length;
+    let attendedCount = 0;
+    let presentedCount = 0;
+    let leaderCount = 0;
+    let early = 0, middle = 0, late = 0;
+
+    Object.keys(records).forEach(date => {
+        if (records[date] && records[date].includes(servant.id)) {
+            attendedCount++;
+        }
+        if (servantRecords[date] && servantRecords[date][servant.id]) {
+            const sData = servantRecords[date][servant.id];
+            if (sData.presented) presentedCount++;
+            if (sData.leader) leaderCount++;
+            if (sData.arrival === 'early') early++;
+            else if (sData.arrival === 'middle') middle++;
+            else if (sData.arrival === 'late') late++;
+        }
+    });
+
+    const attendanceRate = totalMeetings > 0 ? Math.round((attendedCount / totalMeetings) * 100) : 0;
+
+    // Visitations
+    let totalVisitsMade = 0;
+    const visitedMemberIds = new Set();
+    const visitedMemberNames = [];
+
+    const memberMap = {};
+    members.forEach(m => { memberMap[m.id] = m.name; });
+
+    Object.entries(visitations).forEach(([memberId, mVisits]) => {
+        if (!Array.isArray(mVisits)) return;
+        mVisits.forEach(v => {
+            let matches = false;
+            if (Array.isArray(v.servants)) {
+                if (v.servants.includes(servant.id) || v.servants.includes(servant.name)) matches = true;
+            } else if (typeof v.servants === 'string') {
+                if (v.servants.includes(servant.id) || v.servants.includes(servant.name) || (servant.name.split(' ')[0] && v.servants.includes(servant.name.split(' ')[0]))) {
+                    matches = true;
+                }
+            }
+
+            if (matches) {
+                totalVisitsMade++;
+                if (!visitedMemberIds.has(memberId)) {
+                    visitedMemberIds.add(memberId);
+                    const mName = memberMap[memberId] || `عضو (${memberId})`;
+                    visitedMemberNames.push(mName);
+                }
+            }
+        });
+    });
+
+    // Notes
+    const sNotes = allNotes.filter(n => n.servantId === servant.id)
+                           .sort((a, b) => new Date(b.date || b.createdAt) - new Date(a.date || a.createdAt));
+    const posNotes = sNotes.filter(n => n.type === 'positive');
+    const negNotes = sNotes.filter(n => n.type === 'negative');
+
+    return {
+        servant,
+        totalMeetings,
+        attendedCount,
+        attendanceRate,
+        presentedCount,
+        leaderCount,
+        early,
+        middle,
+        late,
+        totalVisitsMade,
+        uniqueVisitedCount: visitedMemberIds.size,
+        visitedMemberNames,
+        posNotes,
+        negNotes,
+        totalNotes: sNotes.length
+    };
+}
+
+function formatSingleServantReport(stats) {
+    if (!stats) return '';
+    const { servant, totalMeetings, attendedCount, attendanceRate, presentedCount, leaderCount, early, middle, late, totalVisitsMade, uniqueVisitedCount, visitedMemberNames, posNotes, negNotes, totalNotes } = stats;
+
+    const todayStr = new Date().toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' });
+
+    let msg = `📊 *تقرير أداء ومتابعة خادم* 📊\n`;
+    msg += `*اجتماع القديس يوحنا الحبيب*\n`;
+    msg += `━━━━━━━━━━━━━━━━━━━━\n`;
+    msg += `👤 *الخادم:* ${servant.name}\n`;
+    if (servant.phone) msg += `📱 *الهاتف:* ${servant.phone}\n`;
+    if (servant.address) msg += `📍 *المنطقة:* ${servant.address}\n`;
+    msg += `\n`;
+
+    msg += `📈 *إحصائيات الحضور والخدمة:*\n`;
+    msg += `▫️ *نسبة الحضور:* ${attendanceRate}% (${attendedCount} من إجمالي ${totalMeetings} اجتماع)\n`;
+    if (early > 0 || middle > 0 || late > 0) {
+        msg += `▫️ *تحليل المواعيد:* ${early} بدري | ${middle} في الميعاد | ${late} متأخر\n`;
+    }
+    msg += `▫️ *عدد الفقرات المقدمة:* ${presentedCount} فقرة\n`;
+    if (leaderCount > 0) {
+        msg += `▫️ *مسؤول اليوم (قيادة):* ${leaderCount} مرة\n`;
+    }
+    msg += `\n`;
+
+    msg += `🚗 *نشاط الافتقاد:*\n`;
+    if (uniqueVisitedCount > 0) {
+        msg += `▫️ *نزل افتقاد لـ:* ${uniqueVisitedCount} مخدوم (إجمالي ${totalVisitsMade} نزول افتقاد)\n`;
+        const previewNames = visitedMemberNames.slice(0, 15).join('، ');
+        const moreSuffix = visitedMemberNames.length > 15 ? ` و${visitedMemberNames.length - 15} آخرين` : '';
+        msg += `▫️ *المخدومين:* ${previewNames}${moreSuffix}\n`;
+    } else {
+        msg += `▫️ لم يتم تسجيل نزول افتقاد حتى الآن.\n`;
+    }
+    msg += `\n`;
+
+    msg += `📝 *سجل التقييم والملاحظات (${totalNotes}):*\n`;
+    msg += `▫️ 🟢 إيجابيات: ${posNotes.length} | 🔴 سلبيات: ${negNotes.length}\n\n`;
+
+    msg += `🟢 *الإيجابيات (${posNotes.length}):*\n`;
+    if (posNotes.length > 0) {
+        posNotes.forEach((n, idx) => {
+            const cat = n.category ? `(${n.category})` : '';
+            const d = n.date ? `[${formatDate(n.date)}] ` : '';
+            msg += `${idx + 1}. ${d}${cat} ${n.text}\n`;
+        });
+    } else {
+        msg += `▫️ لا توجد ملاحظات إيجابية مسجلة حالياً.\n`;
+    }
+    msg += `\n`;
+
+    msg += `🔴 *الملاحظات والسلبيات (${negNotes.length}):*\n`;
+    if (negNotes.length > 0) {
+        negNotes.forEach((n, idx) => {
+            const cat = n.category ? `(${n.category})` : '';
+            const d = n.date ? `[${formatDate(n.date)}] ` : '';
+            msg += `${idx + 1}. ${d}${cat} ${n.text}\n`;
+        });
+    } else {
+        msg += `▫️ لا توجد سلبيات مسجلة (خدمة متميزة ✨)\n`;
+    }
+
+    msg += `\n━━━━━━━━━━━━━━━━━━━━\n`;
+    msg += `📅 *تاريخ التقرير:* ${todayStr}\n`;
+
+    return msg;
+}
+
+function formatAllServantsReport() {
+    const members = getMembers();
+    const servants = members.filter(m => m.role === 'servant').sort((a, b) => a.name.localeCompare(b.name, 'ar'));
+    const todayStr = new Date().toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' });
+    const records = getAttendanceRecords();
+    const totalMeetings = Object.keys(records).length;
+
+    let msg = `📊 *التقرير الشامل لمتابعة وتقييم الخدام* 📊\n`;
+    msg += `*اجتماع القديس يوحنا الحبيب*\n`;
+    msg += `━━━━━━━━━━━━━━━━━━━━\n`;
+    msg += `👥 *إجمالي عدد الخدام:* ${servants.length} خادم\n`;
+    msg += `📅 *إجمالي الاجتماعات:* ${totalMeetings} اجتماع\n`;
+    msg += `━━━━━━━━━━━━━━━━━━━━\n\n`;
+
+    servants.forEach((servant, idx) => {
+        const stats = getServantFullStats(servant.id);
+        if (!stats) return;
+
+        msg += `${idx + 1}️⃣ *${servant.name}*\n`;
+        msg += `▫️ نسبة الحضور: ${stats.attendanceRate}% (${stats.attendedCount}/${totalMeetings})\n`;
+        if (stats.early > 0 || stats.middle > 0 || stats.late > 0) {
+            msg += `▫️ المواعيد: ${stats.early} بدري | ${stats.middle} في النص | ${stats.late} متأخر\n`;
+        }
+        msg += `▫️ عدد الفقرات: ${stats.presentedCount} فقرة | قيادة: ${stats.leaderCount}\n`;
+        msg += `▫️ الافتقاد: نزل لـ ${stats.uniqueVisitedCount} مخدوم (${stats.totalVisitsMade} نزول)\n`;
+        msg += `▫️ التقييم: 🟢 ${stats.posNotes.length} إيجابية | 🔴 ${stats.negNotes.length} سلبية\n`;
+
+        if (stats.posNotes.length > 0) {
+            const posSample = stats.posNotes.slice(0, 3).map(n => n.text).join(' • ');
+            msg += `   🟢 إيجابيات: ${posSample}\n`;
+        }
+        if (stats.negNotes.length > 0) {
+            const negSample = stats.negNotes.slice(0, 3).map(n => n.text).join(' • ');
+            msg += `   🔴 سلبيات: ${negSample}\n`;
+        }
+
+        msg += `────────────────────\n`;
+    });
+
+    msg += `\n📅 *تاريخ التقرير:* ${todayStr}\n`;
+    return msg;
+}
+
+window.openServantReportModal = function(targetServantId = 'all') {
+    const modal = document.getElementById('servant-report-modal-bg');
+    if (!modal) return;
+
+    const select = document.getElementById('servant-report-select');
+    const preview = document.getElementById('servant-report-preview');
+
+    const members = getMembers();
+    const servants = members.filter(m => m.role === 'servant').sort((a, b) => a.name.localeCompare(b.name, 'ar'));
+
+    if (select) {
+        select.innerHTML = `<option value="all">📊 تقرير شامل مجمع لكل الخدام (${servants.length} خادم)</option>`;
+        servants.forEach(s => {
+            const opt = document.createElement('option');
+            opt.value = s.id;
+            opt.innerText = `👤 ${s.name}`;
+            select.appendChild(opt);
+        });
+
+        // Set requested servant or 'all'
+        if (targetServantId && (targetServantId === 'all' || servants.some(s => s.id === targetServantId))) {
+            select.value = targetServantId;
+        } else {
+            select.value = 'all';
+        }
+    }
+
+    const updatePreview = () => {
+        const val = select ? select.value : 'all';
+        if (val === 'all') {
+            preview.value = formatAllServantsReport();
+        } else {
+            const stats = getServantFullStats(val);
+            preview.value = formatSingleServantReport(stats);
+        }
+    };
+
+    updatePreview();
+
+    if (select && !select._hasReportListener) {
+        select.addEventListener('change', updatePreview);
+        select._hasReportListener = true;
+    }
+
+    modal.classList.add('active');
+};
+
+window.copyServantReportDirect = function(servantId, event) {
+    if (event) event.stopPropagation();
+    let text = '';
+    let servantName = '';
+    if (!servantId || servantId === 'all') {
+        text = formatAllServantsReport();
+        servantName = 'جميع الخدام';
+    } else {
+        const stats = getServantFullStats(servantId);
+        if (!stats) return;
+        text = formatSingleServantReport(stats);
+        servantName = stats.servant.name;
+    }
+
+    copyTextToClipboardHelper(text, () => {
+        showToast(`تم نسخ تقرير (${servantName}) كرسالة بنجاح! 📋`, 'success');
+    });
+};
+
+function copyTextToClipboardHelper(text, callback) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(() => {
+            if (callback) callback();
+        }).catch(() => {
+            fallbackCopy(text, callback);
+        });
+    } else {
+        fallbackCopy(text, callback);
+    }
+}
+
+function fallbackCopy(text, callback) {
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.style.position = 'fixed';
+    textarea.style.top = '0';
+    textarea.style.left = '0';
+    textarea.style.opacity = '0';
+    document.body.appendChild(textarea);
+    textarea.focus();
+    textarea.select();
+    try {
+        document.execCommand('copy');
+        if (callback) callback();
+    } catch (e) {
+        alert('يرجى تحديد النص ونسخه يدوياً');
+    }
+    document.body.removeChild(textarea);
 }
 
 
@@ -4724,11 +5079,78 @@ function setupAuth() {
         if (permServantSelect) permServantSelect.appendChild(opt);
     });
 
+    // --- Password Show/Hide Toggle for Login ---
+    const btnToggleLoginPass = document.getElementById('btn-toggle-login-password');
+    const loginPassInput = document.getElementById('login-password');
+    const loginErrorMsg = document.getElementById('login-error-msg');
+
+    if (btnToggleLoginPass && loginPassInput) {
+        btnToggleLoginPass.addEventListener('click', (e) => {
+            e.preventDefault();
+            const icon = document.getElementById('login-pass-icon');
+            if (loginPassInput.type === 'password') {
+                loginPassInput.type = 'text';
+                if (icon) {
+                    icon.classList.remove('ph-eye');
+                    icon.classList.add('ph-eye-slash');
+                }
+                btnToggleLoginPass.title = 'إخفاء كلمة المرور';
+            } else {
+                loginPassInput.type = 'password';
+                if (icon) {
+                    icon.classList.remove('ph-eye-slash');
+                    icon.classList.add('ph-eye');
+                }
+                btnToggleLoginPass.title = 'إظهار كلمة المرور';
+            }
+            loginPassInput.focus();
+        });
+    }
+
+    if (loginPassInput) {
+        loginPassInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                const btn = document.getElementById('btn-login');
+                if (btn) btn.click();
+            }
+        });
+        loginPassInput.addEventListener('input', () => {
+            if (loginErrorMsg) loginErrorMsg.style.display = 'none';
+        });
+    }
+
+    // --- Password Show/Hide Toggle for Permissions Modal ---
+    const btnTogglePermPass = document.getElementById('btn-toggle-perm-password');
+    const permPassInputEl = document.getElementById('perm-password');
+    if (btnTogglePermPass && permPassInputEl) {
+        btnTogglePermPass.addEventListener('click', (e) => {
+            e.preventDefault();
+            const icon = document.getElementById('perm-pass-icon');
+            if (permPassInputEl.type === 'password') {
+                permPassInputEl.type = 'text';
+                if (icon) {
+                    icon.classList.remove('ph-eye');
+                    icon.classList.add('ph-eye-slash');
+                }
+                btnTogglePermPass.title = 'إخفاء كلمة المرور';
+            } else {
+                permPassInputEl.type = 'password';
+                if (icon) {
+                    icon.classList.remove('ph-eye-slash');
+                    icon.classList.add('ph-eye');
+                }
+                btnTogglePermPass.title = 'إظهار كلمة المرور';
+            }
+            permPassInputEl.focus();
+        });
+    }
+
     const btnLogin = document.getElementById('btn-login');
     if (btnLogin) {
         btnLogin.addEventListener('click', () => {
             const id = document.getElementById('login-username').value;
-            const pass = document.getElementById('login-password').value;
+            const pass = document.getElementById('login-password').value.trim();
             const authData = getAuthData();
 
             let isValid = false;
@@ -4741,22 +5163,66 @@ function setupAuth() {
             }
 
             if (isValid) {
+                if (loginErrorMsg) loginErrorMsg.style.display = 'none';
                 localStorage.setItem('church_logged_in_user', id);
                 document.getElementById('login-password').value = '';
                 checkLoginAndApply();
                 showToast('تم تسجيل الدخول بنجاح!');
+                if (typeof refreshDashboard === 'function') refreshDashboard();
             } else {
-                alert('كلمة المرور غير صحيحة!');
+                if (loginErrorMsg) {
+                    loginErrorMsg.innerText = '⚠️ كلمة المرور غير صحيحة، يرجى المحاولة مرة أخرى.';
+                    loginErrorMsg.style.display = 'block';
+                }
+                showToast('كلمة المرور غير صحيحة!', 'danger');
+                if (loginPassInput) {
+                    loginPassInput.focus();
+                    loginPassInput.select();
+                }
             }
         });
     }
 
+    const performLogout = () => {
+        localStorage.removeItem('church_logged_in_user');
+        currentUserRole = null;
+        currentPermissions = [];
+        document.documentElement.classList.remove('is-logged-in');
+        document.documentElement.classList.add('is-not-logged-in');
+        document.body.classList.add('not-logged-in');
+
+        const sidebar = document.querySelector('.sidebar');
+        if (sidebar) sidebar.classList.remove('mobile-open');
+        const overlay = document.getElementById('mobile-sidebar-overlay');
+        if (overlay) overlay.classList.remove('active');
+
+        const loginModal = document.getElementById('login-modal-bg');
+        if (loginModal) loginModal.classList.add('active');
+
+        const passInput = document.getElementById('login-password');
+        if (passInput) {
+            passInput.value = '';
+            passInput.type = 'password';
+            const icon = document.getElementById('login-pass-icon');
+            if (icon) {
+                icon.classList.remove('ph-eye-slash');
+                icon.classList.add('ph-eye');
+            }
+        }
+        if (loginErrorMsg) loginErrorMsg.style.display = 'none';
+
+        checkLoginAndApply();
+        showToast('تم تسجيل الخروج بنجاح');
+    };
+
     const btnLogout = document.getElementById('btn-logout');
     if (btnLogout) {
-        btnLogout.addEventListener('click', () => {
-            localStorage.removeItem('church_logged_in_user');
-            checkLoginAndApply();
-        });
+        btnLogout.addEventListener('click', performLogout);
+    }
+
+    const btnLogoutSettings = document.getElementById('btn-logout-settings');
+    if (btnLogoutSettings) {
+        btnLogoutSettings.addEventListener('click', performLogout);
     }
 
     const btnManagePermissions = document.getElementById('btn-manage-permissions');
@@ -4788,6 +5254,12 @@ function setupAuth() {
             const permPassInput = document.getElementById('perm-password');
             if (permPassInput) {
                 permPassInput.value = '';
+                permPassInput.type = 'password';
+                const pIcon = document.getElementById('perm-pass-icon');
+                if (pIcon) {
+                    pIcon.classList.remove('ph-eye-slash');
+                    pIcon.classList.add('ph-eye');
+                }
                 permPassInput.placeholder = data.password ? `اكتب كلمة مرور جديدة لتغييرها...` : 'أدخل كلمة مرور جديدة...';
             }
 
@@ -4894,8 +5366,10 @@ document.addEventListener('DOMContentLoaded', () => {
     setupAuth();
     checkLoginAndApply();
 
-    // Load initial view
-    refreshDashboard();
+    // Load initial view only if authenticated
+    if (localStorage.getItem('church_logged_in_user')) {
+        refreshDashboard();
+    }
 });
 
 function setupKeyboardShortcuts() {
@@ -5812,6 +6286,7 @@ window.copyCompetitionResultToClipboard = function (compId) {
 
 // --- Mobile UI Responsiveness ---
 function toggleMobileMenu() {
+    if (!localStorage.getItem('church_logged_in_user')) return;
     const sidebar = document.querySelector('.sidebar');
     const overlay = document.getElementById('mobile-sidebar-overlay');
     if (sidebar) sidebar.classList.toggle('mobile-open');

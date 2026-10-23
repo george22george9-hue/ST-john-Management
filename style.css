@@ -5813,4 +5813,154 @@ body {
     padding: 8px 12px;
 }
 
+/* ========================================================
+   AUTHENTICATION GATE & FULL-SCREEN LOGIN SCREEN
+   Fix: Main dashboard must never be visible without login
+   ======================================================== */
+html.is-not-logged-in .app-container,
+html.is-not-logged-in .mobile-header,
+html.is-not-logged-in .mobile-bottom-nav,
+body.not-logged-in .app-container,
+body.not-logged-in .mobile-header,
+body.not-logged-in .mobile-bottom-nav {
+    display: none !important;
+}
+
+#login-modal-bg.modal-overlay {
+    position: fixed !important;
+    inset: 0 !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    height: 100dvh !important;
+    background: #090d16 !important;
+    backdrop-filter: blur(25px) !important;
+    -webkit-backdrop-filter: blur(25px) !important;
+    z-index: 9999999 !important;
+    display: none;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 16px !important;
+    box-sizing: border-box !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+}
+
+html.is-not-logged-in #login-modal-bg.modal-overlay,
+body.not-logged-in #login-modal-bg.modal-overlay,
+#login-modal-bg.modal-overlay.active {
+    display: flex !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
+#login-modal-bg .login-modal-box {
+    display: block !important;
+    width: 100% !important;
+    max-width: 390px !important;
+    max-height: 92vh !important;
+    max-height: 92dvh !important;
+    overflow-y: auto !important;
+    padding: 32px 24px !important;
+    border-radius: 24px !important;
+    background: #0f172a !important;
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.85), 0 0 45px rgba(99, 102, 241, 0.25) !important;
+    text-align: center !important;
+    box-sizing: border-box !important;
+    margin: auto !important;
+    transform: none !important;
+}
+
+.login-avatar-glow {
+    width: 68px;
+    height: 68px;
+    margin: 0 auto;
+    border-radius: 20px;
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffffff;
+    font-size: 2.2rem;
+    box-shadow: 0 8px 24px rgba(99, 102, 241, 0.45);
+}
+
+/* ========================================================
+   PASSWORD INPUT WITH SHOW/HIDE TOGGLE BUTTON
+   ======================================================== */
+.password-input-wrapper {
+    position: relative !important;
+    width: 100% !important;
+    display: flex !important;
+    align-items: center !important;
+}
+
+.password-input-wrapper input {
+    width: 100% !important;
+    padding-left: 44px !important;
+    padding-right: 12px !important;
+    box-sizing: border-box !important;
+}
+
+.btn-toggle-password {
+    position: absolute !important;
+    left: 8px !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    background: transparent !important;
+    border: none !important;
+    color: #94a3b8 !important;
+    cursor: pointer !important;
+    padding: 8px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 1.25rem !important;
+    line-height: 1 !important;
+    border-radius: 8px !important;
+    transition: color 0.15s ease, background 0.15s ease, transform 0.15s ease !important;
+    z-index: 5 !important;
+    -webkit-tap-highlight-color: transparent !important;
+}
+
+.btn-toggle-password:hover {
+    color: #ffffff !important;
+    background: rgba(255, 255, 255, 0.08) !important;
+}
+
+.btn-toggle-password:active {
+    color: #6366f1 !important;
+    transform: translateY(-50%) scale(0.9) !important;
+}
+
+/* ========================================================
+   SERVANT REPORT COPY MODAL & PREVIEW
+   ======================================================== */
+#servant-report-modal-bg .modal {
+    max-width: 660px !important;
+    border-radius: 20px !important;
+}
+
+#servant-report-preview {
+    direction: rtl !important;
+    text-align: right !important;
+    font-family: 'Rubik', 'Cairo', sans-serif !important;
+    font-size: 0.88rem !important;
+    line-height: 1.65 !important;
+    background: #080d1a !important;
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+    border-radius: 12px !important;
+    color: #f1f5f9 !important;
+    padding: 14px 16px !important;
+    box-sizing: border-box !important;
+    resize: vertical !important;
+    white-space: pre-wrap !important;
+}
+
+
+
 
