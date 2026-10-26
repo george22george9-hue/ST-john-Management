@@ -100,11 +100,181 @@ const firebaseConfig = {
 let db;
 let isFirebaseInitialized = false;
 let isSyncingFromCloud = false;
+let isPushingToCloud = false;
+let isCloudPushPending = false;
 let syncTimeout = null;
 let clientId = localStorage.getItem('church_client_id');
 if (!clientId) {
     clientId = Math.random().toString(36).substr(2, 9);
     localStorage.setItem('church_client_id', clientId);
+}
+
+// Helpers for deleted tracking so merge won't resurrect items intentionally deleted
+function recordDeletedBookingId(bookingId) {
+    if (!bookingId) return;
+    try {
+        const key = 'church_deleted_booking_ids';
+        let list = JSON.parse(localStorage.getItem(key) || '[]');
+        if (!list.includes(bookingId)) {
+            list.push(bookingId);
+            if (list.length > 300) list = list.slice(list.length - 300);
+            localStorage.setItem(key, JSON.stringify(list));
+        }
+    } catch(e) {}
+}
+
+function recordDeletedTripId(tripId) {
+    if (!tripId) return;
+    try {
+        const key = 'church_deleted_trip_ids';
+        let list = JSON.parse(localStorage.getItem(key) || '[]');
+        if (!list.includes(tripId)) {
+            list.push(tripId);
+            if (list.length > 100) list = list.slice(list.length - 100);
+            localStorage.setItem(key, JSON.stringify(list));
+        }
+    } catch(e) {}
+}
+
+// Smart merger for trips ensuring locally registered bookings are NEVER overwritten or lost
+function mergeTrips(localTrips, cloudTrips) {
+    if (!Array.isArray(cloudTrips)) return { mergedTrips: Array.isArray(localTrips) ? localTrips : [], hasLocalUnsyncedBookings: false };
+    if (!Array.isArray(localTrips) || localTrips.length === 0) return { mergedTrips: cloudTrips, hasLocalUnsyncedBookings: false };
+
+    let deletedBookingIds = [];
+    let deletedTripIds = [];
+    try { deletedBookingIds = JSON.parse(localStorage.getItem('church_deleted_booking_ids') || '[]'); } catch(e) {}
+    try { deletedTripIds = JSON.parse(localStorage.getItem('church_deleted_trip_ids') || '[]'); } catch(e) {}
+    const deletedBSet = new Set(deletedBookingIds);
+    const deletedTSet = new Set(deletedTripIds);
+
+    let hasLocalUnsyncedBookings = false;
+    const localMap = new Map();
+    localTrips.forEach(t => { if (t && t.id) localMap.set(t.id, t); });
+    const cloudMap = new Map();
+    cloudTrips.forEach(t => { if (t && t.id) cloudMap.set(t.id, t); });
+
+    const merged = [];
+
+    cloudTrips.forEach(cTrip => {
+        if (!cTrip || !cTrip.id) return;
+        if (deletedTSet.has(cTrip.id)) {
+            hasLocalUnsyncedBookings = true;
+            return; // Was deleted locally
+        }
+
+        const lTrip = localMap.get(cTrip.id);
+        if (!lTrip) {
+            // New trip from cloud
+            const validBookings = (cTrip.bookings || []).filter(b => b && b.id && !deletedBSet.has(b.id));
+            merged.push({ ...cTrip, bookings: validBookings });
+            return;
+        }
+
+        // Trip exists both locally and in cloud: merge bookings
+        const mergedTrip = { ...cTrip };
+        const cBookings = Array.isArray(cTrip.bookings) ? cTrip.bookings : [];
+        const lBookings = Array.isArray(lTrip.bookings) ? lTrip.bookings : [];
+
+        const mergedBookings = [];
+        const seenBookingIds = new Set();
+
+        cBookings.forEach(cb => {
+            if (!cb || !cb.id) return;
+            if (deletedBSet.has(cb.id)) {
+                hasLocalUnsyncedBookings = true;
+                return; // Deleted locally
+            }
+            const lb = lBookings.find(b => b && b.id === cb.id);
+            if (lb) {
+                const lbTime = lb.updatedAt || lb.createdAt || '';
+                const cbTime = cb.updatedAt || cb.createdAt || '';
+                if (lbTime > cbTime) {
+                    mergedBookings.push(lb);
+                    hasLocalUnsyncedBookings = true;
+                } else {
+                    mergedBookings.push(cb);
+                }
+            } else {
+                mergedBookings.push(cb);
+            }
+            seenBookingIds.add(cb.id);
+        });
+
+        // Add bookings registered locally that cloud doesn't have yet!
+        lBookings.forEach(lb => {
+            if (!lb || !lb.id) return;
+            if (deletedBSet.has(lb.id)) return;
+            if (!seenBookingIds.has(lb.id)) {
+                mergedBookings.push(lb);
+                seenBookingIds.add(lb.id);
+                hasLocalUnsyncedBookings = true;
+            }
+        });
+
+        mergedTrip.bookings = mergedBookings;
+        merged.push(mergedTrip);
+    });
+
+    // Check if there are locally created trips not yet in cloud
+    localTrips.forEach(lTrip => {
+        if (!lTrip || !lTrip.id) return;
+        if (deletedTSet.has(lTrip.id)) return;
+        if (!cloudMap.has(lTrip.id)) {
+            merged.unshift(lTrip);
+            hasLocalUnsyncedBookings = true;
+        }
+    });
+
+    return { mergedTrips: merged, hasLocalUnsyncedBookings };
+}
+
+// Dedicated direct atomic sync for trips
+let isSyncingTrips = false;
+let isTripsSyncPending = false;
+
+function syncTripsToCloud(trips) {
+    if (!isFirebaseInitialized || !db) {
+        localStorage.setItem('church_trips_pending_sync', 'true');
+        return;
+    }
+
+    if (isSyncingTrips) {
+        isTripsSyncPending = true;
+        return;
+    }
+
+    isSyncingTrips = true;
+    const currentTrips = trips || getTrips();
+    const pushId = Math.random().toString(36).substr(2, 9);
+
+    const payload = {
+        trips: currentTrips,
+        lastUpdated: firebase.firestore.FieldValue.serverTimestamp(),
+        clientId: clientId,
+        pushId: pushId
+    };
+
+    db.collection('church_db').doc('main_data').set(payload, { merge: true })
+        .then(() => {
+            localStorage.setItem('last_push_id', pushId);
+            localStorage.removeItem('church_trips_pending_sync');
+            console.log('[Firestore] Trips synced to cloud successfully');
+        })
+        .catch(err => {
+            console.error('[Firestore] Trips sync failed:', err);
+            localStorage.setItem('church_trips_pending_sync', 'true');
+            if (typeof showToast === 'function') {
+                showToast('تنبيه: تعذر إرسال الحجز للسحابة حالياً، سيتم المزامنة تلقائياً عند استقرار الاتصال', 'warning');
+            }
+        })
+        .finally(() => {
+            isSyncingTrips = false;
+            if (isTripsSyncPending) {
+                isTripsSyncPending = false;
+                syncTripsToCloud(getTrips());
+            }
+        });
 }
 
 if (typeof firebase !== 'undefined') {
@@ -113,10 +283,19 @@ if (typeof firebase !== 'undefined') {
     db.enablePersistence().catch(err => console.log('Persistence error', err));
     isFirebaseInitialized = true;
     startFirebaseSync();
+    if (localStorage.getItem('church_trips_pending_sync') === 'true') {
+        setTimeout(() => syncTripsToCloud(getTrips()), 500);
+    }
 }
 
 function pushToCloud() {
-    if (!isFirebaseInitialized || isSyncingFromCloud) return;
+    if (!isFirebaseInitialized) return;
+    if (isSyncingFromCloud || isPushingToCloud) {
+        isCloudPushPending = true;
+        return;
+    }
+
+    isPushingToCloud = true;
 
     const data = {
         members: getMembers(),
@@ -134,8 +313,6 @@ function pushToCloud() {
         pushId: Math.random().toString(36).substr(2, 9)
     };
 
-    localStorage.setItem('last_push_id', data.pushId);
-
     // التحقق من حجم البيانات لحماية السحابة من تجاوز حد الـ 1 ميجابايت (Firestore 1MB limit)
     try {
         const payloadStr = JSON.stringify(data);
@@ -149,11 +326,18 @@ function pushToCloud() {
     } catch (e) {}
 
     db.collection('church_db').doc('main_data').set(data).then(() => {
+        localStorage.setItem('last_push_id', data.pushId);
         console.log("Pushed to cloud successfully");
     }).catch(e => {
         console.error("Push failed", e);
         if (typeof showToast === 'function') {
             showToast('تعذر حفظ البيانات في السحابة: ' + (e.message || ''), 'error');
+        }
+    }).finally(() => {
+        isPushingToCloud = false;
+        if (isCloudPushPending) {
+            isCloudPushPending = false;
+            setTimeout(pushToCloud, 200);
         }
     });
 }
@@ -181,45 +365,74 @@ function startFirebaseSync() {
             return;
         }
 
-        if (cloudData.pushId === lastPushId || (cloudData.clientId === clientId && !lastPushId)) {
+        if (cloudData.pushId === lastPushId) {
             return; // Ignore our own pushes
         }
 
         isSyncingFromCloud = true;
 
-        if (cloudData.members && Array.isArray(cloudData.members) && (cloudData.members.length > 0 || getMembers().length === 0)) {
-            localStorage.setItem('church_attendance_members', JSON.stringify(cloudData.members));
+        try {
+            if (cloudData.members && Array.isArray(cloudData.members) && (cloudData.members.length > 0 || getMembers().length === 0)) {
+                localStorage.setItem('church_attendance_members', JSON.stringify(cloudData.members));
+            }
+            if (cloudData.attendance) localStorage.setItem('church_attendance_records', JSON.stringify(cloudData.attendance));
+            if (cloudData.visitations) localStorage.setItem('church_attendance_visitations', JSON.stringify(cloudData.visitations));
+            if (cloudData.servantRecords) localStorage.setItem('church_servant_records', JSON.stringify(cloudData.servantRecords));
+            if (cloudData.servantNotes) localStorage.setItem('church_servant_notes', JSON.stringify(cloudData.servantNotes));
+            if (cloudData.waTasks) localStorage.setItem('church_wa_tasks', JSON.stringify(cloudData.waTasks));
+            if (cloudData.competitions) localStorage.setItem('church_competitions_data', JSON.stringify(cloudData.competitions));
+
+            // Smart Merge for Trips so locally registered bookings are NEVER lost on reload or sync!
+            if (cloudData.trips && Array.isArray(cloudData.trips)) {
+                const localTrips = getTrips();
+                const { mergedTrips, hasLocalUnsyncedBookings } = mergeTrips(localTrips, cloudData.trips);
+                localStorage.setItem(DB_KEY_TRIPS, JSON.stringify(mergedTrips));
+                
+                if (hasLocalUnsyncedBookings || localStorage.getItem('church_trips_pending_sync') === 'true') {
+                    // Push local unsynced bookings to cloud immediately
+                    setTimeout(() => syncTripsToCloud(mergedTrips), 100);
+                }
+            }
+
+            if (cloudData.dayTypes) localStorage.setItem('church_day_types', JSON.stringify(cloudData.dayTypes));
+            if (cloudData.auth) {
+                localStorage.setItem('church_app_auth', cloudData.auth);
+                if (typeof checkLoginAndApply === 'function') checkLoginAndApply();
+            }
+            
+            localStorage.setItem('last_push_id', cloudData.pushId || '');
+
+            // Update auth UI in case members or auth permissions updated
+            if (typeof setupAuth === 'function') setupAuth();
+            
+            // استدعاء دوال الريندر الحقيقية لتحديث كل الشاشات فوراً
+            if (typeof refreshDashboard === 'function') refreshDashboard();
+            if (typeof updateAttendanceWorkspace === 'function') updateAttendanceWorkspace();
+            if (typeof refreshFollowUp === 'function') refreshFollowUp();
+            if (typeof refreshServantsDashboard === 'function') refreshServantsDashboard();
+            if (typeof refreshServantsNotes === 'function') refreshServantsNotes();
+            if (typeof renderCompetitions === 'function') renderCompetitions();
+            if (typeof refreshTripsView === 'function') refreshTripsView();
+            if (typeof setupAdminTable === 'function') setupAdminTable();
+            if (typeof refreshAdminView === 'function') refreshAdminView();
+            if (typeof refreshSummaryView === 'function') refreshSummaryView();
+            if (typeof enforcePermissions === 'function') enforcePermissions();
+            
+            showToast('تم استقبال تحديثات من الخادم!', 'success');
+        } catch(err) {
+            console.error('Error applying cloud updates:', err);
+        } finally {
+            setTimeout(() => {
+                isSyncingFromCloud = false;
+                if (isCloudPushPending) {
+                    isCloudPushPending = false;
+                    pushToCloud();
+                }
+            }, 500);
         }
-        if (cloudData.attendance) localStorage.setItem('church_attendance_records', JSON.stringify(cloudData.attendance));
-        if (cloudData.visitations) localStorage.setItem('church_attendance_visitations', JSON.stringify(cloudData.visitations));
-        if (cloudData.servantRecords) localStorage.setItem('church_servant_records', JSON.stringify(cloudData.servantRecords));
-        if (cloudData.servantNotes) localStorage.setItem('church_servant_notes', JSON.stringify(cloudData.servantNotes));
-        if (cloudData.waTasks) localStorage.setItem('church_wa_tasks', JSON.stringify(cloudData.waTasks));
-        if (cloudData.competitions) localStorage.setItem('church_competitions_data', JSON.stringify(cloudData.competitions));
-        if (cloudData.trips && Array.isArray(cloudData.trips)) localStorage.setItem('church_trips_data', JSON.stringify(cloudData.trips));
-        if (cloudData.dayTypes) localStorage.setItem('church_day_types', JSON.stringify(cloudData.dayTypes));
-        if (cloudData.auth) localStorage.setItem('church_app_auth', cloudData.auth);
-        
-        localStorage.setItem('last_push_id', cloudData.pushId || '');
-        
-        // استدعاء دوال الريندر الحقيقية لتحديث كل الشاشات فوراً
-        if (typeof refreshDashboard === 'function') refreshDashboard();
-        if (typeof updateAttendanceWorkspace === 'function') updateAttendanceWorkspace();
-        if (typeof refreshFollowUp === 'function') refreshFollowUp();
-        if (typeof refreshServantsDashboard === 'function') refreshServantsDashboard();
-        if (typeof refreshServantsNotes === 'function') refreshServantsNotes();
-        if (typeof renderCompetitions === 'function') renderCompetitions();
-        if (typeof refreshTripsView === 'function') refreshTripsView();
-        if (typeof setupAdminTable === 'function') setupAdminTable();
-        if (typeof refreshAdminView === 'function') refreshAdminView();
-        if (typeof refreshSummaryView === 'function') refreshSummaryView();
-        if (typeof enforcePermissions === 'function') enforcePermissions();
-        
-        showToast('تم استقبال تحديثات من الخادم!', 'success');
-        
-        setTimeout(() => { isSyncingFromCloud = false; }, 1000);
     });
 }
+
 
 // --- Database / LocalStorage Wrapper ---
 
@@ -270,6 +483,10 @@ function saveTrips(trips) {
         localStorage.setItem(DB_KEY_TRIPS, JSON.stringify(trips));
     } catch (e) {
         if (e.name === 'QuotaExceededError') alert('مساحة التخزين ممتلئة! يرجى أخذ نسخة احتياطية ومسح بعض البيانات القديمة.');
+    }
+    // مزامنة فورية ومستقلة للرحلات إلى السحابة لضمان حفظ الحجوزات وعدم ضياعها
+    if (typeof syncTripsToCloud === "function") {
+        syncTripsToCloud(trips);
     }
     if (typeof triggerCloudSync === "function") triggerCloudSync();
 }
@@ -741,7 +958,7 @@ function getAuthData() {
 
 function saveAuthData(data) {
     try { localStorage.setItem(DB_KEY_AUTH, JSON.stringify(data)); } catch { }
-    
+    if (typeof triggerCloudSync === "function") triggerCloudSync();
 }
 
 let currentUserRole = null;
@@ -7120,7 +7337,7 @@ function saveTripData() {
             trip.capacity = capacity;
             trip.status = status;
             trip.notes = notes;
-            trip.updatedAt = todayLocal();
+            trip.updatedAt = new Date().toISOString();
         }
     } else {
         const newTrip = {
@@ -7134,7 +7351,8 @@ function saveTripData() {
             status,
             notes,
             bookings: [],
-            createdAt: todayLocal()
+            createdAt: todayLocal(),
+            updatedAt: new Date().toISOString()
         };
         trips.unshift(newTrip);
         selectedTripId = newTrip.id;
@@ -7156,6 +7374,10 @@ function deleteTrip(tripId) {
         return;
     }
 
+    if (typeof recordDeletedTripId === 'function') {
+        recordDeletedTripId(tripId);
+    }
+
     let trips = getTrips().filter(t => t.id !== tripId);
     saveTrips(trips);
     selectedTripId = trips.length > 0 ? trips[0].id : null;
@@ -7169,9 +7391,14 @@ function openBookingModal(bookingId) {
         return;
     }
 
-    const trip = getTrips().find(t => t.id === selectedTripId);
+    const allTrips = getTrips();
+    let trip = allTrips.find(t => t.id === selectedTripId);
+    if (!trip && allTrips.length > 0) {
+        selectedTripId = allTrips[0].id;
+        trip = allTrips[0];
+    }
     if (!trip) {
-        showToast('برجاء اختيار رحلة أولاً لإضافة الحجز إليها', 'warning');
+        showToast('برجاء إضافة رحلة أولاً لإضافة الحجز إليها', 'warning');
         return;
     }
 
@@ -7239,8 +7466,15 @@ function saveBookingData() {
     }
 
     const trips = getTrips();
-    const trip = trips.find(t => t.id === selectedTripId);
-    if (!trip) return;
+    let trip = trips.find(t => t.id === selectedTripId);
+    if (!trip && trips.length > 0) {
+        selectedTripId = trips[0].id;
+        trip = trips[0];
+    }
+    if (!trip) {
+        showToast('برجاء إضافة رحلة أولاً لتسجيل الحجز بها', 'warning');
+        return;
+    }
 
     const editId = document.getElementById('booking-edit-id')?.value;
     const name = document.getElementById('booking-input-name')?.value.trim();
@@ -7256,6 +7490,7 @@ function saveBookingData() {
     if (price <= 0) return alert('يرجى إدخال سعر الحجز بشكل صحيح');
 
     const remaining = Math.max(0, price - paid);
+    const nowIso = new Date().toISOString();
 
     trip.bookings = trip.bookings || [];
 
@@ -7270,7 +7505,7 @@ function saveBookingData() {
             booking.type = type;
             booking.notes = notes;
             if (memberId) booking.memberId = memberId;
-            booking.updatedAt = todayLocal();
+            booking.updatedAt = nowIso;
         }
     } else {
         const newBooking = {
@@ -7284,6 +7519,7 @@ function saveBookingData() {
             notes,
             memberId,
             createdAt: todayLocal(),
+            updatedAt: nowIso,
             history: [{ amount: paid, date: todayLocal(), note: 'دفعة أولى' }]
         };
         trip.bookings.unshift(newBooking);
@@ -7301,7 +7537,12 @@ function openQuickPayModal(bookingId) {
         return;
     }
 
-    const trip = getTrips().find(t => t.id === selectedTripId);
+    const allTrips = getTrips();
+    let trip = allTrips.find(t => t.id === selectedTripId);
+    if (!trip && allTrips.length > 0) {
+        selectedTripId = allTrips[0].id;
+        trip = allTrips[0];
+    }
     const booking = trip?.bookings?.find(b => b.id === bookingId);
     if (!booking) return;
 
@@ -7344,7 +7585,11 @@ function saveQuickPayment() {
     if (amount <= 0) return alert('يرجى إدخال مبلغ دفع صالح أكبر من صفر');
 
     const trips = getTrips();
-    const trip = trips.find(t => t.id === selectedTripId);
+    let trip = trips.find(t => t.id === selectedTripId);
+    if (!trip && trips.length > 0) {
+        selectedTripId = trips[0].id;
+        trip = trips[0];
+    }
     const booking = trip?.bookings?.find(b => b.id === bookingId);
     if (!booking) return;
 
@@ -7356,6 +7601,7 @@ function saveQuickPayment() {
         date: todayLocal(),
         note: note || 'دفعة سداد'
     });
+    booking.updatedAt = new Date().toISOString();
 
     saveTrips(trips);
     document.getElementById('quick-pay-modal')?.classList.remove('active');
@@ -7372,8 +7618,16 @@ function deleteBooking(bookingId) {
     if (!confirm('هل أنت متأكد من حذف هذا الحجز نهائياً؟')) return;
 
     const trips = getTrips();
-    const trip = trips.find(t => t.id === selectedTripId);
+    let trip = trips.find(t => t.id === selectedTripId);
+    if (!trip && trips.length > 0) {
+        selectedTripId = trips[0].id;
+        trip = trips[0];
+    }
     if (!trip) return;
+
+    if (typeof recordDeletedBookingId === 'function') {
+        recordDeletedBookingId(bookingId);
+    }
 
     trip.bookings = (trip.bookings || []).filter(b => b.id !== bookingId);
     saveTrips(trips);

@@ -1,13 +1,14 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // حماية قاعدة بيانات الكنيسة من المسح أو التخريب العرضي والخبيث
+    // حماية وتأمين قاعدة بيانات الكنيسة والرحلات من المسح أو التخريب العرضي والخبيث
     match /church_db/{docId} {
       allow read: if true;
       // السماح بإنشاء المستند بشرط وجود حقل الأعضاء كمصفوفة
       allow create: if request.resource.data.members is list;
-      // السماح بالتحديث بشرط ألا يؤدي إلى تفريغ ومسح الأعضاء المسجلين بالفعل
+      // السماح بالتحديث مع حماية الأعضاء من المسح والتأكد من صحة بيانات الرحلات إن وجدت
       allow update: if request.resource.data.members is list &&
+                    (!('trips' in request.resource.data) || request.resource.data.trips is list) &&
                     (resource.data.members.size() == 0 || request.resource.data.members.size() > 0);
       // منع المسح الكلي للوثيقة
       allow delete: if false;

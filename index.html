@@ -564,7 +564,7 @@
                             </div>
                         </div>
                         <div class="trips-header-actions">
-                            <button class="trips-header-action" onclick="if(typeof triggerCloudSync === 'function') triggerCloudSync()" title="مزامنة فورية">
+                            <button class="trips-header-action" onclick="if(typeof syncTripsToCloud === 'function') syncTripsToCloud(getTrips()); if(typeof triggerCloudSync === 'function') triggerCloudSync(); showToast('جارٍ المزامنة السحابية للرحلات...', 'info');" title="مزامنة فورية">
                                 <i class="ph ph-arrows-clockwise"></i>
                             </button>
                         </div>
@@ -2195,6 +2195,6 @@
     <script src="firebase-firestore.js"></script>
     
     <!-- Script -->
-    <script src="app.js?v=20261023_servant_report_v2"></script>
+    <script src="app.js?v=20261026_trips_sync_v3"></script>
 </body>
 </html>
