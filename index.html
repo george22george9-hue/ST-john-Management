@@ -20,7 +20,7 @@
     <!-- SheetJS for Excel generation -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <!-- Styles -->
-    <link rel="stylesheet" href="style.css?v=20261023_servant_report_v2">
+    <link rel="stylesheet" href="style.css?v=20261026_installments_v4">
     <!-- Immediate Authentication Check (Prevents Dashboard Flash Before Scripts Load) -->
     <script>
         (function() {
@@ -2079,7 +2079,7 @@
                         <input type="number" id="booking-input-price" class="form-control" placeholder="350" min="0">
                     </div>
                     <div class="form-group" style="flex: 1; min-width: 140px;">
-                        <label>دفع كام (المدفوع) <span class="text-danger">*</span></label>
+                        <label>المدفوع الآن / دفعة أولى (ج.م) <small style="color: #94a3b8;">(يمكن التقسيط)</small></label>
                         <input type="number" id="booking-input-paid" class="form-control" placeholder="0" min="0" value="0">
                     </div>
                 </div>
@@ -2087,7 +2087,7 @@
                 <!-- Live Calculation Banner (Direct user request) -->
                 <div class="booking-calc-banner glass mb-3" id="booking-calc-banner">
                     <div class="calc-row">
-                        <span class="calc-label">المبلغ المتبقي (فاضل كام):</span>
+                        <span class="calc-label">المبلغ المتبقي (أقساط لاحقة):</span>
                         <strong class="calc-remaining-val" id="booking-calc-remaining">0 ج.م</strong>
                     </div>
                     <div class="calc-status-badge" id="booking-calc-status">لم يدفع بعد</div>
@@ -2105,42 +2105,87 @@
         </div>
     </div>
 
-    <!-- Quick Payment Modal -->
+    <!-- Quick Payment Modal (Installments & Partial Payments) -->
     <div class="modal-overlay" id="quick-pay-modal">
-        <div class="modal glass" style="max-width: 440px;">
+        <div class="modal glass" style="max-width: 480px; max-height: 90vh; overflow-y: auto;">
             <div class="modal-header">
-                <h3><i class="ph ph-hand-coins"></i> تسجيل دفعة جديدة</h3>
+                <div>
+                    <h3 style="margin: 0;"><i class="ph ph-hand-coins"></i> سداد أقساط ودفعات الحجز</h3>
+                    <p style="font-size: 0.78rem; color: #94a3b8; margin: 3px 0 0 0;">سداد جزء من المبلغ على دفعات متفرقة أو سداده كاملاً في أي وقت</p>
+                </div>
                 <button class="close-modal"><span style="font-size: 1.5rem; font-weight: bold; line-height: 1;">&times;</span></button>
             </div>
-            <div class="modal-body">
+            <div class="modal-body" style="padding-top: 10px;">
                 <input type="hidden" id="quick-pay-booking-id">
-                <div class="quick-pay-summary glass p-3 mb-3" style="border-radius: 12px; background: rgba(0,0,0,0.25);">
-                    <div style="font-weight: 700; font-size: 1.15rem; color: #fff;" id="quick-pay-name">--</div>
-                    <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 6px; line-height: 1.6;">
-                        سعر الحجز: <strong id="quick-pay-total-price" style="color: #fff;">0</strong> ج.م • 
-                        المدفوع سابقاً: <strong id="quick-pay-already-paid" class="text-emerald">0</strong> ج.م • 
-                        المتبقي حالياً: <strong id="quick-pay-current-remaining" class="text-amber">0</strong> ج.م
+                
+                <!-- Person Summary Card -->
+                <div class="quick-pay-summary glass p-3 mb-3" style="border-radius: 12px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.08);">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div style="font-weight: 700; font-size: 1.15rem; color: #fff;" id="quick-pay-name">--</div>
+                        <div id="quick-pay-role-badge"></div>
+                    </div>
+                    
+                    <div class="quick-pay-stats-grid">
+                        <div class="quick-pay-stat-card">
+                            <div class="quick-pay-stat-label">إجمالي السعر</div>
+                            <div class="quick-pay-stat-val" style="color: #ffffff;"><span id="quick-pay-total-price">0</span> <small style="font-size: 0.65rem;">ج.م</small></div>
+                        </div>
+                        <div class="quick-pay-stat-card">
+                            <div class="quick-pay-stat-label">المدفوع حتى الآن</div>
+                            <div class="quick-pay-stat-val text-emerald"><span id="quick-pay-already-paid">0</span> <small style="font-size: 0.65rem;">ج.م</small></div>
+                        </div>
+                        <div class="quick-pay-stat-card">
+                            <div class="quick-pay-stat-label">المتبقي حالياً</div>
+                            <div class="quick-pay-stat-val text-amber"><span id="quick-pay-current-remaining">0</span> <small style="font-size: 0.65rem;">ج.م</small></div>
+                        </div>
                     </div>
                 </div>
 
-                <div class="form-group mb-3">
-                    <label>المبلغ المدفوع الآن (ج.م) <span class="text-danger">*</span></label>
-                    <input type="number" id="quick-pay-input-amount" class="form-control" placeholder="أدخل المبلغ المستلم..." min="1" style="font-size: 1.25rem; font-weight: 700; text-align: center; color: #10b981;">
+                <!-- New Installment Form Section -->
+                <div id="quick-pay-form-section">
+                    <div class="form-group mb-2">
+                        <label style="display: flex; justify-content: space-between; align-items: center; font-size: 0.88rem;">
+                            <span>قيمة هذا القسط / الدفعة (ج.م) <span class="text-danger">*</span></span>
+                            <span style="font-size: 0.75rem; color: #94a3b8;">(اختر قسطاً أو اكتب يدوياً)</span>
+                        </label>
+                        <!-- Quick Installment Chips -->
+                        <div class="installment-quick-chips" id="quick-pay-chips-container">
+                            <!-- Populated dynamically via JS: 50, 100, 200, remaining -->
+                        </div>
+                        <input type="number" id="quick-pay-input-amount" class="form-control" placeholder="أدخل مبلغ القسط (مثلاً 50، 100، 200)..." min="1" style="font-size: 1.25rem; font-weight: 700; text-align: center; color: #10b981;">
+                    </div>
+
+                    <div class="form-group mb-2">
+                        <label style="font-size: 0.85rem;">ملاحظة على هذا القسط (اختياري)</label>
+                        <input type="text" id="quick-pay-input-note" class="form-control" placeholder="مثال: قسط ثاني، كاش بالاجتماع، فودافون كاش...">
+                    </div>
+
+                    <div class="calc-row mt-2 p-2" id="quick-pay-calc-box" style="background: rgba(16, 185, 129, 0.1); border-radius: 8px; border: 1px solid rgba(16, 185, 129, 0.2); display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-size: 0.85rem;" id="quick-pay-calc-title">المتبقي بعد هذا القسط:</span>
+                        <strong id="quick-pay-new-remaining" class="text-emerald" style="font-size: 1.1rem;">0 ج.م</strong>
+                    </div>
                 </div>
 
-                <div class="form-group mb-2">
-                    <label>ملاحظة على الدفعة (اختياري)</label>
-                    <input type="text" id="quick-pay-input-note" class="form-control" placeholder="مثال: دفعة ثانية، كاش بالاجتماع، فودافون كاش...">
+                <!-- Fully Paid Notice Banner (shown when remaining is 0) -->
+                <div id="quick-pay-fully-paid-banner" class="glass p-3 mb-2" style="display: none; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 10px; text-align: center;">
+                    <i class="ph ph-check-circle" style="font-size: 1.8rem; color: #34d399;"></i>
+                    <div style="font-weight: 700; color: #6ee7b7; margin-top: 4px;">تم سداد كامل المبلغ المطلوب بنجاح!</div>
+                    <div style="font-size: 0.78rem; color: #cbd5e1; margin-top: 2px;">يمكنك استعراض تواريخ وأقساط السداد السابقة بالأسفل.</div>
                 </div>
 
-                <div class="calc-row mt-3 p-2" style="background: rgba(16, 185, 129, 0.1); border-radius: 8px; border: 1px solid rgba(16, 185, 129, 0.2); display: flex; justify-content: space-between; align-items: center;">
-                    <span style="font-size: 0.9rem;">المتبقي بعد هذه الدفعة:</span>
-                    <strong id="quick-pay-new-remaining" class="text-emerald" style="font-size: 1.15rem;">0 ج.م</strong>
+                <!-- Installments History Section -->
+                <div class="payment-history-wrap">
+                    <div class="payment-history-header">
+                        <span><i class="ph ph-receipt"></i> سجل الأقساط والدفعات السابقة (<span id="quick-pay-history-count">0</span>)</span>
+                    </div>
+                    <div class="payment-history-list" id="quick-pay-history-list">
+                        <!-- Populated via JS -->
+                    </div>
                 </div>
             </div>
-            <div class="modal-footer">
-                <button class="btn btn-outline close-modal">إلغاء</button>
-                <button class="btn btn-success" id="btn-save-quick-pay"><i class="ph ph-check"></i> تأكيد وحفظ الدفعة</button>
+            <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center;">
+                <button class="btn btn-outline close-modal">إغلاق</button>
+                <button class="btn btn-success" id="btn-save-quick-pay"><i class="ph ph-plus-circle"></i> تأكيد وتسجيل هذا القسط</button>
             </div>
         </div>
     </div>
@@ -2195,6 +2240,6 @@
     <script src="firebase-firestore.js"></script>
     
     <!-- Script -->
-    <script src="app.js?v=20261026_trips_sync_v3"></script>
+    <script src="app.js?v=20261026_installments_v4"></script>
 </body>
 </html>

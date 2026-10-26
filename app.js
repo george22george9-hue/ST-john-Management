@@ -6695,9 +6695,24 @@ function setupTrips() {
             if (!b) return;
             const currentRemaining = Math.max(0, (Number(b.price) || 0) - (Number(b.paid) || 0));
             const payingNow = Math.max(0, parseFloat(quickPayInput.value) || 0);
-            const newRemaining = Math.max(0, currentRemaining - payingNow);
+            const newRemaining = currentRemaining - payingNow;
             const newRemainingEl = document.getElementById('quick-pay-new-remaining');
-            if (newRemainingEl) newRemainingEl.textContent = `${newRemaining.toLocaleString()} ج.م`;
+            const titleEl = document.getElementById('quick-pay-calc-title');
+            if (newRemainingEl) {
+                if (newRemaining < 0) {
+                    if (titleEl) titleEl.textContent = 'زيادة مدفوعة (فائض):';
+                    newRemainingEl.className = 'text-amber';
+                    newRemainingEl.textContent = `+${Math.abs(newRemaining).toLocaleString()} ج.م`;
+                } else if (newRemaining === 0) {
+                    if (titleEl) titleEl.textContent = 'المتبقي بعد هذا القسط:';
+                    newRemainingEl.className = 'text-emerald';
+                    newRemainingEl.textContent = '0 ج.م (خالص بالكامل 🎉)';
+                } else {
+                    if (titleEl) titleEl.textContent = 'المتبقي بعد هذا القسط:';
+                    newRemainingEl.className = 'text-emerald';
+                    newRemainingEl.textContent = `${newRemaining.toLocaleString()} ج.م (متبقي أقساط أخرى)`;
+                }
+            }
         });
     }
 
@@ -7132,7 +7147,10 @@ function renderBookingsList() {
                     </td>
                     <td>${phoneLink}</td>
                     <td style="font-weight: 700; font-family: 'Rubik', sans-serif;">${priceVal.toLocaleString()} ج.م</td>
-                    <td style="font-weight: 700; font-family: 'Rubik', sans-serif; color: #34d399;">${paidVal.toLocaleString()} ج.م</td>
+                    <td style="font-weight: 700; font-family: 'Rubik', sans-serif; color: #34d399;">
+                        ${paidVal.toLocaleString()} ج.م
+                        ${(b.history && b.history.length > 1) ? `<br><span class="installments-count-badge" title="تم السداد على ${b.history.length} أقساط"><i class="ph ph-stack"></i> ${b.history.length} أقساط</span>` : ''}
+                    </td>
                     <td style="font-weight: 700; font-family: 'Rubik', sans-serif; color: ${remainingVal > 0 ? '#fbbf24' : '#34d399'};">
                         ${remainingVal.toLocaleString()} ج.م
                     </td>
@@ -7143,10 +7161,14 @@ function renderBookingsList() {
                     <td class="actions-col">
                         <div style="display: flex; gap: 6px; align-items: center;">
                             ${remainingVal > 0 ? `
-                            <button class="btn btn-outline btn-sm text-emerald" data-action="quick-pay" data-booking-id="${b.id}" title="سداد دفعة جديدة">
-                                <i class="ph ph-hand-coins"></i> سداد
+                            <button class="btn btn-outline btn-sm text-emerald" data-action="quick-pay" data-booking-id="${b.id}" title="سداد قسط / دفعة جديدة">
+                                <i class="ph ph-hand-coins"></i> سداد قسط
                             </button>
-                            ` : ''}
+                            ` : `
+                            <button class="btn btn-outline btn-sm" style="color: #67e8f9; border-color: rgba(103, 232, 249, 0.35);" data-action="quick-pay" data-booking-id="${b.id}" title="عرض سجل الأقساط والدفعات">
+                                <i class="ph ph-receipt"></i> الأقساط ${(b.history && b.history.length > 0) ? `(${b.history.length})` : ''}
+                            </button>
+                            `}
                             <button class="btn btn-outline btn-sm" data-action="edit-booking" data-booking-id="${b.id}" title="تعديل الحجز">
                                 <i class="ph ph-pencil"></i>
                             </button>
@@ -7200,6 +7222,7 @@ function renderBookingsList() {
                         <div class="bmc-fin-item">
                             <span class="bmc-fin-label">المدفوع</span>
                             <span class="bmc-fin-val text-emerald">${paidVal.toLocaleString()}</span>
+                            ${(b.history && b.history.length > 1) ? `<div class="installments-count-badge" style="margin: 2px auto 0 auto;"><i class="ph ph-stack"></i> ${b.history.length} أقساط</div>` : ''}
                         </div>
                         <div class="bmc-fin-item">
                             <span class="bmc-fin-label">المتبقي</span>
@@ -7212,9 +7235,13 @@ function renderBookingsList() {
                     <div class="bmc-actions">
                         ${remainingVal > 0 ? `
                         <button class="btn btn-outline btn-sm text-emerald" data-action="quick-pay" data-booking-id="${b.id}">
-                            <i class="ph ph-hand-coins"></i> سداد دفعة
+                            <i class="ph ph-hand-coins"></i> سداد قسط
                         </button>
-                        ` : ''}
+                        ` : `
+                        <button class="btn btn-outline btn-sm" style="color: #67e8f9; border-color: rgba(103, 232, 249, 0.35);" data-action="quick-pay" data-booking-id="${b.id}">
+                            <i class="ph ph-receipt"></i> الأقساط ${(b.history && b.history.length > 0) ? `(${b.history.length})` : ''}
+                        </button>
+                        `}
                         <button class="btn btn-outline btn-sm" data-action="edit-booking" data-booking-id="${b.id}" title="تعديل">
                             <i class="ph ph-pencil"></i> تعديل
                         </button>
@@ -7520,7 +7547,7 @@ function saveBookingData() {
             memberId,
             createdAt: todayLocal(),
             updatedAt: nowIso,
-            history: [{ amount: paid, date: todayLocal(), note: 'دفعة أولى' }]
+            history: paid > 0 ? [{ id: 'pay_' + Date.now(), amount: paid, date: todayLocal(), note: 'دفعة أولى (مقدم حجز)' }] : []
         };
         trip.bookings.unshift(newBooking);
     }
@@ -7532,11 +7559,6 @@ function saveBookingData() {
 }
 
 function openQuickPayModal(bookingId) {
-    if (currentUserRole !== 'admin' && !currentPermissions.includes('trips-edit')) {
-        showToast('عفواً، لا تملك صلاحية تسجيل دفعات السداد', 'warning');
-        return;
-    }
-
     const allTrips = getTrips();
     let trip = allTrips.find(t => t.id === selectedTripId);
     if (!trip && allTrips.length > 0) {
@@ -7548,25 +7570,151 @@ function openQuickPayModal(bookingId) {
 
     const idInput = document.getElementById('quick-pay-booking-id');
     const nameEl = document.getElementById('quick-pay-name');
+    const roleBadgeEl = document.getElementById('quick-pay-role-badge');
     const totalEl = document.getElementById('quick-pay-total-price');
     const alreadyEl = document.getElementById('quick-pay-already-paid');
     const currentRemEl = document.getElementById('quick-pay-current-remaining');
     const amountInput = document.getElementById('quick-pay-input-amount');
     const noteInput = document.getElementById('quick-pay-input-note');
     const newRemEl = document.getElementById('quick-pay-new-remaining');
+    const chipsContainer = document.getElementById('quick-pay-chips-container');
+    const formSection = document.getElementById('quick-pay-form-section');
+    const fullyPaidBanner = document.getElementById('quick-pay-fully-paid-banner');
+    const saveBtn = document.getElementById('btn-save-quick-pay');
+    const historyListEl = document.getElementById('quick-pay-history-list');
+    const historyCountEl = document.getElementById('quick-pay-history-count');
+
+    // Normalize history array
+    booking.history = Array.isArray(booking.history) ? booking.history : [];
+    if (booking.history.length === 0 && Number(booking.paid) > 0) {
+        booking.history.push({
+            id: 'pay_init_' + (booking.id || Date.now()),
+            amount: Number(booking.paid),
+            date: booking.createdAt || todayLocal(),
+            note: 'دفعة أولى (مقدم حجز)'
+        });
+    }
+    booking.history.forEach((h, idx) => {
+        if (!h.id) h.id = 'pay_' + idx + '_' + Math.random().toString(36).substr(2, 4);
+    });
 
     const price = Number(booking.price) || 0;
-    const paid = Number(booking.paid) || 0;
+    const paid = booking.history.reduce((sum, h) => sum + (Number(h.amount) || 0), 0);
+    booking.paid = paid;
     const remaining = Math.max(0, price - paid);
+    booking.remaining = remaining;
 
     if (idInput) idInput.value = booking.id;
     if (nameEl) nameEl.textContent = booking.name;
+    if (roleBadgeEl) {
+        roleBadgeEl.innerHTML = booking.type === 'servant'
+            ? '<span class="role-chip servant"><i class="ph ph-star"></i> خادم</span>'
+            : booking.type === 'member'
+            ? '<span class="role-chip member"><i class="ph ph-user"></i> مخدوم</span>'
+            : '<span class="role-chip guest"><i class="ph ph-users"></i> ضيف</span>';
+    }
     if (totalEl) totalEl.textContent = price.toLocaleString();
     if (alreadyEl) alreadyEl.textContent = paid.toLocaleString();
     if (currentRemEl) currentRemEl.textContent = remaining.toLocaleString();
-    if (amountInput) amountInput.value = remaining > 0 ? remaining : '';
-    if (noteInput) noteInput.value = '';
-    if (newRemEl) newRemEl.textContent = '0 ج.م';
+
+    // Populate Previous Installments History
+    if (historyCountEl) historyCountEl.textContent = booking.history.length;
+    if (historyListEl) {
+        if (booking.history.length === 0) {
+            historyListEl.innerHTML = '<div style="text-align: center; color: var(--text-muted); font-size: 0.8rem; padding: 12px 0;">لا توجد دفعات أو أقساط مسجلة حتى الآن.</div>';
+        } else {
+            historyListEl.innerHTML = booking.history.map((h, idx) => {
+                const hAmount = Number(h.amount) || 0;
+                const hDate = h.date || '--';
+                const hNote = h.note || `قسط ${idx + 1}`;
+                return `
+                    <div class="payment-history-item">
+                        <div class="phi-left">
+                            <span class="phi-num">قسط ${idx + 1}</span>
+                            <div>
+                                <span class="phi-amount">${hAmount.toLocaleString()} ج.م</span>
+                                <span class="phi-meta" style="margin-right: 6px;">(${esc(hNote)})</span>
+                            </div>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span class="phi-meta">${esc(hDate)}</span>
+                            <button class="phi-delete-btn" onclick="deletePaymentInstallment('${booking.id}', '${h.id}')" title="حذف هذا القسط">
+                                <i class="ph ph-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+    }
+
+    // Build Quick Installment Chips
+    if (chipsContainer) {
+        chipsContainer.innerHTML = '';
+        if (remaining > 0) {
+            const presetAmounts = [50, 100, 200, 500].filter(amt => amt < remaining);
+            presetAmounts.forEach(amt => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'installment-chip';
+                btn.innerHTML = `<i class="ph ph-plus"></i> ${amt.toLocaleString()} ج.م`;
+                btn.onclick = () => {
+                    if (amountInput) {
+                        amountInput.value = amt;
+                        amountInput.dispatchEvent(new Event('input'));
+                        amountInput.focus();
+                    }
+                };
+                chipsContainer.appendChild(btn);
+            });
+
+            if (remaining > 100 && !presetAmounts.includes(Math.round(remaining / 2))) {
+                const halfAmt = Math.round(remaining / 2);
+                const halfBtn = document.createElement('button');
+                halfBtn.type = 'button';
+                halfBtn.className = 'installment-chip';
+                halfBtn.innerHTML = `<i class="ph ph-divide"></i> نصف المتبقي (${halfAmt.toLocaleString()} ج.م)`;
+                halfBtn.onclick = () => {
+                    if (amountInput) {
+                        amountInput.value = halfAmt;
+                        amountInput.dispatchEvent(new Event('input'));
+                        amountInput.focus();
+                    }
+                };
+                chipsContainer.appendChild(halfBtn);
+            }
+
+            const fullBtn = document.createElement('button');
+            fullBtn.type = 'button';
+            fullBtn.className = 'installment-chip chip-full';
+            fullBtn.innerHTML = `<i class="ph ph-check"></i> كامل المتبقي (${remaining.toLocaleString()} ج.م)`;
+            fullBtn.onclick = () => {
+                if (amountInput) {
+                    amountInput.value = remaining;
+                    amountInput.dispatchEvent(new Event('input'));
+                    amountInput.focus();
+                }
+            };
+            chipsContainer.appendChild(fullBtn);
+        }
+    }
+
+    if (remaining <= 0) {
+        if (formSection) formSection.style.display = 'none';
+        if (fullyPaidBanner) fullyPaidBanner.style.display = 'block';
+        if (saveBtn) saveBtn.style.display = 'none';
+    } else {
+        if (formSection) formSection.style.display = 'block';
+        if (fullyPaidBanner) fullyPaidBanner.style.display = 'none';
+        if (saveBtn) saveBtn.style.display = 'inline-flex';
+
+        if (amountInput) amountInput.value = '';
+        if (noteInput) noteInput.value = `قسط رقم ${booking.history.length + 1}`;
+        if (newRemEl) {
+            newRemEl.className = 'text-emerald';
+            newRemEl.textContent = `${remaining.toLocaleString()} ج.م`;
+        }
+    }
 
     const modal = document.getElementById('quick-pay-modal');
     if (modal) modal.classList.add('active');
@@ -7582,7 +7730,7 @@ function saveQuickPayment() {
     const amount = parseFloat(document.getElementById('quick-pay-input-amount')?.value) || 0;
     const note = document.getElementById('quick-pay-input-note')?.value.trim();
 
-    if (amount <= 0) return alert('يرجى إدخال مبلغ دفع صالح أكبر من صفر');
+    if (amount <= 0) return alert('يرجى إدخال مبلغ قسط صالح أكبر من صفر');
 
     const trips = getTrips();
     let trip = trips.find(t => t.id === selectedTripId);
@@ -7593,21 +7741,66 @@ function saveQuickPayment() {
     const booking = trip?.bookings?.find(b => b.id === bookingId);
     if (!booking) return;
 
-    booking.paid = (Number(booking.paid) || 0) + amount;
-    booking.remaining = Math.max(0, (Number(booking.price) || 0) - booking.paid);
-    booking.history = booking.history || [];
+    booking.history = Array.isArray(booking.history) ? booking.history : [];
+    if (booking.history.length === 0 && Number(booking.paid) > 0) {
+        booking.history.push({
+            id: 'pay_init_' + (booking.id || Date.now()),
+            amount: Number(booking.paid),
+            date: booking.createdAt || todayLocal(),
+            note: 'دفعة أولى (مقدم حجز)'
+        });
+    }
+
+    const installmentId = 'pay_' + Date.now() + Math.random().toString(36).substr(2, 4);
     booking.history.push({
-        amount,
+        id: installmentId,
+        amount: amount,
         date: todayLocal(),
-        note: note || 'دفعة سداد'
+        note: note || `قسط رقم ${booking.history.length + 1}`
     });
+
+    booking.paid = booking.history.reduce((sum, h) => sum + (Number(h.amount) || 0), 0);
+    booking.remaining = Math.max(0, (Number(booking.price) || 0) - booking.paid);
     booking.updatedAt = new Date().toISOString();
 
     saveTrips(trips);
     document.getElementById('quick-pay-modal')?.classList.remove('active');
-    showToast(`تم تسجيل سداد ${amount.toLocaleString()} ج.م بنجاح!`, 'success');
+    
+    if (booking.remaining <= 0) {
+        showToast(`تم سداد ${amount.toLocaleString()} ج.م، واكتمل سداد كامل المبلغ بنجاح! 🎉`, 'success');
+    } else {
+        showToast(`تم تسجيل قسط ${amount.toLocaleString()} ج.م بنجاح! متبقي: ${booking.remaining.toLocaleString()} ج.م`, 'success');
+    }
     refreshTripsView();
 }
+
+function deletePaymentInstallment(bookingId, paymentId) {
+    if (currentUserRole !== 'admin' && !currentPermissions.includes('trips-edit')) {
+        showToast('عفواً، لا تملك صلاحية تعديل أو حذف الدفعات', 'warning');
+        return;
+    }
+    if (!confirm('هل أنت متأكد من حذف هذا القسط / الدفعة؟ سيتم إعادة خصمها من الإجمالي وحساب المتبقي تلقائياً.')) return;
+
+    const trips = getTrips();
+    let trip = trips.find(t => t.id === selectedTripId);
+    if (!trip && trips.length > 0) {
+        selectedTripId = trips[0].id;
+        trip = trips[0];
+    }
+    const booking = trip?.bookings?.find(b => b.id === bookingId);
+    if (!booking) return;
+
+    booking.history = (booking.history || []).filter(h => h.id !== paymentId);
+    booking.paid = booking.history.reduce((sum, h) => sum + (Number(h.amount) || 0), 0);
+    booking.remaining = Math.max(0, (Number(booking.price) || 0) - booking.paid);
+    booking.updatedAt = new Date().toISOString();
+
+    saveTrips(trips);
+    showToast('تم حذف القسط وإعادة ضبط المتبقي بنجاح', 'info');
+    openQuickPayModal(bookingId);
+    refreshTripsView();
+}
+window.deletePaymentInstallment = deletePaymentInstallment;
 
 function deleteBooking(bookingId) {
     if (currentUserRole !== 'admin' && !currentPermissions.includes('trips-edit')) {
