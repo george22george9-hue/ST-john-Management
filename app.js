@@ -6820,6 +6820,35 @@ async function shareDigitalPassWhatsApp(member) {
     }
 }
 
+// Helper: Decode and sanitize raw scanned QR / Barcode data
+function decodeScannedQRText(rawText) {
+    if (!rawText) return '';
+    let text = String(rawText).trim();
+
+    // 1. URL decode if encoded
+    if (/%[0-9a-fA-F]{2}/.test(text)) {
+        try {
+            text = decodeURIComponent(text);
+        } catch (e) {}
+    }
+
+    // 2. JSON decode if JSON payload
+    if (text.startsWith('{') && text.endsWith('}')) {
+        try {
+            const parsed = JSON.parse(text);
+            if (parsed.name) return String(parsed.name).trim();
+            if (parsed.id) return String(parsed.id).trim();
+            if (parsed.code) return String(parsed.code).trim();
+        } catch (e) {}
+    }
+
+    // 3. Remove common prefixes
+    text = text.replace(/^(ID:\s*|كود:\s*|معرف:\s*|معرّف:\s*|STJ:\s*|STJ-MEM-\s*)/i, '');
+    return text.trim();
+}
+
+let currentScannerFacingMode = 'environment';
+
 function setupQRSystem() {
     const btnOpenScanner = document.getElementById('btn-open-qr-scanner');
     const modalBg = document.getElementById('qr-scanner-modal-bg');
@@ -6827,6 +6856,10 @@ function setupQRSystem() {
     const cameraSelect = document.getElementById('qr-camera-select');
     const btnSwitchCam = document.getElementById('btn-qr-switch-camera');
     const btnManualFocus = document.getElementById('btn-qr-manual-focus');
+    const btnScanFile = document.getElementById('btn-qr-scan-file-btn');
+    const fileInput = document.getElementById('qr-file-input');
+    const manualInput = document.getElementById('qr-manual-code-input');
+    const btnManualSubmit = document.getElementById('btn-qr-manual-submit');
 
     if (btnOpenScanner) {
         btnOpenScanner.addEventListener('click', () => {
@@ -6851,7 +6884,7 @@ function setupQRSystem() {
     if (cameraSelect) {
         cameraSelect.addEventListener('change', () => {
             const selectedCamId = cameraSelect.value;
-            if (selectedCamId && html5QrScannerInstance) {
+            if (selectedCamId) {
                 switchQRCamera(selectedCamId);
             }
         });
@@ -6859,7 +6892,11 @@ function setupQRSystem() {
 
     if (btnSwitchCam) {
         btnSwitchCam.addEventListener('click', () => {
-            if (!cameraSelect || cameraSelect.options.length <= 1) return;
+            if (!cameraSelect || cameraSelect.options.length <= 1) {
+                currentScannerFacingMode = (currentScannerFacingMode === 'environment') ? 'user' : 'environment';
+                switchQRCameraMode(currentScannerFacingMode);
+                return;
+            }
             let nextIndex = cameraSelect.selectedIndex + 1;
             if (nextIndex >= cameraSelect.options.length) nextIndex = 0;
             cameraSelect.selectedIndex = nextIndex;
@@ -6867,13 +6904,56 @@ function setupQRSystem() {
         });
     }
 
+    // Image file scanning trigger
+    if (btnScanFile && fileInput) {
+        btnScanFile.addEventListener('click', () => {
+            fileInput.value = '';
+            fileInput.click();
+        });
+
+        fileInput.addEventListener('change', () => {
+            if (fileInput.files && fileInput.files[0]) {
+                scanQRCodeFromImageFile(fileInput.files[0]);
+            }
+        });
+    }
+
+    // Manual input typing / Barcode gun
+    if (manualInput) {
+        manualInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                const code = manualInput.value.trim();
+                if (code) {
+                    handleScannedMemberCode(code);
+                    manualInput.value = '';
+                }
+            }
+        });
+    }
+
+    if (btnManualSubmit && manualInput) {
+        btnManualSubmit.addEventListener('click', () => {
+            const code = manualInput.value.trim();
+            if (code) {
+                handleScannedMemberCode(code);
+                manualInput.value = '';
+            }
+        });
+    }
+
     if (btnManualFocus) {
         btnManualFocus.addEventListener('click', () => {
-            closeQRScannerModal();
-            const searchInput = document.getElementById('search-attendance');
-            if (searchInput) {
-                searchInput.focus();
-                searchInput.select();
+            if (manualInput) {
+                manualInput.focus();
+                manualInput.select();
+            } else {
+                closeQRScannerModal();
+                const searchInput = document.getElementById('search-attendance');
+                if (searchInput) {
+                    searchInput.focus();
+                    searchInput.select();
+                }
             }
         });
     }
@@ -6904,7 +6984,7 @@ function openQRScannerModal() {
     updateScannerFeedback({
         type: 'idle',
         title: 'جاهز للمسح الضوئي...',
-        subtitle: 'وجّه الكاميرا نحو كود المخدوم أو استخدم جهاز القارئ',
+        subtitle: 'وجّه الكاميرا نحو كود المخدوم أو اختر صورة من جهازك',
         badge: 'نشط'
     });
 
@@ -6918,12 +6998,12 @@ function closeQRScannerModal() {
     stopQRScannerCamera();
 }
 
-function startQRScannerCamera() {
+async function startQRScannerCamera() {
     if (typeof Html5Qrcode === 'undefined') {
         updateScannerFeedback({
             type: 'error',
             title: 'مكتبة الكاميرا غير متوفرة',
-            subtitle: 'تأكد من الاتصال بالإنترنت لتحميل ماسح الكاميرا، أو استخدم قارئ الباركود الخارجي.',
+            subtitle: 'تأكد من تحميل ملفات البرنامج، أو استخدم زر (مسح من صورة) أو قارئ الباركود.',
             badge: 'غير متاح'
         });
         return;
@@ -6936,83 +7016,105 @@ function startQRScannerCamera() {
         html5QrScannerInstance = new Html5Qrcode('qr-reader');
     }
 
-    Html5Qrcode.getCameras().then(devices => {
-        const cameraSelect = document.getElementById('qr-camera-select');
-        if (cameraSelect) {
-            cameraSelect.innerHTML = '';
-            devices.forEach((device, idx) => {
-                const opt = document.createElement('option');
-                opt.value = device.id;
-                opt.text = device.label || `كاميرا ${idx + 1}`;
-                cameraSelect.appendChild(opt);
-            });
+    if (html5QrScannerInstance.isScanning) {
+        try {
+            await html5QrScannerInstance.stop();
+        } catch (e) {
+            console.warn('Stopping scanner before restart:', e);
         }
+    }
 
-        if (!devices || devices.length === 0) {
-            updateScannerFeedback({
-                type: 'error',
-                title: 'لم يتم العثور على كاميرا',
-                subtitle: 'يمكنك استخدام قارئ الباركود الخارجي أو البحث بالاسم.',
-                badge: 'لا توجد كاميرا'
-            });
-            return;
-        }
+    const qrConfig = {
+        fps: 15,
+        qrbox: (viewfinderWidth, viewfinderHeight) => {
+            const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
+            const size = Math.max(160, Math.floor(minEdge * 0.72));
+            return { width: size, height: size };
+        },
+        aspectRatio: 1.0
+    };
 
-        // Prefer back camera on mobile devices
-        let preferredCameraId = devices[0].id;
-        const backCam = devices.find(d => /back|rear|environment/i.test(d.label));
-        if (backCam) preferredCameraId = backCam.id;
+    const isFileProtocol = window.location.protocol === 'file:';
+    const targetConfig = currentScannerCameraId ? currentScannerCameraId : { facingMode: currentScannerFacingMode };
 
-        if (cameraSelect) cameraSelect.value = preferredCameraId;
-        currentScannerCameraId = preferredCameraId;
+    html5QrScannerInstance.start(
+        targetConfig,
+        qrConfig,
+        onQRCodeScanned,
+        onQRCodeScanError
+    ).then(() => {
+        updateScannerFeedback({
+            type: 'idle',
+            title: 'الكاميرا تعمل بنشاط...',
+            subtitle: 'وجّه الكود نحو الكاميرا أو استخدم زر مسح من صورة',
+            badge: 'متصل'
+        });
 
-        startScannerWithCameraId(preferredCameraId);
+        Html5Qrcode.getCameras().then(devices => {
+            const cameraSelect = document.getElementById('qr-camera-select');
+            if (cameraSelect && devices && devices.length > 0) {
+                cameraSelect.innerHTML = '';
+                devices.forEach((device, idx) => {
+                    const opt = document.createElement('option');
+                    opt.value = device.id;
+                    opt.text = device.label || `كاميرا ${idx + 1}`;
+                    if (device.id === currentScannerCameraId) opt.selected = true;
+                    cameraSelect.appendChild(opt);
+                });
+            }
+        }).catch(() => {});
     }).catch(err => {
-        console.warn('Error discovering cameras, trying default environment:', err);
-        if (!html5QrScannerInstance) return;
+        console.warn('Initial camera start failed, trying fallback mode:', err);
+        const fallbackMode = (currentScannerFacingMode === 'environment') ? 'user' : 'environment';
         html5QrScannerInstance.start(
-            { facingMode: "environment" },
-            {
-                fps: 15,
-                qrbox: { width: 230, height: 230 }
-            },
+            { facingMode: fallbackMode },
+            qrConfig,
             onQRCodeScanned,
             onQRCodeScanError
-        ).catch(e => {
+        ).then(() => {
+            currentScannerFacingMode = fallbackMode;
             updateScannerFeedback({
-                type: 'error',
-                title: 'تعذر تشغيل الكاميرا',
-                subtitle: 'يرجى إعطاء الإذن للمتصفح باستخدام الكاميرا.',
-                badge: 'ممنوع'
+                type: 'idle',
+                title: 'الكاميرا تعمل بنشاط...',
+                subtitle: 'وجّه الكود نحو الكاميرا أو استخدم زر مسح من صورة',
+                badge: 'متصل'
+            });
+        }).catch(err2 => {
+            console.error('All camera attempts failed:', err2);
+            updateScannerFeedback({
+                type: 'warning',
+                title: isFileProtocol ? 'المتصفح يمنع الكاميرا على روابط file://' : 'تعذر تشغيل الكاميرا المباشرة',
+                subtitle: isFileProtocol
+                    ? 'اضغط على زر (مسح من صورة) لاختيار صورة الكود فوراً، أو شغّل البرنامج عبر localhost.'
+                    : 'يرجى إعطاء الإذن للمتصفح باستخدام الكاميرا، أو استخدم زر (مسح من صورة).',
+                badge: isFileProtocol ? 'file://' : 'تنبيه'
             });
         });
     });
 }
 
-function startScannerWithCameraId(cameraId) {
-    if (!html5QrScannerInstance) return;
-    html5QrScannerInstance.start(
-        cameraId,
-        {
-            fps: 15,
-            qrbox: { width: 230, height: 230 }
-        },
-        onQRCodeScanned,
-        onQRCodeScanError
-    ).catch(err => {
-        console.warn('Failed to start scanner with camera ID:', err);
-    });
-}
-
 function switchQRCamera(cameraId) {
     if (!html5QrScannerInstance) return;
+    currentScannerCameraId = cameraId;
     if (html5QrScannerInstance.isScanning) {
         html5QrScannerInstance.stop().then(() => {
-            currentScannerCameraId = cameraId;
-            startScannerWithCameraId(cameraId);
-        }).catch(err => console.warn(err));
+            startQRScannerCamera();
+        }).catch(() => startQRScannerCamera());
     } else {
-        startScannerWithCameraId(cameraId);
+        startQRScannerCamera();
+    }
+}
+
+function switchQRCameraMode(facingMode) {
+    if (!html5QrScannerInstance) return;
+    currentScannerFacingMode = facingMode;
+    currentScannerCameraId = null;
+    if (html5QrScannerInstance.isScanning) {
+        html5QrScannerInstance.stop().then(() => {
+            startQRScannerCamera();
+        }).catch(() => startQRScannerCamera());
+    } else {
+        startQRScannerCamera();
     }
 }
 
@@ -7022,24 +7124,61 @@ function stopQRScannerCamera() {
     }
 }
 
+async function scanQRCodeFromImageFile(file) {
+    if (!file) return;
+    if (typeof Html5Qrcode === 'undefined') {
+        showToast('مكتبة الـ QR غير محملة', 'error');
+        return;
+    }
+
+    showToast('جارٍ قراءة كود QR من الصورة...', 'info');
+    updateScannerFeedback({
+        type: 'idle',
+        title: 'جارٍ قراءة الصورة...',
+        subtitle: file.name,
+        badge: 'تحليل'
+    });
+
+    try {
+        if (!html5QrScannerInstance) {
+            html5QrScannerInstance = new Html5Qrcode('qr-reader');
+        }
+
+        if (html5QrScannerInstance.isScanning) {
+            try {
+                await html5QrScannerInstance.stop();
+            } catch (e) {}
+        }
+
+        const decodedText = await html5QrScannerInstance.scanFile(file, true);
+        handleScannedMemberCode(decodedText);
+    } catch (err) {
+        console.warn('Scan file failed:', err);
+        playBeepSound('error');
+        updateScannerFeedback({
+            type: 'error',
+            title: 'لم يتم العثور على كود QR بالصورة',
+            subtitle: 'تأكد من اختيار صورة واضحة لكارت العضوية أو الـ QR',
+            badge: 'فشل المسح'
+        });
+        showToast('تعذر العثور على كود QR واضح في هذه الصورة', 'warning');
+    }
+}
+
 function onQRCodeScanned(decodedText, decodedResult) {
     handleScannedMemberCode(decodedText);
 }
 
 function onQRCodeScanError(errorMessage) {
-    // Silently ignore frames without QR code
+    // Silently ignore video frames without QR code
 }
 
 function handleScannedMemberCode(rawText) {
     if (!rawText) return;
-    let cleanText = decodeScannedQRText(rawText);
-
+    const cleanText = decodeScannedQRText(rawText);
     let searchKey = cleanText;
-    ['STJ:', 'STJ-MEM-', 'كود:', 'الاسم:'].forEach(prefix => {
-        if (searchKey.startsWith(prefix)) {
-            searchKey = searchKey.substring(prefix.length).trim();
-        }
-    });
+
+    if (!searchKey) return;
 
     // Cooldown debouncing: ignore duplicate scan of same code within 2.5s
     const now = Date.now();
@@ -7048,6 +7187,15 @@ function handleScannedMemberCode(rawText) {
     }
     lastScannedCode = searchKey;
     lastScannedTime = now;
+
+    // Ensure attendance workspace and currentAttendanceDate are set!
+    if (!currentAttendanceDate) {
+        const todayDate = todayLocal();
+        const dateInput = document.getElementById('attendance-date');
+        if (dateInput) dateInput.value = todayDate;
+        const btnStart = document.getElementById('btn-start-day');
+        if (btnStart) btnStart.click();
+    }
 
     const normSearch = typeof normalizeAr === 'function' ? normalizeAr(searchKey) : searchKey.toLowerCase();
     const members = getMembers();
@@ -7060,12 +7208,27 @@ function handleScannedMemberCode(rawText) {
         return normName === normSearch;
     });
 
-    // 2. Fallback: Search by ID
+    // 2. Search by ID (database ID)
     if (!member) {
         member = members.find(m => String(m.id).trim() === searchKey || String(m.id).trim() === cleanText);
     }
 
-    // 3. Fallback: Search by clean phone
+    // 3. Search by Formatted ID (e.g. GS-2026-SERVANT or ID: GS-2026-SERVANT)
+    if (!member) {
+        member = members.find(m => {
+            const stats = calculateMemberPassStats(m);
+            if (stats && stats.formattedId) {
+                const cleanFmt = stats.formattedId.replace(/^ID:\s*/i, '').trim().toLowerCase();
+                const cleanKey = searchKey.replace(/^ID:\s*/i, '').trim().toLowerCase();
+                if (cleanFmt === cleanKey || stats.formattedId.toLowerCase() === cleanText.toLowerCase()) {
+                    return true;
+                }
+            }
+            return false;
+        });
+    }
+
+    // 4. Search by Phone
     if (!member) {
         const cleanPhone = cleanText.replace(/\D/g, '');
         if (cleanPhone.length >= 7) {
@@ -7073,6 +7236,7 @@ function handleScannedMemberCode(rawText) {
         }
     }
 
+    // Member not found in database
     if (!member) {
         playBeepSound('error');
         updateScannerFeedback({
@@ -7085,61 +7249,87 @@ function handleScannedMemberCode(rawText) {
         return;
     }
 
-        const listContainer = document.getElementById('attendance-members-list');
-    if (!listContainer) return;
+    // Member found! Now record attendance:
+    const listContainer = document.getElementById('attendance-members-list');
+    const row = listContainer ? listContainer.querySelector(`.member-attendance-row[data-id="${member.id}"]`) : null;
 
-    const row = listContainer.querySelector(`.member-attendance-row[data-id="${member.id}"]`);
-    if (!row) {
-        playBeepSound('error');
-        updateScannerFeedback({
-            type: 'error',
-            title: member.name,
-            subtitle: 'عفواً، صف العضو غير معروض في قائمة اليوم!',
-            badge: 'خطأ'
-        });
-        return;
-    }
+    if (row) {
+        const btnAttend = row.querySelector('.btn-attend');
+        const isAlreadyAttended = btnAttend && btnAttend.classList.contains('active');
 
-    const btnAttend = row.querySelector('.btn-attend');
-    const isAlreadyAttended = btnAttend && btnAttend.classList.contains('active');
+        if (isAlreadyAttended) {
+            playBeepSound('warning');
+            updateScannerFeedback({
+                type: 'warning',
+                title: member.name,
+                subtitle: 'تم تسجيل حضوره بالفعل مسبقاً لهذا اليوم ✓',
+                badge: 'حاضر مسبقاً',
+                avatar: member.name.charAt(0)
+            });
+            row.classList.remove('row-just-scanned');
+            void row.offsetWidth;
+            row.classList.add('row-just-scanned');
+            row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        } else {
+            playBeepSound('success');
+            if (btnAttend) btnAttend.click();
 
-    if (isAlreadyAttended) {
-        playBeepSound('warning');
-        updateScannerFeedback({
-            type: 'warning',
-            title: member.name,
-            subtitle: 'تم تسجيل حضوره بالفعل مسبقاً لهذا اليوم ✓',
-            badge: 'حاضر مسبقاً',
-            avatar: member.name.charAt(0)
-        });
-        row.classList.remove('row-just-scanned');
-        void row.offsetWidth;
-        row.classList.add('row-just-scanned');
-        row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            row.classList.remove('row-just-scanned');
+            void row.offsetWidth;
+            row.classList.add('row-just-scanned');
+            row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+            qrSessionCount++;
+            const countEl = document.getElementById('qr-session-count');
+            if (countEl) countEl.innerText = qrSessionCount;
+
+            updateScannerFeedback({
+                type: 'success',
+                title: member.name,
+                subtitle: `تم تسجيل الحضور بنجاح! 🎉 (${formatScanTime(new Date())})`,
+                badge: 'حضر الآن ✓',
+                avatar: member.name.charAt(0)
+            });
+
+            showToast(`تم تسجيل حضور: ${member.name} بنجاح!`, 'success');
+            saveCurrentAttendanceSilently();
+        }
     } else {
-        playBeepSound('success');
-        btnAttend.click();
+        // Direct record fallback (e.g. list was filtered or not rendered)
+        const records = getAttendanceRecords();
+        const activeDate = currentAttendanceDate || todayLocal();
+        if (!records[activeDate]) records[activeDate] = [];
 
-        row.classList.remove('row-just-scanned');
-        void row.offsetWidth;
-        row.classList.add('row-just-scanned');
-        row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        const isAlreadyAttended = records[activeDate].includes(member.id);
+        if (isAlreadyAttended) {
+            playBeepSound('warning');
+            updateScannerFeedback({
+                type: 'warning',
+                title: member.name,
+                subtitle: 'تم تسجيل حضوره بالفعل مسبقاً لهذا اليوم ✓',
+                badge: 'حاضر مسبقاً',
+                avatar: member.name.charAt(0)
+            });
+        } else {
+            records[activeDate].push(member.id);
+            saveAttendanceRecords(records);
+            playBeepSound('success');
 
-        qrSessionCount++;
-        const countEl = document.getElementById('qr-session-count');
-        if (countEl) countEl.innerText = qrSessionCount;
+            qrSessionCount++;
+            const countEl = document.getElementById('qr-session-count');
+            if (countEl) countEl.innerText = qrSessionCount;
 
-        updateScannerFeedback({
-            type: 'success',
-            title: member.name,
-            subtitle: `تم تسجيل الحضور بنجاح! 🎉 (${formatScanTime(new Date())})`,
-            badge: 'حضر الآن ✓',
-            avatar: member.name.charAt(0)
-        });
+            updateScannerFeedback({
+                type: 'success',
+                title: member.name,
+                subtitle: `تم تسجيل الحضور بنجاح! 🎉 (${formatScanTime(new Date())})`,
+                badge: 'حضر الآن ✓',
+                avatar: member.name.charAt(0)
+            });
 
-        showToast(`تم تسجيل حضور: ${member.name} بنجاح!`, 'success');
-
-        saveCurrentAttendanceSilently();
+            showToast(`تم تسجيل حضور: ${member.name} بنجاح!`, 'success');
+            if (typeof updateLiveCounter === 'function') updateLiveCounter();
+        }
     }
 }
 
@@ -7173,7 +7363,7 @@ function setupHardwareBarcodeScanner() {
 
         const activeTag = document.activeElement ? document.activeElement.tagName : '';
         const activeId = document.activeElement ? document.activeElement.id : '';
-        if ((activeTag === 'INPUT' || activeTag === 'TEXTAREA') && activeId !== 'search-attendance') {
+        if ((activeTag === 'INPUT' || activeTag === 'TEXTAREA') && activeId !== 'search-attendance' && activeId !== 'qr-manual-code-input') {
             return;
         }
 

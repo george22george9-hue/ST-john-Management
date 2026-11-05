@@ -21,8 +21,13 @@
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <!-- QRCode Generator (High Compatibility & Arabic UTF-8 Support) -->
     <script src="qrcode-generator.min.js"></script>
-    <!-- Html5-QRCode for fast camera scanning -->
-    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <!-- Html5-QRCode for fast camera scanning (Local Offline First with CDN Fallback) -->
+    <script src="html5-qrcode.min.js"></script>
+    <script>
+        if (typeof Html5Qrcode === 'undefined') {
+            document.write('<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"><\/script>');
+        }
+    </script>
     <!-- Styles -->
     <link rel="stylesheet" href="style.css?v=20261105_pass_v1">
     <!-- Immediate Authentication Check (Prevents Dashboard Flash Before Scripts Load) -->
@@ -2263,14 +2268,19 @@
             </div>
 
             <div class="modal-body" style="padding: 16px 20px;">
-                <!-- Camera Select & Switch Controls -->
-                <div style="display: flex; gap: 8px; margin-bottom: 12px; align-items: center;">
-                    <select id="qr-camera-select" class="form-control" style="font-size: 0.82rem; padding: 6px 12px; flex: 1;">
-                        <option value="">جارٍ البحث عن الكاميرات المتاحة...</option>
+                <!-- Camera Select & Switch Controls + File Scan Option -->
+                <div style="display: flex; gap: 8px; margin-bottom: 12px; align-items: center; flex-wrap: wrap;">
+                    <select id="qr-camera-select" class="form-control" style="font-size: 0.82rem; padding: 6px 12px; flex: 1; min-width: 140px;">
+                        <option value="">الكاميرا الافتراضية / الخلفية</option>
                     </select>
                     <button type="button" class="btn btn-outline" id="btn-qr-switch-camera" title="تبديل الكاميرا" style="padding: 6px 12px;">
                         <i class="ph ph-arrows-clockwise"></i>
                     </button>
+                    <button type="button" class="btn btn-outline" id="btn-qr-scan-file-btn" title="مسح كود من صورة كارت محفوظة" style="padding: 6px 12px; font-size: 0.82rem; display: inline-flex; align-items: center; gap: 5px; white-space: nowrap;">
+                        <i class="ph ph-image"></i>
+                        <span>مسح من صورة</span>
+                    </button>
+                    <input type="file" id="qr-file-input" accept="image/*" style="display: none;">
                 </div>
 
                 <!-- Video Viewport Container with Laser Animation -->
@@ -2283,6 +2293,17 @@
                         <div class="qr-scanner-corner bottom-right"></div>
                         <div class="qr-laser-beam"></div>
                     </div>
+                </div>
+
+                <!-- Fast Code / Barcode Manual Input -->
+                <div style="margin-top: 10px; display: flex; gap: 8px;">
+                    <div style="position: relative; flex: 1;">
+                        <i class="ph ph-barcode" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 1.1rem;"></i>
+                        <input type="text" id="qr-manual-code-input" class="form-control" placeholder="أو اكتب الاسم / الكود / قارئ الباركود واضغط Enter..." style="padding-right: 34px; font-size: 0.82rem; padding-top: 7px; padding-bottom: 7px;">
+                    </div>
+                    <button type="button" class="btn btn-primary" id="btn-qr-manual-submit" style="padding: 7px 14px; font-size: 0.82rem; white-space: nowrap;">
+                        تسجيل ✓
+                    </button>
                 </div>
 
                 <!-- Live Status & Feedback Banner -->
