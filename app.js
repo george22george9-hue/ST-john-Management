@@ -10088,7 +10088,6 @@ function sendPastoralFollowupWhatsApp(memberId) {
     const member = getMembers().find(m => m.id === memberId);
     if (!member) return;
 
-    const isServant = member.role === 'servant';
     const isFemale = member.gender === 'female';
     const firstName = getMemberFirstName(member.name);
 
@@ -10098,63 +10097,36 @@ function sendPastoralFollowupWhatsApp(memberId) {
     const lastMeetingDate = dates.length > 0 ? dates[0] : null;
     const attendedLast = lastMeetingDate ? (records[lastMeetingDate] || []).includes(memberId) : false;
 
-    let absentMessage = '';
-    let attendedMessage = '';
+    const title = isFemale 
+        ? `يا ${firstName} الغالية` 
+        : `يا ${firstName} الغالي`;
 
-    if (isServant) {
-        const servantTitle = isFemale 
-            ? `تاسوني ${firstName} خادمتنا الغالية` 
-            : `أستاذ ${firstName} خادمنا الغالي`;
-
-        absentMessage = sanitizeForWhatsApp(
-`سلام ونعمة ${servantTitle} ✝
-افتقدناك جداً الجمعة اللي فاتت في اجتماع القديس يوحنا الحبيب بكنيسة مارجرجس بسندبيس.. مكانك وخدمتك وحضورك بيفرّح قلوبنا وبيكمّل بركة لمتنا! ✨
-
-حبينا نطمن ${isFemale ? 'عليكي ونقولك إننا بنصليلك' : 'عليك ونقولك إننا بنصليلك'} ربنا يقويك ويسندك في كل أمورك ويبارك خدمتك وتعب محبتك.. مستنيينك دايماً تنور بيتك وكنيستك الجمعة الجاية! 🤍🌿
-
-«لأَنَّ اللهَ لَيْسَ بِظَالِمٍ حَتَّى يَنْسَى عَمَلَكُمْ وَتَعَبَ الْمَحَبَّةِ الَّتِي أَظْهَرْتُمُوهَا نَحْوَ اسْمِهِ» (عبرانيين 6: 10)`
-        );
-
-        attendedMessage = sanitizeForWhatsApp(
-`سلام ونعمة ${servantTitle} ✝
-شكراً جداً على خدمتك وتعبك الجميل وبركة وجودك معانا الجمعة اللي فاتت في اجتماع القديس يوحنا الحبيب! ✨
-
-ربنا يديم خدمتك ويعوض تعب محبتك ويبارك في كل عمل إيديك.. مستنيينك تنورنا وتكمّل بركتنا الجمعة القادمة في ميعادنا! 🤍🌿
-
-«لأَنَّ اللهَ لَيْسَ بِظَالِمٍ حَتَّى يَنْسَى عَمَلَكُمْ وَتَعَبَ الْمَحَبَّةِ الَّتِي أَظْهَرْتُمُوهَا نَحْوَ اسْمِهِ» (عبرانيين 6: 10)`
-        );
-    } else {
-        const title = isFemale 
-            ? `يا ${firstName} الغالية` 
-            : `يا ${firstName} الغالي`;
-
-        absentMessage = sanitizeForWhatsApp(
+    // 1. Absent Template (رسالة الغياب)
+    const absentMessage = sanitizeForWhatsApp(
 `سلام ونعمة ${title} ✝
 ${isFemale ? 'افتقدناكي' : 'افتقدناك'} جداً الجمعة اللي فاتت في اجتماع القديس يوحنا الحبيب بكنيسة مارجرجس بسندبيس.. مكانك كان فاضي ولمتنا مش بتكمل إلا ${isFemale ? 'بيكي' : 'بيك'}! ✨
 
 حبينا نطمن ${isFemale ? 'عليكي ونقولك إنك دايماً في صلواتنا وقلوبنا.. مستنيينك تنوري' : 'عليك ونقولك إنك دايماً في صلواتنا وقلوبنا.. مستنيينك تنور'} بيتك وكنيستك الجمعة الجاية في ميعادنا! 🤍🌿
 
 «فَرِحْتُ بِالْقَائِلِينَ لِي: إِلَى بَيْتِ الرَّبِّ نَذْهَبُ» (مزمور 122: 1)`
-        );
+    );
 
-        attendedMessage = sanitizeForWhatsApp(
+    // 2. Attended Template (رسالة الحضور)
+    const attendedMessage = sanitizeForWhatsApp(
 `سلام ونعمة ${title} ✝
 ${isFemale ? 'فرّحتي' : 'فرّحت'} قلوبنا بحضورك الجميل ${isFemale ? 'ونورتي' : 'ونورت'} بيتك وكنيستك الجمعة اللي فاتت في اجتماع القديس يوحنا الحبيب! ✨
 
 دايماً وجودك بيفرّحنا وبيكمّل بركة لمتنا.. حبينا نشكرك ومستنيينك تنورنا الجمعة الجاية في ميعادنا ببركة وفرحة جديدة! 🤍🌿
 
 «فَرِحْتُ بِالْقَائِلِينَ لِي: إِلَى بَيْتِ الرَّبِّ نَذْهَبُ» (مزمور 122: 1)`
-        );
-    }
+    );
 
     const defaultTpl = attendedLast ? 'attended' : 'absent';
     const activeMsg = defaultTpl === 'attended' ? attendedMessage : absentMessage;
 
     openSmartWhatsAppHubModal({
-        title: isServant ? `❤️ رسالة للخادم: ${firstName}` : `❤️ رسالة تواصل وافتقاد: ${firstName}`,
-        subtitle: isServant 
-            ? `متابعة وتواصل خدام الاجتماع (${attendedLast ? 'حضر الجمعة الماضية' : 'غاب الجمعة الماضية'})`
-            : `متابعة وافتقاد مخدومي الاجتماع (${attendedLast ? 'حضر الجمعة الماضية' : 'غاب الجمعة الماضية'})`,
+        title: `❤️ رسالة تواصل وافتقاد: ${firstName}`,
+        subtitle: `اجتماع القديس يوحنا الحبيب (${attendedLast ? 'حضر الجمعة الماضية' : 'غاب الجمعة الماضية'})`,
         phone: member.phone || '',
         memberId: member.id,
         message: activeMsg,
@@ -10171,9 +10143,7 @@ ${isFemale ? 'فرّحتي' : 'فرّحت'} قلوبنا بحضورك الجمي
                     id: 'vis_wa_' + Date.now(),
                     date: todayLocal(),
                     type: 'واتساب',
-                    notes: isServant 
-                        ? `إرسال رسالة ${defaultTpl === 'attended' ? 'شكر وتشجيع على الخدمة' : 'افتقاد وتشجيع'} عبر واتساب`
-                        : `إرسال رسالة ${defaultTpl === 'attended' ? 'تشجيع للحضور' : 'افتقاد ومحبة'} عبر واتساب`,
+                    notes: `إرسال رسالة ${defaultTpl === 'attended' ? 'تشجيع للحضور' : 'افتقاد ومحبة'} عبر واتساب`,
                     servant: (typeof currentUserName === 'string' && currentUserName) || 'مسؤول الاجتماع'
                 });
                 saveVisitations(visitations);
