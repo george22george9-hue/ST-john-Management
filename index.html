@@ -19,8 +19,12 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <!-- SheetJS for Excel generation -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <!-- QRCode.js for generating QR Codes -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <!-- Html5-QRCode for fast camera scanning -->
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
     <!-- Styles -->
-    <link rel="stylesheet" href="style.css?v=20261105_presentations_v1">
+    <link rel="stylesheet" href="style.css?v=20261105_qr_v1">
     <!-- Immediate Authentication Check (Prevents Dashboard Flash Before Scripts Load) -->
     <script>
         (function() {
@@ -298,10 +302,16 @@
                         </button>
                     </div>
 
-                    <!-- Search Bar with Search Icon -->
-                    <div class="attendance-search-wrap">
-                        <i class="ph ph-magnifying-glass search-icon"></i>
-                        <input type="text" id="search-attendance" class="form-control" placeholder="بحث سريع بالاسم...">
+                    <!-- Search Bar with Search Icon & Fast QR Scanner Button -->
+                    <div class="attendance-toolbar-row">
+                        <div class="attendance-search-wrap">
+                            <i class="ph ph-magnifying-glass search-icon"></i>
+                            <input type="text" id="search-attendance" class="form-control" placeholder="بحث سريع بالاسم أو الكود...">
+                        </div>
+                        <button type="button" class="btn btn-primary btn-qr-scan-trigger" id="btn-open-qr-scanner" title="تسجيل الحضور بالـ QR">
+                            <i class="ph ph-qr-code"></i>
+                            <span>ماسح الـ QR السريع</span>
+                        </button>
                     </div>
 
                     <div class="members-list-attendance" id="attendance-members-list">
@@ -1375,6 +1385,35 @@
                     </div>
                 </div>
 
+                <!-- Member Digital QR Card Section -->
+                <div class="member-qr-card-box glass" style="margin-bottom: 20px; padding: 14px 16px; border-radius: 14px; background: rgba(30, 41, 59, 0.45); border: 1px solid rgba(255,255,255,0.08);">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.06); padding-bottom: 6px;">
+                        <h4 style="margin: 0; font-size: 0.88rem; color: #e2e8f0; display: flex; align-items: center; gap: 6px;">
+                            <i class="ph ph-qr-code" style="color: var(--primary); font-size: 1.1rem;"></i> كود الحضور الرقمي (QR)
+                        </h4>
+                        <span class="status-badge badge-info" id="profile-qr-code-label" style="font-size: 0.7rem; font-family: monospace;">--</span>
+                    </div>
+                    
+                    <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap; justify-content: center;">
+                        <div id="member-profile-qr-wrap" style="background: #ffffff; padding: 10px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.35);">
+                            <div id="member-profile-qrcode"></div>
+                        </div>
+                        <div style="flex: 1; min-width: 170px;">
+                            <p style="font-size: 0.78rem; color: #94a3b8; margin: 0 0 10px; line-height: 1.5;">
+                                امسح هذا الكود في شاشة الحضور بالكاميرا أو القارئ السريع لتسجيل الحضور في ثانية واحدة بدون كتابة.
+                            </p>
+                            <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                                <button type="button" class="btn btn-outline btn-sm" id="btn-download-member-qr" style="font-size: 0.75rem; padding: 5px 10px;">
+                                    <i class="ph ph-download-simple"></i> تحميل الكارت
+                                </button>
+                                <button type="button" class="btn btn-outline btn-sm" id="btn-share-member-qr-wa" style="font-size: 0.75rem; padding: 5px 10px; color: #34d399; border-color: rgba(52,211,153,0.3);">
+                                    <i class="ph ph-whatsapp-logo"></i> إرسال واتساب
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <div id="profile-servant-stats" style="display: none; margin-bottom: 20px; padding: 15px; border-radius: 12px; background: rgba(245, 158, 11, 0.05); border: 1px solid rgba(245, 158, 11, 0.3);">
                     <h4 style="margin-bottom: 15px; color: var(--warning);"><i class="ph ph-star"></i> إحصائيات الخدمة</h4>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
@@ -2197,6 +2236,73 @@
         </div>
     </div>
 
+    <!-- Quick Attendance QR Scanner Modal -->
+    <div class="modal-overlay" id="qr-scanner-modal-bg" style="z-index: 10010;">
+        <div class="modal glass qr-scanner-modal" style="max-width: 520px; padding: 0; overflow: hidden; border-radius: 20px;">
+            <div class="modal-header" style="padding: 16px 20px; border-bottom: 1px solid rgba(255,255,255,0.1); background: rgba(15,23,42,0.7);">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <div class="qr-pulse-icon">
+                        <i class="ph ph-qr-code" style="color: var(--primary); font-size: 1.5rem;"></i>
+                    </div>
+                    <div>
+                        <h3 style="margin: 0; font-size: 1.1rem; color: #ffffff;">ماسح الـ QR السريع للحضور</h3>
+                        <p style="margin: 2px 0 0; font-size: 0.75rem; color: #94a3b8;">وجّه الكاميرا نحو كود العضو أو استخدم قارئ الباركود</p>
+                    </div>
+                </div>
+                <button class="close-modal" id="btn-close-qr-scanner"><span style="font-size: 1.6rem; font-weight: bold; line-height: 1;">&times;</span></button>
+            </div>
+
+            <div class="modal-body" style="padding: 16px 20px;">
+                <!-- Camera Select & Switch Controls -->
+                <div style="display: flex; gap: 8px; margin-bottom: 12px; align-items: center;">
+                    <select id="qr-camera-select" class="form-control" style="font-size: 0.82rem; padding: 6px 12px; flex: 1;">
+                        <option value="">جارٍ البحث عن الكاميرات المتاحة...</option>
+                    </select>
+                    <button type="button" class="btn btn-outline" id="btn-qr-switch-camera" title="تبديل الكاميرا" style="padding: 6px 12px;">
+                        <i class="ph ph-arrows-clockwise"></i>
+                    </button>
+                </div>
+
+                <!-- Video Viewport Container with Laser Animation -->
+                <div class="qr-scanner-viewport-wrap" style="position: relative; width: 100%; border-radius: 14px; overflow: hidden; background: #000; min-height: 260px; display: flex; align-items: center; justify-content: center;">
+                    <div id="qr-reader" style="width: 100%;"></div>
+                    <div class="qr-laser-scanner-box" id="qr-laser-scanner-box">
+                        <div class="qr-scanner-corner top-left"></div>
+                        <div class="qr-scanner-corner top-right"></div>
+                        <div class="qr-scanner-corner bottom-left"></div>
+                        <div class="qr-scanner-corner bottom-right"></div>
+                        <div class="qr-laser-beam"></div>
+                    </div>
+                </div>
+
+                <!-- Live Status & Feedback Banner -->
+                <div id="qr-scan-feedback" class="qr-scan-feedback-box" style="margin-top: 14px; padding: 12px 14px; border-radius: 12px; background: rgba(30,41,59,0.7); border: 1px solid rgba(255,255,255,0.08); display: flex; align-items: center; gap: 12px; transition: all 0.3s ease;">
+                    <div class="qr-feedback-avatar" id="qr-feedback-avatar" style="width: 44px; height: 44px; border-radius: 50%; background: rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1.2rem; color: #fff; flex-shrink: 0;">
+                        <i class="ph ph-camera"></i>
+                    </div>
+                    <div style="flex: 1; min-width: 0;">
+                        <div id="qr-feedback-title" style="font-weight: 700; font-size: 0.95rem; color: #fff; margin-bottom: 2px;">جاهز للمسح الضوئي...</div>
+                        <div id="qr-feedback-subtitle" style="font-size: 0.78rem; color: #94a3b8;">قرّب كود المخدوم أو استخدم جهاز القارئ</div>
+                    </div>
+                    <div id="qr-feedback-badge">
+                        <span class="status-badge badge-warning" style="font-size: 0.72rem;">نشط</span>
+                    </div>
+                </div>
+
+                <!-- Session Scan Counter -->
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px; font-size: 0.8rem; color: #94a3b8; padding: 0 4px;">
+                    <span><i class="ph ph-check-circle" style="color: #10b981;"></i> تم تسجيلهم الآن: <strong id="qr-session-count" style="color: #10b981; font-size: 0.95rem;">0</strong></span>
+                    <span style="font-size: 0.72rem; color: #64748b;"><i class="ph ph-keyboard"></i> يدعم قارئ USB / لاسلكي</span>
+                </div>
+            </div>
+
+            <div class="modal-footer" style="padding: 12px 20px; border-top: 1px solid rgba(255,255,255,0.08); display: flex; justify-content: space-between; align-items: center; background: rgba(15,23,42,0.4);">
+                <button type="button" class="btn btn-outline" id="btn-qr-manual-focus" style="font-size: 0.82rem;"><i class="ph ph-magnifying-glass"></i> بحث سريع</button>
+                <button type="button" class="btn btn-primary close-modal" style="font-size: 0.82rem;"><i class="ph ph-check"></i> إنهاء المسح</button>
+            </div>
+        </div>
+    </div>
+
 
 
     
@@ -2247,6 +2353,6 @@
     <script src="firebase-firestore.js"></script>
     
     <!-- Script -->
-    <script src="app.js?v=20261026_installments_v4"></script>
+    <script src="app.js?v=20261105_qr_v1"></script>
 </body>
 </html>

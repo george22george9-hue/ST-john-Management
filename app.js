@@ -5000,6 +5000,11 @@ window.openMemberProfile = function (memberId) {
         servantStatsDiv.style.display = 'none';
     }
 
+    // Render Member QR Code and Digital Badge
+    if (typeof renderMemberQRCode === 'function') {
+        renderMemberQRCode(member);
+    }
+
     document.getElementById('member-profile-modal-bg').classList.add('active');
 }
 
@@ -5992,6 +5997,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setupCompetitions();
     setupServantsNotes();
     setupTrips();
+    setupQRSystem();
 
     setupAuth();
     checkLoginAndApply();
@@ -6011,6 +6017,676 @@ function setupKeyboardShortcuts() {
                 const btnSave = document.getElementById('btn-save-attendance');
                 if (btnSave) btnSave.click();
             }
+        }
+    });
+}
+
+// ==========================================
+// QUICK QR ATTENDANCE SYSTEM (PHASE 1)
+// ==========================================
+let html5QrScannerInstance = null;
+let lastScannedCode = '';
+let lastScannedTime = 0;
+let qrSessionCount = 0;
+let currentScannerCameraId = null;
+
+function formatScanTime(d) {
+    try {
+        return new Date(d).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    } catch {
+        return '';
+    }
+}
+
+// Audio Chimes using Web Audio API (Zero dependencies, offline synthesizer)
+function playBeepSound(type = 'success') {
+    try {
+        const AudioCtxClass = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtxClass) return;
+        const ctx = new AudioCtxClass();
+        const now = ctx.currentTime;
+
+        if (type === 'success') {
+            // High cheerful double-chime (D5 -> A5)
+            const osc1 = ctx.createOscillator();
+            const gain1 = ctx.createGain();
+            osc1.type = 'sine';
+            osc1.frequency.setValueAtTime(587.33, now);
+            gain1.gain.setValueAtTime(0.18, now);
+            gain1.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
+            osc1.connect(gain1);
+            gain1.connect(ctx.destination);
+            osc1.start(now);
+            osc1.stop(now + 0.12);
+
+            const osc2 = ctx.createOscillator();
+            const gain2 = ctx.createGain();
+            osc2.type = 'sine';
+            osc2.frequency.setValueAtTime(880, now + 0.09);
+            gain2.gain.setValueAtTime(0.22, now + 0.09);
+            gain2.gain.exponentialRampToValueAtTime(0.01, now + 0.26);
+            osc2.connect(gain2);
+            gain2.connect(ctx.destination);
+            osc2.start(now + 0.09);
+            osc2.stop(now + 0.26);
+        } else if (type === 'warning') {
+            // Double-tap alert tone (F#4 -> F#4)
+            [0, 0.11].forEach(offset => {
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(369.99, now + offset);
+                gain.gain.setValueAtTime(0.15, now + offset);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + offset + 0.08);
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start(now + offset);
+                osc.stop(now + offset + 0.08);
+            });
+        } else if (type === 'error') {
+            // Low descending buzz (280Hz -> 160Hz)
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(280, now);
+            osc.frequency.linearRampToValueAtTime(160, now + 0.25);
+            gain.gain.setValueAtTime(0.2, now);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(now);
+            osc.stop(now + 0.25);
+        }
+    } catch (e) {
+        // AudioContext ignored
+    }
+}
+
+function updateScannerFeedback({ type = 'idle', title = '', subtitle = '', badge = '', avatar = '' }) {
+    const feedbackBox = document.getElementById('qr-scan-feedback');
+    const avatarEl = document.getElementById('qr-feedback-avatar');
+    const titleEl = document.getElementById('qr-feedback-title');
+    const subtitleEl = document.getElementById('qr-feedback-subtitle');
+    const badgeWrap = document.getElementById('qr-feedback-badge');
+
+    if (!feedbackBox) return;
+
+    if (titleEl) titleEl.textContent = title;
+    if (subtitleEl) subtitleEl.textContent = subtitle;
+
+    if (type === 'success') {
+        feedbackBox.style.background = 'rgba(16, 185, 129, 0.2)';
+        feedbackBox.style.borderColor = 'rgba(16, 185, 129, 0.5)';
+        if (avatarEl) {
+            avatarEl.style.background = '#10b981';
+            avatarEl.innerHTML = avatar ? esc(avatar) : '<i class="ph ph-check"></i>';
+        }
+        if (badgeWrap) badgeWrap.innerHTML = `<span class="status-badge badge-success" style="font-size:0.75rem;">${esc(badge || 'تم الحضور ✓')}</span>`;
+    } else if (type === 'warning') {
+        feedbackBox.style.background = 'rgba(245, 158, 11, 0.2)';
+        feedbackBox.style.borderColor = 'rgba(245, 158, 11, 0.5)';
+        if (avatarEl) {
+            avatarEl.style.background = '#f59e0b';
+            avatarEl.innerHTML = avatar ? esc(avatar) : '<i class="ph ph-info"></i>';
+        }
+        if (badgeWrap) badgeWrap.innerHTML = `<span class="status-badge badge-warning" style="font-size:0.75rem;">${esc(badge || 'حاضر مسبقاً')}</span>`;
+    } else if (type === 'error') {
+        feedbackBox.style.background = 'rgba(239, 68, 68, 0.2)';
+        feedbackBox.style.borderColor = 'rgba(239, 68, 68, 0.5)';
+        if (avatarEl) {
+            avatarEl.style.background = '#ef4444';
+            avatarEl.innerHTML = '<i class="ph ph-warning"></i>';
+        }
+        if (badgeWrap) badgeWrap.innerHTML = `<span class="status-badge badge-danger" style="font-size:0.75rem;">${esc(badge || 'خطأ')}</span>`;
+    } else {
+        feedbackBox.style.background = 'rgba(30, 41, 59, 0.7)';
+        feedbackBox.style.borderColor = 'rgba(255, 255, 255, 0.08)';
+        if (avatarEl) {
+            avatarEl.style.background = 'rgba(255, 255, 255, 0.1)';
+            avatarEl.innerHTML = '<i class="ph ph-camera"></i>';
+        }
+        if (badgeWrap) badgeWrap.innerHTML = `<span class="status-badge badge-warning" style="font-size:0.72rem;">${esc(badge || 'نشط')}</span>`;
+    }
+}
+
+function renderMemberQRCode(member) {
+    if (!member) return;
+
+    const qrLabel = document.getElementById('profile-qr-code-label');
+    if (qrLabel) qrLabel.textContent = `STJ-MEM-${member.id}`;
+
+    const qrContainer = document.getElementById('member-profile-qrcode');
+    if (qrContainer) {
+        qrContainer.innerHTML = '';
+        if (typeof QRCode !== 'undefined') {
+            try {
+                new QRCode(qrContainer, {
+                    text: `STJ-MEM-${member.id}`,
+                    width: 130,
+                    height: 130,
+                    colorDark: '#0f172a',
+                    colorLight: '#ffffff',
+                    correctLevel: (typeof QRCode.CorrectLevel !== 'undefined') ? QRCode.CorrectLevel.H : 2
+                });
+            } catch(e) {
+                console.warn('QRCode render fallback:', e);
+                qrContainer.innerHTML = `<div style="font-weight:bold;color:#000;font-size:12px;padding:12px;">STJ-MEM-${esc(member.id)}</div>`;
+            }
+        } else {
+            qrContainer.innerHTML = `<div style="font-weight:bold;color:#000;font-size:12px;padding:12px;">STJ-MEM-${esc(member.id)}</div>`;
+        }
+    }
+
+    const btnDownload = document.getElementById('btn-download-member-qr');
+    if (btnDownload) {
+        btnDownload.onclick = () => downloadMemberDigitalCard(member);
+    }
+
+    const btnShareWa = document.getElementById('btn-share-member-qr-wa');
+    if (btnShareWa) {
+        btnShareWa.onclick = () => shareMemberQRWhatsApp(member);
+    }
+}
+
+function downloadMemberDigitalCard(member) {
+    if (!member) return;
+
+    const canvas = document.createElement('canvas');
+    canvas.width = 450;
+    canvas.height = 620;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    function roundRect(c, x, y, width, height, radius) {
+        c.beginPath();
+        c.moveTo(x + radius, y);
+        c.lineTo(x + width - radius, y);
+        c.quadraticCurveTo(x + width, y, x + width, y + radius);
+        c.lineTo(x + width, y + height - radius);
+        c.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+        c.lineTo(x + radius, y + height);
+        c.quadraticCurveTo(x, y + height, x, y + height - radius);
+        c.lineTo(x, y + radius);
+        c.quadraticCurveTo(x, y, x + radius, y);
+        c.closePath();
+    }
+
+    // 1. Background gradient
+    const bgGrad = ctx.createLinearGradient(0, 0, 450, 620);
+    bgGrad.addColorStop(0, '#0f172a');
+    bgGrad.addColorStop(0.5, '#1e293b');
+    bgGrad.addColorStop(1, '#0b1120');
+    ctx.fillStyle = bgGrad;
+    roundRect(ctx, 0, 0, 450, 620, 24);
+    ctx.fill();
+
+    // 2. Glowing border
+    ctx.strokeStyle = 'rgba(56, 189, 248, 0.45)';
+    ctx.lineWidth = 3;
+    roundRect(ctx, 2, 2, 446, 616, 22);
+    ctx.stroke();
+
+    // 3. Top Header Banner
+    const topGrad = ctx.createLinearGradient(0, 0, 450, 0);
+    topGrad.addColorStop(0, '#2563eb');
+    topGrad.addColorStop(1, '#0284c7');
+    ctx.fillStyle = topGrad;
+    roundRect(ctx, 0, 0, 450, 85, 24);
+    ctx.fill();
+    ctx.fillRect(0, 50, 450, 35);
+
+    // Church Title
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 20px "Segoe UI", Tahoma, Arial, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('اجتماع القديس يوحنا الحبيب', 225, 42);
+
+    ctx.fillStyle = '#bae6fd';
+    ctx.font = '12px "Segoe UI", Tahoma, Arial, sans-serif';
+    ctx.fillText('بطاقة العضوية والحضور الذكي', 225, 68);
+
+    // 4. Member Avatar Circle
+    ctx.beginPath();
+    ctx.arc(225, 140, 38, 0, Math.PI * 2);
+    ctx.fillStyle = '#334155';
+    ctx.fill();
+    ctx.strokeStyle = '#38bdf8';
+    ctx.lineWidth = 3;
+    ctx.stroke();
+
+    const initial = (member.name || '').trim().charAt(0) || 'ع';
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 32px "Segoe UI", Tahoma, Arial, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(initial, 225, 152);
+
+    // 5. Member Name
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 22px "Segoe UI", Tahoma, Arial, sans-serif';
+    ctx.fillText(member.name, 225, 215);
+
+    // 6. Role Badge
+    const isServant = member.role === 'servant';
+    ctx.fillStyle = isServant ? 'rgba(245, 158, 11, 0.2)' : 'rgba(59, 130, 246, 0.2)';
+    roundRect(ctx, 160, 230, 130, 26, 13);
+    ctx.fill();
+    ctx.strokeStyle = isServant ? 'rgba(245, 158, 11, 0.6)' : 'rgba(59, 130, 246, 0.6)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    ctx.fillStyle = isServant ? '#fbbf24' : '#60a5fa';
+    ctx.font = 'bold 12px "Segoe UI", Tahoma, Arial, sans-serif';
+    ctx.fillText(isServant ? 'خادم بالاجتماع' : 'عضو بالاجتماع', 225, 247);
+
+    // Phone / Address
+    ctx.fillStyle = '#94a3b8';
+    ctx.font = '13px "Segoe UI", Tahoma, Arial, sans-serif';
+    ctx.fillText(member.phone || member.address || '', 225, 278);
+
+    // 7. White Card for QR Code
+    ctx.fillStyle = '#ffffff';
+    roundRect(ctx, 125, 305, 200, 200, 16);
+    ctx.fill();
+
+    // Draw the QR Code image
+    const qrImg = document.querySelector('#member-profile-qrcode img') || document.querySelector('#member-profile-qrcode canvas');
+    if (qrImg) {
+        try {
+            ctx.drawImage(qrImg, 140, 320, 170, 170);
+        } catch(e) {
+            console.warn(e);
+        }
+    }
+
+    // 8. Bottom Code Text
+    ctx.fillStyle = '#38bdf8';
+    ctx.font = 'bold 14px monospace';
+    ctx.fillText(`STJ-MEM-${member.id}`, 225, 540);
+
+    ctx.fillStyle = '#64748b';
+    ctx.font = '11px "Segoe UI", Tahoma, Arial, sans-serif';
+    ctx.fillText('امسح الكود لتسجيل الحضور الفوري في ثانية واحدة', 225, 570);
+
+    // Trigger download
+    const link = document.createElement('a');
+    link.download = `${(member.name || 'member').replace(/\s+/g, '_')}_كارت_الحضور.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+}
+
+function shareMemberQRWhatsApp(member) {
+    if (!member) return;
+    let phone = (member.phone || '').replace(/\D/g, '');
+    if (phone.startsWith('0')) phone = '2' + phone;
+
+    const message = `سلام ونعمة يا ${member.name} ✝️\n` +
+        `ده كود الحضور الرقمي الخاص بك في اجتماع القديس يوحنا الحبيب:\n` +
+        `📌 كود العضو: STJ-MEM-${member.id}\n\n` +
+        `احتفظ بهذا الكود أو احفظ الصورة لتسجيل حضورك في ثانية واحدة على باب الاجتماع! ✨\n` +
+        `نشوفك دايماً بخير في كنيستك.`;
+
+    const url = phone ? `https://wa.me/${phone}?text=${encodeURIComponent(message)}` : `https://wa.me/?text=${encodeURIComponent(message)}`;
+    window.open(url, '_blank');
+}
+
+function setupQRSystem() {
+    const btnOpenScanner = document.getElementById('btn-open-qr-scanner');
+    const modalBg = document.getElementById('qr-scanner-modal-bg');
+    const btnClose = document.getElementById('btn-close-qr-scanner');
+    const cameraSelect = document.getElementById('qr-camera-select');
+    const btnSwitchCam = document.getElementById('btn-qr-switch-camera');
+    const btnManualFocus = document.getElementById('btn-qr-manual-focus');
+
+    if (btnOpenScanner) {
+        btnOpenScanner.addEventListener('click', () => {
+            openQRScannerModal();
+        });
+    }
+
+    if (btnClose) {
+        btnClose.addEventListener('click', () => {
+            closeQRScannerModal();
+        });
+    }
+
+    if (modalBg) {
+        modalBg.querySelectorAll('.close-modal').forEach(btn => {
+            btn.addEventListener('click', () => {
+                closeQRScannerModal();
+            });
+        });
+    }
+
+    if (cameraSelect) {
+        cameraSelect.addEventListener('change', () => {
+            const selectedCamId = cameraSelect.value;
+            if (selectedCamId && html5QrScannerInstance) {
+                switchQRCamera(selectedCamId);
+            }
+        });
+    }
+
+    if (btnSwitchCam) {
+        btnSwitchCam.addEventListener('click', () => {
+            if (!cameraSelect || cameraSelect.options.length <= 1) return;
+            let nextIndex = cameraSelect.selectedIndex + 1;
+            if (nextIndex >= cameraSelect.options.length) nextIndex = 0;
+            cameraSelect.selectedIndex = nextIndex;
+            switchQRCamera(cameraSelect.value);
+        });
+    }
+
+    if (btnManualFocus) {
+        btnManualFocus.addEventListener('click', () => {
+            closeQRScannerModal();
+            const searchInput = document.getElementById('search-attendance');
+            if (searchInput) {
+                searchInput.focus();
+                searchInput.select();
+            }
+        });
+    }
+
+    setupHardwareBarcodeScanner();
+}
+
+function openQRScannerModal() {
+    // 1. Ensure attendance workspace is active
+    const ws = document.getElementById('attendance-workspace');
+    if (!currentAttendanceDate || !ws || ws.style.display === 'none') {
+        const todayDate = todayLocal();
+        const dateInput = document.getElementById('attendance-date');
+        if (dateInput) dateInput.value = todayDate;
+        const btnStart = document.getElementById('btn-start-day');
+        if (btnStart) btnStart.click();
+    }
+
+    // 2. Open modal
+    const modalBg = document.getElementById('qr-scanner-modal-bg');
+    if (modalBg) modalBg.classList.add('active');
+
+    // Reset UI state
+    qrSessionCount = 0;
+    const sessionCountEl = document.getElementById('qr-session-count');
+    if (sessionCountEl) sessionCountEl.innerText = '0';
+
+    updateScannerFeedback({
+        type: 'idle',
+        title: 'جاهز للمسح الضوئي...',
+        subtitle: 'وجّه الكاميرا نحو كود المخدوم أو استخدم جهاز القارئ',
+        badge: 'نشط'
+    });
+
+    // 3. Start camera scanner
+    startQRScannerCamera();
+}
+
+function closeQRScannerModal() {
+    const modalBg = document.getElementById('qr-scanner-modal-bg');
+    if (modalBg) modalBg.classList.remove('active');
+    stopQRScannerCamera();
+}
+
+function startQRScannerCamera() {
+    if (typeof Html5Qrcode === 'undefined') {
+        updateScannerFeedback({
+            type: 'error',
+            title: 'مكتبة الكاميرا غير متوفرة',
+            subtitle: 'تأكد من الاتصال بالإنترنت لتحميل ماسح الكاميرا، أو استخدم قارئ الباركود الخارجي.',
+            badge: 'غير متاح'
+        });
+        return;
+    }
+
+    const readerEl = document.getElementById('qr-reader');
+    if (!readerEl) return;
+
+    if (!html5QrScannerInstance) {
+        html5QrScannerInstance = new Html5Qrcode('qr-reader');
+    }
+
+    Html5Qrcode.getCameras().then(devices => {
+        const cameraSelect = document.getElementById('qr-camera-select');
+        if (cameraSelect) {
+            cameraSelect.innerHTML = '';
+            devices.forEach((device, idx) => {
+                const opt = document.createElement('option');
+                opt.value = device.id;
+                opt.text = device.label || `كاميرا ${idx + 1}`;
+                cameraSelect.appendChild(opt);
+            });
+        }
+
+        if (!devices || devices.length === 0) {
+            updateScannerFeedback({
+                type: 'error',
+                title: 'لم يتم العثور على كاميرا',
+                subtitle: 'يمكنك استخدام قارئ الباركود الخارجي أو البحث بالاسم.',
+                badge: 'لا توجد كاميرا'
+            });
+            return;
+        }
+
+        // Prefer back camera on mobile devices
+        let preferredCameraId = devices[0].id;
+        const backCam = devices.find(d => /back|rear|environment/i.test(d.label));
+        if (backCam) preferredCameraId = backCam.id;
+
+        if (cameraSelect) cameraSelect.value = preferredCameraId;
+        currentScannerCameraId = preferredCameraId;
+
+        startScannerWithCameraId(preferredCameraId);
+    }).catch(err => {
+        console.warn('Error discovering cameras, trying default environment:', err);
+        if (!html5QrScannerInstance) return;
+        html5QrScannerInstance.start(
+            { facingMode: "environment" },
+            {
+                fps: 15,
+                qrbox: { width: 230, height: 230 }
+            },
+            onQRCodeScanned,
+            onQRCodeScanError
+        ).catch(e => {
+            updateScannerFeedback({
+                type: 'error',
+                title: 'تعذر تشغيل الكاميرا',
+                subtitle: 'يرجى إعطاء الإذن للمتصفح باستخدام الكاميرا.',
+                badge: 'ممنوع'
+            });
+        });
+    });
+}
+
+function startScannerWithCameraId(cameraId) {
+    if (!html5QrScannerInstance) return;
+    html5QrScannerInstance.start(
+        cameraId,
+        {
+            fps: 15,
+            qrbox: { width: 230, height: 230 }
+        },
+        onQRCodeScanned,
+        onQRCodeScanError
+    ).catch(err => {
+        console.warn('Failed to start scanner with camera ID:', err);
+    });
+}
+
+function switchQRCamera(cameraId) {
+    if (!html5QrScannerInstance) return;
+    if (html5QrScannerInstance.isScanning) {
+        html5QrScannerInstance.stop().then(() => {
+            currentScannerCameraId = cameraId;
+            startScannerWithCameraId(cameraId);
+        }).catch(err => console.warn(err));
+    } else {
+        startScannerWithCameraId(cameraId);
+    }
+}
+
+function stopQRScannerCamera() {
+    if (html5QrScannerInstance && html5QrScannerInstance.isScanning) {
+        html5QrScannerInstance.stop().catch(err => console.warn('Error stopping scanner:', err));
+    }
+}
+
+function onQRCodeScanned(decodedText, decodedResult) {
+    handleScannedMemberCode(decodedText);
+}
+
+function onQRCodeScanError(errorMessage) {
+    // Silently ignore frames without QR code
+}
+
+function handleScannedMemberCode(rawText) {
+    if (!rawText) return;
+    const cleanText = String(rawText).trim();
+
+    let searchId = cleanText;
+    if (searchId.startsWith('STJ-MEM-')) {
+        searchId = searchId.replace('STJ-MEM-', '').trim();
+    }
+
+    // Cooldown debouncing: ignore duplicate scan of same code within 2.5s
+    const now = Date.now();
+    if (searchId === lastScannedCode && (now - lastScannedTime) < 2500) {
+        return;
+    }
+    lastScannedCode = searchId;
+    lastScannedTime = now;
+
+    const members = getMembers();
+    let member = members.find(m => String(m.id).trim() === searchId);
+    if (!member) {
+        member = members.find(m => String(m.id).trim() === cleanText);
+    }
+    if (!member) {
+        const cleanPhone = searchId.replace(/\D/g, '');
+        if (cleanPhone.length >= 7) {
+            member = members.find(m => (m.phone || '').replace(/\D/g, '') === cleanPhone);
+        }
+    }
+
+    if (!member) {
+        playBeepSound('error');
+        updateScannerFeedback({
+            type: 'error',
+            title: 'كود غير مسجل!',
+            subtitle: `لم يتم العثور على مخدوم بالكود (${esc(cleanText)})`,
+            badge: 'غير موجود'
+        });
+        showToast(`الكود (${cleanText}) غير مسجل في قاعدة البيانات`, 'warning');
+        return;
+    }
+
+    const listContainer = document.getElementById('attendance-members-list');
+    if (!listContainer) return;
+
+    const row = listContainer.querySelector(`.member-attendance-row[data-id="${member.id}"]`);
+    if (!row) {
+        playBeepSound('error');
+        updateScannerFeedback({
+            type: 'error',
+            title: member.name,
+            subtitle: 'عفواً، صف العضو غير معروض في قائمة اليوم!',
+            badge: 'خطأ'
+        });
+        return;
+    }
+
+    const btnAttend = row.querySelector('.btn-attend');
+    const isAlreadyAttended = btnAttend && btnAttend.classList.contains('active');
+
+    if (isAlreadyAttended) {
+        playBeepSound('warning');
+        updateScannerFeedback({
+            type: 'warning',
+            title: member.name,
+            subtitle: 'تم تسجيل حضوره بالفعل مسبقاً لهذا اليوم ✓',
+            badge: 'حاضر مسبقاً',
+            avatar: member.name.charAt(0)
+        });
+        row.classList.remove('row-just-scanned');
+        void row.offsetWidth;
+        row.classList.add('row-just-scanned');
+        row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    } else {
+        playBeepSound('success');
+        btnAttend.click();
+
+        row.classList.remove('row-just-scanned');
+        void row.offsetWidth;
+        row.classList.add('row-just-scanned');
+        row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+        qrSessionCount++;
+        const countEl = document.getElementById('qr-session-count');
+        if (countEl) countEl.innerText = qrSessionCount;
+
+        updateScannerFeedback({
+            type: 'success',
+            title: member.name,
+            subtitle: `تم تسجيل الحضور بنجاح! 🎉 (${formatScanTime(new Date())})`,
+            badge: 'حضر الآن ✓',
+            avatar: member.name.charAt(0)
+        });
+
+        showToast(`تم تسجيل حضور: ${member.name} بنجاح!`, 'success');
+
+        saveCurrentAttendanceSilently();
+    }
+}
+
+function saveCurrentAttendanceSilently() {
+    if (!currentAttendanceDate) return;
+    if (currentUserRole !== 'admin' && !currentPermissions.includes('attendance-edit')) return;
+
+    const records = getAttendanceRecords();
+    const attendedIds = [];
+    document.querySelectorAll('#attendance-members-list .member-attendance-row').forEach(row => {
+        const btnAttend = row.querySelector('.btn-attend');
+        const memberId = row.getAttribute('data-id');
+        if (btnAttend && btnAttend.classList.contains('active')) {
+            attendedIds.push(memberId);
+        }
+    });
+
+    records[currentAttendanceDate] = attendedIds;
+    saveAttendanceRecords(records);
+}
+
+function setupHardwareBarcodeScanner() {
+    let barcodeBuffer = '';
+    let lastKeypressTime = 0;
+
+    window.addEventListener('keydown', (e) => {
+        const isScannerModalOpen = document.getElementById('qr-scanner-modal-bg')?.classList.contains('active');
+        const isAttendanceActive = document.getElementById('attendance-view')?.classList.contains('active');
+
+        if (!isScannerModalOpen && !isAttendanceActive) return;
+
+        const activeTag = document.activeElement ? document.activeElement.tagName : '';
+        const activeId = document.activeElement ? document.activeElement.id : '';
+        if ((activeTag === 'INPUT' || activeTag === 'TEXTAREA') && activeId !== 'search-attendance') {
+            return;
+        }
+
+        const now = Date.now();
+        if (now - lastKeypressTime > 120) {
+            barcodeBuffer = '';
+        }
+        lastKeypressTime = now;
+
+        if (e.key === 'Enter') {
+            const potentialCode = barcodeBuffer.trim();
+            if (potentialCode.length >= 2) {
+                e.preventDefault();
+                handleScannedMemberCode(potentialCode);
+                barcodeBuffer = '';
+            }
+        } else if (e.key && e.key.length === 1) {
+            barcodeBuffer += e.key;
         }
     });
 }

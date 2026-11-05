@@ -6231,3 +6231,184 @@ body.not-logged-in #login-modal-bg.modal-overlay,
     font-weight: 600;
     margin-top: 3px;
 }
+
+/* ===================================================
+   Quick QR Attendance System (Phase 1)
+   =================================================== */
+.attendance-toolbar-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 15px;
+    flex-wrap: wrap;
+}
+
+.attendance-toolbar-row .attendance-search-wrap {
+    flex: 1;
+    min-width: 220px;
+    margin-bottom: 0;
+}
+
+.btn-qr-scan-trigger {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 18px;
+    border-radius: 12px;
+    font-weight: 700;
+    font-size: 0.9rem;
+    white-space: nowrap;
+    background: linear-gradient(135deg, #2563eb, #3b82f6);
+    border: 1px solid rgba(147, 197, 253, 0.35);
+    box-shadow: 0 4px 16px rgba(37, 99, 235, 0.4);
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+}
+
+.btn-qr-scan-trigger:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(37, 99, 235, 0.6);
+    filter: brightness(1.1);
+}
+
+.qr-pulse-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    background: rgba(59, 130, 246, 0.15);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: qrPulseGlow 2.5s infinite;
+}
+
+@keyframes qrPulseGlow {
+    0%, 100% {
+        box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4);
+    }
+    50% {
+        box-shadow: 0 0 0 8px rgba(59, 130, 246, 0);
+    }
+}
+
+.qr-laser-scanner-box {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 230px;
+    height: 230px;
+    pointer-events: none;
+    z-index: 10;
+}
+
+.qr-scanner-corner {
+    position: absolute;
+    width: 24px;
+    height: 24px;
+    border-color: #38bdf8;
+    border-style: solid;
+    pointer-events: none;
+}
+
+.qr-scanner-corner.top-left {
+    top: 0;
+    left: 0;
+    border-width: 4px 0 0 4px;
+    border-top-left-radius: 8px;
+}
+
+.qr-scanner-corner.top-right {
+    top: 0;
+    right: 0;
+    border-width: 4px 4px 0 0;
+    border-top-right-radius: 8px;
+}
+
+.qr-scanner-corner.bottom-left {
+    bottom: 0;
+    left: 0;
+    border-width: 0 0 4px 4px;
+    border-bottom-left-radius: 8px;
+}
+
+.qr-scanner-corner.bottom-right {
+    bottom: 0;
+    right: 0;
+    border-width: 0 4px 4px 0;
+    border-bottom-right-radius: 8px;
+}
+
+.qr-laser-beam {
+    position: absolute;
+    left: 5px;
+    right: 5px;
+    height: 3px;
+    background: linear-gradient(90deg, transparent, #38bdf8, #60a5fa, #38bdf8, transparent);
+    box-shadow: 0 0 14px 3px rgba(56, 189, 248, 0.75);
+    animation: qrLaserScan 2.4s ease-in-out infinite;
+}
+
+@keyframes qrLaserScan {
+    0% {
+        top: 8px;
+        opacity: 0.2;
+    }
+    15% {
+        opacity: 1;
+    }
+    50% {
+        top: 218px;
+        opacity: 1;
+    }
+    85% {
+        opacity: 1;
+    }
+    100% {
+        top: 8px;
+        opacity: 0.2;
+    }
+}
+
+#qr-reader {
+    width: 100% !important;
+    border: none !important;
+}
+
+#qr-reader video {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+    border-radius: 12px !important;
+}
+
+#qr-reader__scan_region {
+    background: transparent !important;
+}
+
+#qr-reader__dashboard_section_csr,
+#qr-reader__dashboard_section_swaplink {
+    display: none !important;
+}
+
+/* Row pulse animation when scanned */
+.member-attendance-row.row-just-scanned {
+    animation: rowScanSuccessPulse 2.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes rowScanSuccessPulse {
+    0% {
+        transform: scale(1.02);
+        box-shadow: 0 0 25px rgba(16, 185, 129, 0.8);
+        border-color: #34d399;
+        background: rgba(16, 185, 129, 0.25);
+    }
+    50% {
+        box-shadow: 0 0 15px rgba(16, 185, 129, 0.4);
+    }
+    100% {
+        transform: scale(1);
+        box-shadow: none;
+    }
+}
