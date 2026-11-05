@@ -29,7 +29,7 @@
         }
     </script>
     <!-- Styles -->
-    <link rel="stylesheet" href="style.css?v=20261105_pwa_v2">
+    <link rel="stylesheet" href="style.css?v=20261105_pwa_v3">
     
     <!-- PWA & Mobile Web App Manifest -->
     <link rel="manifest" href="manifest.json">
@@ -1027,13 +1027,19 @@
                     <div class="settings-card-nocturne" id="card-pwa-install-settings">
                         <div class="card-head">
                             <div class="card-icon-box box-emerald"><i class="ph ph-device-mobile"></i></div>
-                            <h2 class="card-title">تثبيت التطبيق على جهازك</h2>
+                            <h2 class="card-title">تطبيق الهاتف والكمبيوتر</h2>
                         </div>
-                        <p class="card-desc">تثبيت البرنامج كتطبيق أصلي سريع يعمل أوفلاين بدون إنترنت على هاتفك أو كمبيوترك بضغطة زر.</p>
-                        <button class="btn-nocturne btn-emerald" id="btn-pwa-install-settings" onclick="triggerPwaInstallPrompt()">
-                            <i class="ph ph-download-simple"></i>
-                            <span>تثبيت التطبيق 📲</span>
-                        </button>
+                        <p class="card-desc">تثبيت البرنامج كتطبيق خفيف سريع يعمل بدون إنترنت (Offline)، أو تحميل نسخة ملف الأندرويد المباشر (APK).</p>
+                        <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px;">
+                            <button class="btn-nocturne btn-emerald" id="btn-pwa-install-settings" onclick="triggerPwaInstallPrompt()" style="flex: 1; min-width: 160px;">
+                                <i class="ph ph-download-simple"></i>
+                                <span>تثبيت من المتصفح 📲</span>
+                            </button>
+                            <a href="./St-John-App.apk" download="St-John-App.apk" class="btn-nocturne btn-indigo" id="btn-download-apk-settings" style="flex: 1; min-width: 160px; text-decoration: none; justify-content: center;">
+                                <i class="ph ph-android-logo"></i>
+                                <span>تحميل ملف APK للأندرويد</span>
+                            </a>
+                        </div>
                     </div>
 
                     <!-- Section 1: Security & Admin -->
@@ -2666,6 +2672,10 @@
                     <i class="ph ph-download-simple"></i>
                     <span>تثبيت الآن على الهاتف / الكمبيوتر</span>
                 </button>
+                <a href="./St-John-App.apk" download="St-John-App.apk" class="btn-pwa-apk-download" style="display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 10px; color: #38bdf8; font-size: 0.85rem; text-decoration: none; font-weight: 700; padding: 9px 14px; border-radius: 10px; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.25);">
+                    <i class="ph ph-android-logo" style="font-size: 1.15rem;"></i>
+                    <span>أو حمّل ملف APK مباشر للأندرويد (2.6 MB)</span>
+                </a>
                 <button type="button" class="btn-pwa-dismiss" onclick="closePwaInstallModal()">إلغاء أو لاحقاً</button>
             </div>
         </div>
@@ -2721,6 +2731,6 @@
     <script src="firebase-firestore.js"></script>
     
     <!-- Script -->
-    <script src="app.js?v=20261105_pwa_v7" charset="UTF-8"></script>
+    <script src="app.js?v=20261105_pwa_v8" charset="UTF-8"></script>
 </body>
 </html>

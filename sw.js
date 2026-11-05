@@ -1,6 +1,6 @@
 // Service Worker for St. John Church Management System
 // كنيسة مارجرجس بسندبيس - اجتماع القديس يوحنا الحبيب
-const CACHE_VERSION = 'stjohn-pwa-v1.0.4';
+const CACHE_VERSION = 'stjohn-pwa-v1.0.5';
 const STATIC_CACHE_NAME = `static-${CACHE_VERSION}`;
 const DYNAMIC_CACHE_NAME = `dynamic-${CACHE_VERSION}`;
 

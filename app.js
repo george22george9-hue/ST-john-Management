@@ -99,23 +99,66 @@ try {
 } catch (e) {}
 
 // --- Custom UI Alerts & Prompts ---
+const activeToastMessages = new Set();
+const lastToastTimeMap = new Map();
+
 function showToast(message, type = 'success') {
+    if (!message || typeof message !== 'string') return;
+    const cleanMsg = message.trim();
+    if (!cleanMsg) return;
+
     const container = document.getElementById('toast-container');
     if (!container) return;
 
+    // Deduplication: prevent stacking identical messages within 3.5 seconds
+    const now = Date.now();
+    const lastShown = lastToastTimeMap.get(cleanMsg) || 0;
+    if (activeToastMessages.has(cleanMsg) || (now - lastShown < 3500)) {
+        return;
+    }
+    lastToastTimeMap.set(cleanMsg, now);
+    activeToastMessages.add(cleanMsg);
+
+    // Limit active notifications to at most 2 to avoid clutter
+    while (container.children.length >= 2) {
+        const oldest = container.firstChild;
+        if (oldest) oldest.remove();
+    }
+
     const toast = document.createElement('div');
     toast.className = `toast toast-${type}`;
-    let icon = 'ph-check-circle';
-    if (type === 'error') icon = 'ph-warning-octagon';
-    if (type === 'warning') icon = 'ph-warning-circle';
 
-    toast.innerHTML = `<i class="ph ${icon}" style="font-size: 1.4rem;"></i> <span>${message}</span>`;
+    let icon = 'ph-check-circle';
+    if (type === 'error') icon = 'ph-x-circle';
+    if (type === 'warning') icon = 'ph-warning-circle';
+    if (type === 'info') icon = 'ph-info';
+
+    toast.innerHTML = `
+        <div class="toast-main-wrap">
+            <div class="toast-icon-wrap"><i class="ph ${icon}"></i></div>
+            <span class="toast-msg">${cleanMsg}</span>
+        </div>
+        <button type="button" class="toast-close" title="إغلاق">
+            <i class="ph ph-x"></i>
+        </button>
+    `;
+
+    const closeBtn = toast.querySelector('.toast-close');
+    if (closeBtn) {
+        closeBtn.onclick = () => {
+            activeToastMessages.delete(cleanMsg);
+            toast.classList.add('hiding');
+            setTimeout(() => toast.remove(), 250);
+        };
+    }
+
     container.appendChild(toast);
 
     setTimeout(() => {
+        activeToastMessages.delete(cleanMsg);
         toast.classList.add('hiding');
-        setTimeout(() => toast.remove(), 300);
-    }, 3000);
+        setTimeout(() => toast.remove(), 260);
+    }, 3800);
 }
 window.showToast = showToast;
 
@@ -441,6 +484,9 @@ function triggerCloudSync() {
     syncTimeout = setTimeout(pushToCloud, 1000);
 }
 
+let isInitialFirebaseSync = true;
+let lastCloudSyncToastTime = 0;
+
 function startFirebaseSync() {
     db.collection('church_db').doc('main_data').onSnapshot(doc => {
         if (!doc.exists) {
@@ -512,7 +558,15 @@ function startFirebaseSync() {
             if (typeof refreshSummaryView === 'function') refreshSummaryView();
             if (typeof enforcePermissions === 'function') enforcePermissions();
             
-            showToast('تم استقبال تحديثات من الخادم!', 'success');
+            // Only toast if this is NOT the initial load AND throttled by 15 seconds
+            if (!isInitialFirebaseSync) {
+                const now = Date.now();
+                if (now - lastCloudSyncToastTime > 15000) {
+                    lastCloudSyncToastTime = now;
+                    showToast('تم استلام تحديثات جديدة من السحابة 🔄', 'info');
+                }
+            }
+            isInitialFirebaseSync = false;
         } catch(err) {
             console.error('Error applying cloud updates:', err);
         } finally {
