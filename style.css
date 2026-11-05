@@ -6538,3 +6538,317 @@ body.not-logged-in #login-modal-bg.modal-overlay,
     background: rgba(16, 185, 129, 0.2) !important;
     border-color: #34d399 !important;
 }
+
+/* ==========================================================================
+   Phase 3: Progressive Web App (PWA) & Offline Mode Styles
+   ========================================================================== */
+
+/* Offline Status Banner */
+.app-offline-banner {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 100000;
+    background: linear-gradient(135deg, rgba(30, 27, 24, 0.98), rgba(24, 18, 12, 0.98));
+    border-bottom: 1.5px solid #f59e0b;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    padding: 8px 16px;
+    direction: rtl;
+    animation: slideDownBanner 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: background 0.4s ease, border-color 0.4s ease;
+}
+
+.app-offline-banner.is-online-restored {
+    background: linear-gradient(135deg, rgba(6, 43, 30, 0.98), rgba(4, 28, 20, 0.98));
+    border-bottom-color: #10b981;
+}
+
+@keyframes slideDownBanner {
+    from {
+        transform: translateY(-100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.offline-banner-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    font-size: 0.85rem;
+    color: #fef3c7;
+}
+
+.app-offline-banner.is-online-restored .offline-banner-inner {
+    color: #d1fae5;
+}
+
+.offline-banner-msg-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+    min-width: 0;
+}
+
+.offline-pulse-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background-color: #f59e0b;
+    box-shadow: 0 0 0 rgba(245, 158, 11, 0.7);
+    animation: offlinePulseAmber 1.8s infinite;
+    flex-shrink: 0;
+}
+
+.app-offline-banner.is-online-restored .offline-pulse-dot {
+    background-color: #10b981;
+    animation: offlinePulseGreen 1.8s infinite;
+}
+
+@keyframes offlinePulseAmber {
+    0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.7); }
+    70% { transform: scale(1.1); box-shadow: 0 0 0 8px rgba(245, 158, 11, 0); }
+    100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
+}
+
+@keyframes offlinePulseGreen {
+    0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+    70% { transform: scale(1.1); box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
+    100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}
+
+.offline-banner-text {
+    line-height: 1.4;
+    font-weight: 600;
+}
+
+.offline-banner-sync-btn {
+    background: rgba(245, 158, 11, 0.2);
+    border: 1px solid rgba(245, 158, 11, 0.5);
+    color: #fbbf24;
+    padding: 4px 12px;
+    border-radius: 8px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+    transition: all 0.2s ease;
+    font-family: inherit;
+}
+
+.offline-banner-sync-btn:hover {
+    background: #f59e0b;
+    color: #060c18;
+}
+
+.app-offline-banner.is-online-restored .offline-banner-sync-btn {
+    background: rgba(16, 185, 129, 0.2);
+    border-color: rgba(16, 185, 129, 0.5);
+    color: #34d399;
+}
+
+.app-offline-banner.is-online-restored .offline-banner-sync-btn:hover {
+    background: #10b981;
+    color: #060c18;
+}
+
+/* PWA Install Buttons & Glow */
+.pwa-install-btn {
+    animation: pwaGlow 3s ease-in-out infinite;
+}
+
+@keyframes pwaGlow {
+    0%, 100% {
+        box-shadow: 0 0 0 rgba(16, 185, 129, 0);
+    }
+    50% {
+        box-shadow: 0 0 14px rgba(16, 185, 129, 0.45);
+    }
+}
+
+.mobile-header-btn.pwa-install-btn {
+    background: rgba(16, 185, 129, 0.15);
+    border: 1px solid rgba(16, 185, 129, 0.4);
+    color: #34d399;
+    padding: 6px 10px;
+    gap: 4px;
+    border-radius: 8px;
+    font-size: 0.8rem;
+}
+
+.pwa-badge-text {
+    font-size: 0.74rem;
+    font-weight: 700;
+}
+
+/* PWA Installation Modal */
+.pwa-modal-card {
+    background: linear-gradient(145deg, #0f172a, #090e1a);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    border-radius: 20px;
+    max-width: 460px;
+    width: 90%;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7);
+    overflow: hidden;
+    color: #f8fafc;
+    direction: rtl;
+    text-align: center;
+}
+
+.pwa-modal-header {
+    padding: 24px 20px 16px;
+    position: relative;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.pwa-app-icon-wrap {
+    width: 80px;
+    height: 80px;
+    margin: 0 auto 12px;
+    border-radius: 20px;
+    background: #060c18;
+    padding: 6px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.pwa-app-icon-wrap img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    border-radius: 14px;
+}
+
+.pwa-modal-title {
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: #ffffff;
+    margin-bottom: 4px;
+}
+
+.pwa-modal-subtitle {
+    font-size: 0.82rem;
+    color: var(--text-muted);
+}
+
+.pwa-modal-body {
+    padding: 20px;
+    text-align: right;
+}
+
+.pwa-benefits-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.pwa-benefit-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    padding: 10px 14px;
+    border-radius: 12px;
+}
+
+.pwa-benefit-icon {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    background: rgba(16, 185, 129, 0.15);
+    color: #34d399;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    flex-shrink: 0;
+}
+
+.pwa-benefit-info h4 {
+    font-size: 0.88rem;
+    font-weight: 700;
+    margin-bottom: 2px;
+    color: #f1f5f9;
+}
+
+.pwa-benefit-info p {
+    font-size: 0.76rem;
+    color: var(--text-muted);
+    margin: 0;
+    line-height: 1.35;
+}
+
+.pwa-ios-instructions {
+    background: rgba(59, 130, 246, 0.08);
+    border: 1px solid rgba(59, 130, 246, 0.25);
+    border-radius: 12px;
+    padding: 12px 14px;
+    font-size: 0.8rem;
+    line-height: 1.5;
+    color: #93c5fd;
+    text-align: right;
+    margin-bottom: 16px;
+}
+
+.pwa-modal-footer {
+    padding: 16px 20px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.btn-pwa-confirm-install {
+    width: 100%;
+    padding: 12px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: #ffffff;
+    border: none;
+    font-weight: 800;
+    font-size: 0.95rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.35);
+    font-family: inherit;
+    transition: all 0.2s ease;
+}
+
+.btn-pwa-confirm-install:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(16, 185, 129, 0.5);
+}
+
+.btn-pwa-dismiss {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-size: 0.82rem;
+    cursor: pointer;
+    padding: 6px;
+    font-family: inherit;
+}
+
+.btn-pwa-dismiss:hover {
+    color: #ffffff;
+}
+

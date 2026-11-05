@@ -1,0 +1,65 @@
+{
+  "id": "st-john-church-app",
+  "name": "منظومة اجتماع القديس يوحنا الحبيب",
+  "short_name": "يوحنا الحبيب",
+  "description": "نظام كنسي ذكي متكامل لتسجيل الحضور بالـ QR، إدارة الرحلات والمؤتمرات، والافتقاد الرعوي - كنيسة مارجرجس بسندبيس",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
+  "background_color": "#060c18",
+  "theme_color": "#0a1120",
+  "orientation": "portrait-primary",
+  "lang": "ar",
+  "dir": "rtl",
+  "categories": ["productivity", "utilities", "social"],
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-maskable-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "تسجيل الحضور بالـ QR",
+      "short_name": "الحضور",
+      "description": "فتح شاشة تسجيل الحضور وماسح الـ QR فوراً",
+      "url": "./index.html?view=attendance",
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "الرحلات والمؤتمرات",
+      "short_name": "الرحلات",
+      "description": "متابعة الاشتراكات والأقساط والباصات",
+      "url": "./index.html?view=trips",
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "المتابعة والافتقاد",
+      "short_name": "الافتقاد",
+      "description": "متابعة الغياب والافتقاد وأعياد الميلاد",
+      "url": "./index.html?view=followup",
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}

@@ -29,7 +29,19 @@
         }
     </script>
     <!-- Styles -->
-    <link rel="stylesheet" href="style.css?v=20261105_pass_v1">
+    <link rel="stylesheet" href="style.css?v=20261105_pwa_v1">
+    
+    <!-- PWA & Mobile Web App Manifest -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0a1120">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="يوحنا الحبيب">
+    <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+
     <!-- Immediate Authentication Check (Prevents Dashboard Flash Before Scripts Load) -->
     <script>
         (function() {
@@ -46,6 +58,21 @@
     </script>
 </head>
 <body class="not-logged-in">
+    <!-- Offline Indicator Banner (PWA Offline Mode) -->
+    <div id="app-offline-banner" class="app-offline-banner" style="display: none;" role="status" aria-live="polite">
+        <div class="offline-banner-inner">
+            <div class="offline-banner-msg-wrap">
+                <span class="offline-pulse-dot"></span>
+                <i class="ph ph-wifi-slash" id="offline-banner-icon" style="font-size: 1.15rem;"></i>
+                <span class="offline-banner-text" id="offline-banner-text">وضع بدون إنترنت: التطبيق يعمل بكامل كفاءته ويتم حفظ كافة التعديلات والتسجيلات محلياً.</span>
+            </div>
+            <button type="button" class="offline-banner-sync-btn" onclick="checkNetworkAndSync()" title="إعادة المحاولة والمزامنة">
+                <i class="ph ph-arrows-clockwise"></i>
+                <span>مزامنة فورية</span>
+            </button>
+        </div>
+    </div>
+
     <!-- Mobile Top Header (Fixed at top on Mobile) -->
     <header class="mobile-header" id="mobile-header">
         <div class="mobile-header-branding">
@@ -58,6 +85,10 @@
             </div>
         </div>
         <div class="mobile-header-actions">
+            <button class="mobile-header-btn pwa-install-btn" id="btn-pwa-install-mobile" style="display: none;" onclick="triggerPwaInstallPrompt()" title="تثبيت التطبيق على هاتفك">
+                <i class="ph ph-download-simple"></i>
+                <span class="pwa-badge-text">تثبيت 📲</span>
+            </button>
             <button class="mobile-header-btn" id="btn-mobile-sync" onclick="if(typeof triggerCloudSync === 'function') triggerCloudSync()" title="مزامنة فورية">
                 <i class="ph ph-arrows-clockwise"></i>
             </button>
@@ -110,6 +141,9 @@
                 </button>
             </nav>
             <div style="margin-top: auto; padding: 20px; text-align: center;">
+                <button type="button" class="btn pwa-install-btn" id="btn-pwa-install-sidebar" style="display: none; width: 100%; margin-bottom: 12px; background: linear-gradient(135deg, #10b981, #059669); color: #ffffff; border: none; font-weight: 700; border-radius: 12px; padding: 10px; font-size: 0.88rem; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.35); cursor: pointer;" onclick="triggerPwaInstallPrompt()">
+                    <i class="ph ph-download-simple" style="font-size: 1.1rem; vertical-align: middle;"></i> تثبيت التطبيق 📲
+                </button>
                 <button class="btn btn-outline" id="btn-logout" style="width: 100%; border-color: var(--danger); color: var(--danger);">
                     <i class="ph ph-sign-out"></i> تسجيل خروج
                 </button>
@@ -134,10 +168,16 @@
                             </h1>
                             <p class="dash-subtitle">نظرة عامة دقيقة على إحصائيات ونشاط الحضور</p>
                         </div>
-                        <button class="dash-refresh-btn" id="btn-refresh-dashboard" onclick="refreshDashboard()" title="تحديث البيانات">
-                            <i class="ph ph-arrows-clockwise"></i>
-                            <span>تحديث</span>
-                        </button>
+                        <div class="dash-header-actions" style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                            <button type="button" class="dash-refresh-btn pwa-install-btn" id="btn-pwa-install-dash" style="display: none; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); color: #34d399;" onclick="triggerPwaInstallPrompt()" title="تثبيت التطبيق على جهازك للعمل بدون إنترنت">
+                                <i class="ph ph-download-simple"></i>
+                                <span>تثبيت التطبيق 📲</span>
+                            </button>
+                            <button class="dash-refresh-btn" id="btn-refresh-dashboard" onclick="refreshDashboard()" title="تحديث البيانات">
+                                <i class="ph ph-arrows-clockwise"></i>
+                                <span>تحديث</span>
+                            </button>
+                        </div>
                     </div>
                 </header>
 
@@ -2538,6 +2578,70 @@
         </div>
     </div>
 
+    <!-- PWA Install Modal (Phase 3) -->
+    <div class="modal-overlay" id="pwa-install-modal" style="display: none; z-index: 10025; padding: 12px; align-items: center; justify-content: center;">
+        <div class="pwa-modal-card">
+            <div class="pwa-modal-header">
+                <button type="button" class="modal-close-btn" onclick="closePwaInstallModal()" style="position: absolute; left: 16px; top: 16px; background: none; border: none; color: #94a3b8; font-size: 1.3rem; cursor: pointer;">
+                    <i class="ph ph-x"></i>
+                </button>
+                <div class="pwa-app-icon-wrap">
+                    <img src="icons/icon-192.png" alt="أيقونة اجتماع القديس يوحنا الحبيب">
+                </div>
+                <h3 class="pwa-modal-title">تثبيت تطبيق يوحنا الحبيب 📱</h3>
+                <p class="pwa-modal-subtitle">كنيسة الشهيد العظيم مارجرجس بسندبيس</p>
+            </div>
+            
+            <div class="pwa-modal-body">
+                <div class="pwa-benefits-list">
+                    <div class="pwa-benefit-item">
+                        <div class="pwa-benefit-icon">
+                            <i class="ph ph-wifi-slash"></i>
+                        </div>
+                        <div class="pwa-benefit-info">
+                            <h4>يعمل بدون إنترنت (Offline 100%)</h4>
+                            <p>سجّل الحضور والرحلات والافتقاد حتى داخل القاعات المغلقة بدون نت، وتتم المزامنة تلقائياً عند عودة الشبكة.</p>
+                        </div>
+                    </div>
+                    <div class="pwa-benefit-item">
+                        <div class="pwa-benefit-icon">
+                            <i class="ph ph-lightning"></i>
+                        </div>
+                        <div class="pwa-benefit-info">
+                            <h4>تشغيل فوري وسرعة فائقة</h4>
+                            <p>يفتح التطبيق فوراً من شاشة هاتفك الرئيسية دون الحاجة لتحميل صفحات الويب وانتظار المتصفح.</p>
+                        </div>
+                    </div>
+                    <div class="pwa-benefit-item">
+                        <div class="pwa-benefit-icon">
+                            <i class="ph ph-device-mobile"></i>
+                        </div>
+                        <div class="pwa-benefit-info">
+                            <h4>تجربة تطبيق أصلي مريح</h4>
+                            <p>شاشة كاملة، خطوط كنسية واضحة، بدون شريط المتصفح المزعج، مع أيقونة رسمية للكنيسة على شاشتك.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- iOS Safari Guidance -->
+                <div id="pwa-ios-instructions" class="pwa-ios-instructions" style="display: none;">
+                    <strong style="display: block; margin-bottom: 6px; color: #60a5fa;">📲 طريقة التثبيت على الآيفون (iOS Safari):</strong>
+                    ١. اضغط على زر المشاركة <i class="ph ph-share-network" style="font-size: 1.1rem; vertical-align: middle;"></i> أسفل شاشة سفاري.<br>
+                    ٢. مرر لأسفل واختر <strong>«إضافة إلى الشاشة الرئيسية»</strong> (Add to Home Screen).<br>
+                    ٣. اضغط <strong>«إضافة»</strong> (Add) بأعلى اليمين وسيكون التطبيق متاحاً على شاشتك!
+                </div>
+            </div>
+
+            <div class="pwa-modal-footer">
+                <button type="button" class="btn-pwa-confirm-install" id="btn-pwa-confirm-install" onclick="executePwaInstallPrompt()">
+                    <i class="ph ph-download-simple"></i>
+                    <span>تثبيت الآن على الهاتف / الكمبيوتر</span>
+                </button>
+                <button type="button" class="btn-pwa-dismiss" onclick="closePwaInstallModal()">إلغاء أو لاحقاً</button>
+            </div>
+        </div>
+    </div>
+
 
 
     
@@ -2588,6 +2692,6 @@
     <script src="firebase-firestore.js"></script>
     
     <!-- Script -->
-    <script src="app.js?v=20261105_pass_v3"></script>
+    <script src="app.js?v=20261105_pwa_v1"></script>
 </body>
 </html>

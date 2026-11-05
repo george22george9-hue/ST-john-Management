@@ -418,10 +418,13 @@ function pushToCloud() {
 
     db.collection('church_db').doc('main_data').set(data).then(() => {
         localStorage.setItem('last_push_id', data.pushId);
+        localStorage.removeItem('church_pending_cloud_sync');
         console.log("Pushed to cloud successfully");
     }).catch(e => {
         console.error("Push failed", e);
-        if (typeof showToast === 'function') {
+        localStorage.setItem('church_pending_cloud_sync', 'true');
+        // Do not show alarming error toast if app is intentionally working offline
+        if (typeof showToast === 'function' && navigator.onLine) {
             showToast('تعذر حفظ البيانات في السحابة: ' + (e.message || ''), 'error');
         }
     }).finally(() => {
@@ -6009,6 +6012,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setupServantsNotes();
     setupTrips();
     setupQRSystem();
+    setupPWAAndOfflineMode();
 
     setupAuth();
     checkLoginAndApply();
@@ -10021,3 +10025,218 @@ function sendPastoralFollowupWhatsApp(memberId) {
     });
 }
 window.sendPastoralFollowupWhatsApp = sendPastoralFollowupWhatsApp;
+
+// ==========================================================================
+// PHASE 3: PROGRESSIVE WEB APP (PWA) & OFFLINE PERSISTENCE HUB
+// ==========================================================================
+let deferredPwaPrompt = null;
+let offlineBannerTimeout = null;
+
+function setupPWAAndOfflineMode() {
+    console.log('[PWA] Initializing Progressive Web App & Offline System...');
+
+    // 1. Register Service Worker
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('./sw.js', { scope: './' })
+                .then((registration) => {
+                    console.log('[PWA] Service Worker registered successfully with scope:', registration.scope);
+
+                    // Check for updates
+                    registration.onupdatefound = () => {
+                        const installingWorker = registration.installing;
+                        if (installingWorker) {
+                            installingWorker.onstatechange = () => {
+                                if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                    console.log('[PWA] New version ready.');
+                                    if (typeof showToast === 'function') {
+                                        showToast('تحديث جديد متاح لتطبيق يوحنا الحبيب! تم حفظه للتشغيل السريع ✨', 'info');
+                                    }
+                                }
+                            };
+                        }
+                    };
+                })
+                .catch((err) => {
+                    // Normal on file:/// protocol or untrusted certificates
+                    console.warn('[PWA] Service Worker registration not available in this environment:', err);
+                });
+        });
+    }
+
+    // 2. Capture 'beforeinstallprompt' for Android/Chrome/Edge/Desktop
+    window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPwaPrompt = e;
+        console.log('[PWA] Captured beforeinstallprompt event');
+        togglePwaInstallButtons(true);
+    });
+
+    // 3. Listen for successful install event
+    window.addEventListener('appinstalled', () => {
+        console.log('[PWA] App successfully installed on device');
+        deferredPwaPrompt = null;
+        togglePwaInstallButtons(false);
+        closePwaInstallModal();
+        if (typeof showToast === 'function') {
+            showToast('تهانينا! تم تثبيت تطبيق اجتماع القديس يوحنا الحبيب على جهازك بنجاح 🎉', 'success');
+        }
+    });
+
+    // 4. Standalone detection (Already installed/running as standalone app)
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
+                         window.navigator.standalone === true ||
+                         document.referrer.includes('android-app://');
+
+    if (isStandalone) {
+        console.log('[PWA] Running in Standalone Application Mode');
+        togglePwaInstallButtons(false);
+    } else {
+        // For iOS Safari: can trigger install guide modal
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+        if (isIOS) {
+            togglePwaInstallButtons(true);
+        }
+    }
+
+    // 5. Network status listeners (Online / Offline detection & auto-sync)
+    window.addEventListener('online', () => handleNetworkChange(true));
+    window.addEventListener('offline', () => handleNetworkChange(false));
+
+    if (!navigator.onLine) {
+        handleNetworkChange(false);
+    } else if (localStorage.getItem('church_pending_cloud_sync') === 'true') {
+        // Attempt cloud sync if changes were made offline previously
+        setTimeout(() => {
+            if (typeof pushToCloud === 'function') pushToCloud();
+            if (typeof syncTripsToCloud === 'function' && typeof getTrips === 'function') syncTripsToCloud(getTrips());
+        }, 1200);
+    }
+
+    // 6. Support URL shortcut routing (?view=attendance, ?view=trips, ?view=followup)
+    try {
+        const searchParams = new URLSearchParams(window.location.search);
+        const requestedView = searchParams.get('view');
+        if (requestedView) {
+            const viewId = requestedView + '-view';
+            setTimeout(() => {
+                if (typeof window.navigateToView === 'function' && document.getElementById(viewId)) {
+                    window.navigateToView(viewId);
+                }
+            }, 300);
+        }
+    } catch (e) {
+        console.warn('[PWA] URL shortcut routing error:', e);
+    }
+}
+
+function togglePwaInstallButtons(show) {
+    const mobileBtn = document.getElementById('btn-pwa-install-mobile');
+    const sidebarBtn = document.getElementById('btn-pwa-install-sidebar');
+    const dashBtn = document.getElementById('btn-pwa-install-dash');
+
+    if (mobileBtn) mobileBtn.style.display = show ? 'inline-flex' : 'none';
+    if (sidebarBtn) sidebarBtn.style.display = show ? 'block' : 'none';
+    if (dashBtn) dashBtn.style.display = show ? 'inline-flex' : 'none';
+}
+
+function triggerPwaInstallPrompt() {
+    const modal = document.getElementById('pwa-install-modal');
+    if (!modal) return;
+
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    const iosBox = document.getElementById('pwa-ios-instructions');
+    const confirmBtn = document.getElementById('btn-pwa-confirm-install');
+
+    if (isIOS && !deferredPwaPrompt) {
+        if (iosBox) iosBox.style.display = 'block';
+        if (confirmBtn) confirmBtn.style.display = 'none';
+    } else {
+        if (iosBox) iosBox.style.display = 'none';
+        if (confirmBtn) confirmBtn.style.display = 'flex';
+    }
+
+    modal.style.display = 'flex';
+}
+
+async function executePwaInstallPrompt() {
+    if (deferredPwaPrompt) {
+        deferredPwaPrompt.prompt();
+        try {
+            const { outcome } = await deferredPwaPrompt.userChoice;
+            console.log('[PWA] User choice:', outcome);
+            if (outcome === 'accepted') {
+                togglePwaInstallButtons(false);
+            }
+        } catch (e) {
+            console.warn('[PWA] Install prompt error:', e);
+        }
+        deferredPwaPrompt = null;
+        closePwaInstallModal();
+    } else {
+        closePwaInstallModal();
+        if (typeof showToast === 'function') {
+            showToast('لتثبيت التطبيق: افتح قائمة المتصفح (⋮) واختر "تثبيت التطبيق" أو "إضافة إلى الشاشة الرئيسية" 📲', 'info');
+        }
+    }
+}
+
+function closePwaInstallModal() {
+    const modal = document.getElementById('pwa-install-modal');
+    if (modal) modal.style.display = 'none';
+}
+
+function handleNetworkChange(isOnline) {
+    const banner = document.getElementById('app-offline-banner');
+    const bannerText = document.getElementById('offline-banner-text');
+    const bannerIcon = document.getElementById('offline-banner-icon');
+    if (!banner || !bannerText) return;
+
+    if (!isOnline) {
+        if (offlineBannerTimeout) clearTimeout(offlineBannerTimeout);
+        banner.classList.remove('is-online-restored');
+        if (bannerIcon) bannerIcon.className = 'ph ph-wifi-slash';
+        bannerText.textContent = 'وضع بدون إنترنت: التطبيق يعمل بكامل كفاءته ويتم حفظ كافة التعديلات والتسجيلات محلياً على جهازك.';
+        banner.style.display = 'block';
+    } else {
+        banner.classList.add('is-online-restored');
+        if (bannerIcon) bannerIcon.className = 'ph ph-check-circle';
+        bannerText.textContent = '🟢 تمت استعادة الاتصال بالإنترنت! جاري مزامنة التغييرات المحفوظة محلياً مع السحابة...';
+        banner.style.display = 'block';
+
+        // Auto sync with cloud
+        if (typeof pushToCloud === 'function') {
+            pushToCloud();
+        }
+        if (typeof syncTripsToCloud === 'function' && typeof getTrips === 'function') {
+            syncTripsToCloud(getTrips());
+        }
+
+        if (offlineBannerTimeout) clearTimeout(offlineBannerTimeout);
+        offlineBannerTimeout = setTimeout(() => {
+            banner.style.display = 'none';
+            banner.classList.remove('is-online-restored');
+        }, 4000);
+    }
+}
+
+function checkNetworkAndSync() {
+    if (!navigator.onLine) {
+        if (typeof showToast === 'function') {
+            showToast('لا يوجد اتصال بالإنترنت حالياً.. يتم حفظ بياناتك بأمان في ذاكرة جهازك المحلية 💾', 'warning');
+        }
+    } else {
+        handleNetworkChange(true);
+        if (typeof showToast === 'function') {
+            showToast('تم فحص الاتصال.. متصل بالإنترنت وتجري المزامنة السحابية بنجاح 🟢', 'success');
+        }
+    }
+}
+
+// Global Exports
+window.setupPWAAndOfflineMode = setupPWAAndOfflineMode;
+window.triggerPwaInstallPrompt = triggerPwaInstallPrompt;
+window.executePwaInstallPrompt = executePwaInstallPrompt;
+window.closePwaInstallModal = closePwaInstallModal;
+window.checkNetworkAndSync = checkNetworkAndSync;
+
