@@ -6149,11 +6149,90 @@ function updateScannerFeedback({ type = 'idle', title = '', subtitle = '', badge
     }
 }
 
+function safeQRText(text) {
+    try {
+        return unescape(encodeURIComponent(String(text || '').trim()));
+    } catch {
+        return String(text || '').trim();
+    }
+}
+
+function decodeScannedQRText(raw) {
+    let str = String(raw || '').trim();
+    try {
+        if (/[\u0080-\u00FF]/.test(str)) {
+            str = decodeURIComponent(escape(str));
+        }
+    } catch (e) {}
+    return str.trim();
+}
+
+function generateHighResQRCodeCanvas(text, size = 560) {
+    return new Promise((resolve) => {
+        const container = document.createElement('div');
+        container.style.position = 'absolute';
+        container.style.left = '-9999px';
+        container.style.top = '-9999px';
+        document.body.appendChild(container);
+
+        try {
+            const qrText = safeQRText(text);
+            new QRCode(container, {
+                text: qrText,
+                width: size,
+                height: size,
+                colorDark: '#0f172a',
+                colorLight: '#ffffff',
+                correctLevel: (typeof QRCode.CorrectLevel !== 'undefined') ? QRCode.CorrectLevel.H : 2
+            });
+
+            setTimeout(() => {
+                const qrCanvas = container.querySelector('canvas');
+                if (qrCanvas) {
+                    const clone = document.createElement('canvas');
+                    clone.width = size;
+                    clone.height = size;
+                    const cCtx = clone.getContext('2d');
+                    cCtx.drawImage(qrCanvas, 0, 0);
+                    if (container.parentElement) document.body.removeChild(container);
+                    resolve(clone);
+                    return;
+                }
+                const qrImg = container.querySelector('img');
+                if (qrImg && qrImg.src) {
+                    const img = new Image();
+                    img.crossOrigin = 'anonymous';
+                    img.onload = () => {
+                        const clone = document.createElement('canvas');
+                        clone.width = size;
+                        clone.height = size;
+                        clone.getContext('2d').drawImage(img, 0, 0);
+                        if (container.parentElement) document.body.removeChild(container);
+                        resolve(clone);
+                    };
+                    img.onerror = () => {
+                        if (container.parentElement) document.body.removeChild(container);
+                        resolve(null);
+                    };
+                    img.src = qrImg.src;
+                    return;
+                }
+                if (container.parentElement) document.body.removeChild(container);
+                resolve(null);
+            }, 70);
+        } catch (e) {
+            console.error('generateHighResQRCodeCanvas error:', e);
+            if (container.parentElement) document.body.removeChild(container);
+            resolve(null);
+        }
+    });
+}
+
 function renderMemberQRCode(member) {
     if (!member) return;
 
     const qrLabel = document.getElementById('profile-qr-code-label');
-    if (qrLabel) qrLabel.textContent = `STJ-MEM-${member.id}`;
+    if (qrLabel) qrLabel.textContent = member.name;
 
     const qrContainer = document.getElementById('member-profile-qrcode');
     if (qrContainer) {
@@ -6161,7 +6240,7 @@ function renderMemberQRCode(member) {
         if (typeof QRCode !== 'undefined') {
             try {
                 new QRCode(qrContainer, {
-                    text: `STJ-MEM-${member.id}`,
+                    text: safeQRText(member.name),
                     width: 130,
                     height: 130,
                     colorDark: '#0f172a',
@@ -6170,10 +6249,10 @@ function renderMemberQRCode(member) {
                 });
             } catch(e) {
                 console.warn('QRCode render fallback:', e);
-                qrContainer.innerHTML = `<div style="font-weight:bold;color:#000;font-size:12px;padding:12px;">STJ-MEM-${esc(member.id)}</div>`;
+                qrContainer.innerHTML = `<div style="font-weight:bold;color:#000;font-size:12px;padding:12px;">${esc(member.name)}</div>`;
             }
         } else {
-            qrContainer.innerHTML = `<div style="font-weight:bold;color:#000;font-size:12px;padding:12px;">STJ-MEM-${esc(member.id)}</div>`;
+            qrContainer.innerHTML = `<div style="font-weight:bold;color:#000;font-size:12px;padding:12px;">${esc(member.name)}</div>`;
         }
     }
 
@@ -6188,145 +6267,294 @@ function renderMemberQRCode(member) {
     }
 }
 
-function downloadMemberDigitalCard(member) {
-    if (!member) return;
+async function generateMemberCardBlob(member) {
+    if (!member) throw new Error('Member data required');
 
+    const width = 1200;
+    const height = 1750;
     const canvas = document.createElement('canvas');
-    canvas.width = 450;
-    canvas.height = 620;
+    canvas.width = width;
+    canvas.height = height;
     const ctx = canvas.getContext('2d');
-    if (!ctx) return;
 
-    function roundRect(c, x, y, width, height, radius) {
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+
+    function roundRect(c, x, y, w, h, r) {
         c.beginPath();
-        c.moveTo(x + radius, y);
-        c.lineTo(x + width - radius, y);
-        c.quadraticCurveTo(x + width, y, x + width, y + radius);
-        c.lineTo(x + width, y + height - radius);
-        c.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
-        c.lineTo(x + radius, y + height);
-        c.quadraticCurveTo(x, y + height, x, y + height - radius);
-        c.lineTo(x, y + radius);
-        c.quadraticCurveTo(x, y, x + radius, y);
+        c.moveTo(x + r, y);
+        c.lineTo(x + w - r, y);
+        c.quadraticCurveTo(x + w, y, x + w, y + r);
+        c.lineTo(x + w, y + h - r);
+        c.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+        c.lineTo(x + r, y + h);
+        c.quadraticCurveTo(x, y + h, x, y + h - r);
+        c.lineTo(x, y + r);
+        c.quadraticCurveTo(x, y, x + r, y);
         c.closePath();
     }
 
-    // 1. Background gradient
-    const bgGrad = ctx.createLinearGradient(0, 0, 450, 620);
-    bgGrad.addColorStop(0, '#0f172a');
-    bgGrad.addColorStop(0.5, '#1e293b');
-    bgGrad.addColorStop(1, '#0b1120');
+    // 1. Luxury Dark Gradient Background
+    const bgGrad = ctx.createLinearGradient(0, 0, width, height);
+    bgGrad.addColorStop(0, '#060c1a');
+    bgGrad.addColorStop(0.35, '#0e1c38');
+    bgGrad.addColorStop(0.75, '#132347');
+    bgGrad.addColorStop(1, '#081024');
     ctx.fillStyle = bgGrad;
-    roundRect(ctx, 0, 0, 450, 620, 24);
+    roundRect(ctx, 0, 0, width, height, 56);
     ctx.fill();
 
-    // 2. Glowing border
-    ctx.strokeStyle = 'rgba(56, 189, 248, 0.45)';
-    ctx.lineWidth = 3;
-    roundRect(ctx, 2, 2, 446, 616, 22);
+    // 2. Luxury Outer Border with Golden/Cyan Gradient
+    const borderGrad = ctx.createLinearGradient(0, 0, width, height);
+    borderGrad.addColorStop(0, '#38bdf8');
+    borderGrad.addColorStop(0.3, '#f59e0b');
+    borderGrad.addColorStop(0.7, '#38bdf8');
+    borderGrad.addColorStop(1, '#fbbf24');
+    ctx.strokeStyle = borderGrad;
+    ctx.lineWidth = 10;
+    roundRect(ctx, 5, 5, width - 10, height - 10, 52);
     ctx.stroke();
 
-    // 3. Top Header Banner
-    const topGrad = ctx.createLinearGradient(0, 0, 450, 0);
-    topGrad.addColorStop(0, '#2563eb');
-    topGrad.addColorStop(1, '#0284c7');
-    ctx.fillStyle = topGrad;
-    roundRect(ctx, 0, 0, 450, 85, 24);
+    // Subtle inner glowing border
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+    ctx.lineWidth = 2;
+    roundRect(ctx, 18, 18, width - 36, height - 36, 42);
+    ctx.stroke();
+
+    // 3. Top Banner Header
+    const bannerGrad = ctx.createLinearGradient(0, 0, width, 0);
+    bannerGrad.addColorStop(0, 'rgba(37, 99, 235, 0.4)');
+    bannerGrad.addColorStop(0.5, 'rgba(245, 158, 11, 0.25)');
+    bannerGrad.addColorStop(1, 'rgba(14, 165, 233, 0.4)');
+    ctx.fillStyle = bannerGrad;
+    roundRect(ctx, 18, 18, width - 36, 210, 42);
     ctx.fill();
-    ctx.fillRect(0, 50, 450, 35);
+    ctx.fillRect(18, 150, width - 36, 78);
 
-    // Church Title
-    ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 20px "Segoe UI", Tahoma, Arial, sans-serif';
+    // Cross Icon
+    ctx.fillStyle = '#fbbf24';
+    ctx.font = 'bold 54px "Segoe UI", Tahoma, Arial, sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('اجتماع القديس يوحنا الحبيب', 225, 42);
+    ctx.fillText('☩', width / 2, 85);
 
+    // Church Name
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 46px "Segoe UI", Tahoma, Arial, sans-serif';
+    ctx.fillText('اجتماع القديس يوحنا الحبيب', width / 2, 145);
+
+    // Subtitle
     ctx.fillStyle = '#bae6fd';
-    ctx.font = '12px "Segoe UI", Tahoma, Arial, sans-serif';
-    ctx.fillText('بطاقة العضوية والحضور الذكي', 225, 68);
+    ctx.font = '26px "Segoe UI", Tahoma, Arial, sans-serif';
+    ctx.fillText('بطاقة العضوية والحضور الذكي', width / 2, 195);
+
+    // Divider line
+    ctx.strokeStyle = 'rgba(251, 191, 36, 0.35)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(120, 240);
+    ctx.lineTo(width - 120, 240);
+    ctx.stroke();
 
     // 4. Member Avatar Circle
+    const avatarY = 370;
     ctx.beginPath();
-    ctx.arc(225, 140, 38, 0, Math.PI * 2);
-    ctx.fillStyle = '#334155';
+    ctx.arc(width / 2, avatarY, 90, 0, Math.PI * 2);
+    ctx.fillStyle = '#1e293b';
     ctx.fill();
     ctx.strokeStyle = '#38bdf8';
-    ctx.lineWidth = 3;
+    ctx.lineWidth = 6;
     ctx.stroke();
 
     const initial = (member.name || '').trim().charAt(0) || 'ع';
     ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 32px "Segoe UI", Tahoma, Arial, sans-serif';
+    ctx.font = 'bold 92px "Segoe UI", Tahoma, Arial, sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText(initial, 225, 152);
+    ctx.fillText(initial, width / 2, avatarY + 32);
 
-    // 5. Member Name
+    // 5. Member Name (Ultra clear and bold)
     ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 22px "Segoe UI", Tahoma, Arial, sans-serif';
-    ctx.fillText(member.name, 225, 215);
+    ctx.font = 'bold 62px "Segoe UI", Tahoma, Arial, sans-serif';
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.6)';
+    ctx.shadowBlur = 12;
+    ctx.fillText(member.name, width / 2, 530);
+    ctx.shadowBlur = 0;
 
     // 6. Role Badge
     const isServant = member.role === 'servant';
-    ctx.fillStyle = isServant ? 'rgba(245, 158, 11, 0.2)' : 'rgba(59, 130, 246, 0.2)';
-    roundRect(ctx, 160, 230, 130, 26, 13);
+    const badgeW = 320;
+    const badgeH = 54;
+    const badgeX = (width - badgeW) / 2;
+    const badgeY = 565;
+    ctx.fillStyle = isServant ? 'rgba(245, 158, 11, 0.25)' : 'rgba(56, 189, 248, 0.22)';
+    roundRect(ctx, badgeX, badgeY, badgeW, badgeH, 27);
     ctx.fill();
-    ctx.strokeStyle = isServant ? 'rgba(245, 158, 11, 0.6)' : 'rgba(59, 130, 246, 0.6)';
-    ctx.lineWidth = 1;
+    ctx.strokeStyle = isServant ? '#f59e0b' : '#38bdf8';
+    ctx.lineWidth = 2;
     ctx.stroke();
 
-    ctx.fillStyle = isServant ? '#fbbf24' : '#60a5fa';
-    ctx.font = 'bold 12px "Segoe UI", Tahoma, Arial, sans-serif';
-    ctx.fillText(isServant ? 'خادم بالاجتماع' : 'عضو بالاجتماع', 225, 247);
+    ctx.fillStyle = isServant ? '#fbbf24' : '#7dd3fc';
+    ctx.font = 'bold 28px "Segoe UI", Tahoma, Arial, sans-serif';
+    ctx.fillText(isServant ? 'خادم بالاجتماع' : 'عضو بالاجتماع', width / 2, badgeY + 37);
 
-    // Phone / Address
-    ctx.fillStyle = '#94a3b8';
-    ctx.font = '13px "Segoe UI", Tahoma, Arial, sans-serif';
-    ctx.fillText(member.phone || member.address || '', 225, 278);
-
-    // 7. White Card for QR Code
-    ctx.fillStyle = '#ffffff';
-    roundRect(ctx, 125, 305, 200, 200, 16);
-    ctx.fill();
-
-    // Draw the QR Code image
-    const qrImg = document.querySelector('#member-profile-qrcode img') || document.querySelector('#member-profile-qrcode canvas');
-    if (qrImg) {
-        try {
-            ctx.drawImage(qrImg, 140, 320, 170, 170);
-        } catch(e) {
-            console.warn(e);
-        }
+    // 7. Phone / Address
+    const contactInfo = member.phone || member.address || '';
+    if (contactInfo) {
+        ctx.fillStyle = '#94a3b8';
+        ctx.font = '30px "Segoe UI", Tahoma, Arial, sans-serif';
+        ctx.fillText(contactInfo, width / 2, 665);
     }
 
-    // 8. Bottom Code Text
+    // 8. White Card Box for QR Code
+    const qrBoxW = 660;
+    const qrBoxH = 660;
+    const qrBoxX = (width - qrBoxW) / 2;
+    const qrBoxY = 715;
+
+    ctx.save();
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.7)';
+    ctx.shadowBlur = 35;
+    ctx.shadowOffsetY = 15;
+    ctx.fillStyle = '#ffffff';
+    roundRect(ctx, qrBoxX, qrBoxY, qrBoxW, qrBoxH, 44);
+    ctx.fill();
+    ctx.restore();
+
+    // 560x560 High-Res QR Code encoded with Member's Name!
+    const qrSize = 560;
+    const highResQR = await generateHighResQRCodeCanvas(member.name, qrSize);
+    if (highResQR) {
+        const qrDrawX = qrBoxX + (qrBoxW - qrSize) / 2;
+        const qrDrawY = qrBoxY + (qrBoxH - qrSize) / 2;
+        ctx.drawImage(highResQR, qrDrawX, qrDrawY, qrSize, qrSize);
+    } else {
+        ctx.fillStyle = '#0f172a';
+        ctx.font = 'bold 44px "Segoe UI", Tahoma, Arial, sans-serif';
+        ctx.fillText(member.name, width / 2, qrBoxY + qrBoxH / 2);
+    }
+
+    // 9. Pill Badge with Member Name below QR
+    const pillW = 620;
+    const pillH = 72;
+    const pillX = (width - pillW) / 2;
+    const pillY = 1435;
+    ctx.fillStyle = 'rgba(15, 23, 42, 0.88)';
+    roundRect(ctx, pillX, pillY, pillW, pillH, 36);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(56, 189, 248, 0.6)';
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+
     ctx.fillStyle = '#38bdf8';
-    ctx.font = 'bold 14px monospace';
-    ctx.fillText(`STJ-MEM-${member.id}`, 225, 540);
+    ctx.font = 'bold 36px "Segoe UI", Tahoma, Arial, sans-serif';
+    ctx.fillText(`كود العضو: ${member.name}`, width / 2, pillY + 48);
+
+    // 10. Footer Instructions
+    ctx.fillStyle = '#cbd5e1';
+    ctx.font = 'bold 28px "Segoe UI", Tahoma, Arial, sans-serif';
+    ctx.fillText('امسح الكود لتسجيل الحضور الفوري في ثانية واحدة على الباب ⚡', width / 2, 1560);
 
     ctx.fillStyle = '#64748b';
-    ctx.font = '11px "Segoe UI", Tahoma, Arial, sans-serif';
-    ctx.fillText('امسح الكود لتسجيل الحضور الفوري في ثانية واحدة', 225, 570);
+    ctx.font = '22px "Segoe UI", Tahoma, Arial, sans-serif';
+    ctx.fillText('اجتماع القديس يوحنا الحبيب ☩ كنيسة العذراء مريم', width / 2, 1615);
 
-    // Trigger download
-    const link = document.createElement('a');
-    link.download = `${(member.name || 'member').replace(/\s+/g, '_')}_كارت_الحضور.png`;
-    link.href = canvas.toDataURL('image/png');
-    link.click();
+    return new Promise((resolve) => {
+        canvas.toBlob((blob) => {
+            const fileName = `${(member.name || 'member').replace(/\s+/g, '_')}_كارت_الاجتماع_HD.png`;
+            resolve({ blob, canvas, fileName });
+        }, 'image/png', 1.0);
+    });
 }
 
-function shareMemberQRWhatsApp(member) {
+async function downloadMemberDigitalCard(member) {
     if (!member) return;
+    showToast('جارٍ تجهيز كارت فائق الجودة للتحميل...', 'info');
+    try {
+        const { blob, fileName } = await generateMemberCardBlob(member);
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = fileName;
+        link.click();
+        setTimeout(() => URL.revokeObjectURL(url), 5000);
+        showToast('تم تحميل كارت الحضور بأعلى جودة Ultra-HD! 🎉', 'success');
+    } catch (e) {
+        console.error('Download card error:', e);
+        showToast('تعذر تحميل الكارت، يرجى المحاولة مرة أخرى', 'error');
+    }
+}
+
+async function shareMemberQRWhatsApp(member) {
+    if (!member) return;
+
     let phone = (member.phone || '').replace(/\D/g, '');
     if (phone.startsWith('0')) phone = '2' + phone;
 
-    const message = `سلام ونعمة يا ${member.name} ✝️\n` +
-        `ده كود الحضور الرقمي الخاص بك في اجتماع القديس يوحنا الحبيب:\n` +
-        `📌 كود العضو: STJ-MEM-${member.id}\n\n` +
-        `احتفظ بهذا الكود أو احفظ الصورة لتسجيل حضورك في ثانية واحدة على باب الاجتماع! ✨\n` +
-        `نشوفك دايماً بخير في كنيستك.`;
+    showToast('جارٍ تجهيز كارت الحضور ومشاركته...', 'info');
 
-    const url = phone ? `https://wa.me/${phone}?text=${encodeURIComponent(message)}` : `https://wa.me/?text=${encodeURIComponent(message)}`;
-    window.open(url, '_blank');
+    try {
+        const { blob, fileName } = await generateMemberCardBlob(member);
+        const imageFile = new File([blob], fileName, { type: 'image/png' });
+
+        const message = `سلام ونعمة يا ${member.name} ✝️\n` +
+            `ده كود وبطاقة الحضور الرقمية الخاصة بك في اجتماع القديس يوحنا الحبيب:\n` +
+            `📌 كود العضو: ${member.name}\n\n` +
+            `احفظ الصورة المرفقة لتسجيل حضورك في ثانية واحدة على باب الاجتماع! ✨\n` +
+            `نشوفك دايماً بخير في كنيستك.`;
+
+        // 1. Mobile Native Web Share API (sends actual image file + text together)
+        if (navigator.canShare && navigator.canShare({ files: [imageFile] })) {
+            await navigator.share({
+                title: `كارت حضور: ${member.name}`,
+                text: message,
+                files: [imageFile]
+            });
+            showToast('تمت مشاركة كارت الحضور بنجاح!', 'success');
+            return;
+        }
+
+        // 2. Desktop Fallback: Copy image to clipboard so user can paste (Ctrl+V) directly
+        let copied = false;
+        if (navigator.clipboard && window.ClipboardItem) {
+            try {
+                await navigator.clipboard.write([
+                    new ClipboardItem({ 'image/png': blob })
+                ]);
+                copied = true;
+            } catch (err) {
+                console.warn('Clipboard write image failed:', err);
+            }
+        }
+
+        // Auto-download the high-res card as ready file
+        const downloadUrl = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = downloadUrl;
+        link.download = fileName;
+        link.click();
+        setTimeout(() => URL.revokeObjectURL(downloadUrl), 5000);
+
+        // Open WhatsApp Web with text
+        const waUrl = phone
+            ? `https://wa.me/${phone}?text=${encodeURIComponent(message)}`
+            : `https://wa.me/?text=${encodeURIComponent(message)}`;
+        window.open(waUrl, '_blank');
+
+        if (copied) {
+            showToast('تم نسخ صورة الكارت للحافظة وتحميلها! الصقها (Ctrl+V) في محادثة الواتساب 📋🖼️', 'success');
+        } else {
+            showToast('تم تحميل صورة الكارت وفتح واتساب! أرفق الصورة المحملة في المحادثة 📥', 'info');
+        }
+    } catch (err) {
+        console.error('Share QR card error:', err);
+        const message = `سلام ونعمة يا ${member.name} ✝️\n` +
+            `ده كود وبطاقة الحضور الرقمية الخاصة بك في اجتماع القديس يوحنا الحبيب:\n` +
+            `📌 كود العضو: ${member.name}\n\n` +
+            `احتفظ بهذا الكود لتسجيل حضورك في ثانية واحدة على باب الاجتماع! ✨`;
+        const waUrl = phone
+            ? `https://wa.me/${phone}?text=${encodeURIComponent(message)}`
+            : `https://wa.me/?text=${encodeURIComponent(message)}`;
+        window.open(waUrl, '_blank');
+    }
 }
 
 function setupQRSystem() {
@@ -6541,28 +6769,42 @@ function onQRCodeScanError(errorMessage) {
 
 function handleScannedMemberCode(rawText) {
     if (!rawText) return;
-    const cleanText = String(rawText).trim();
+    let cleanText = decodeScannedQRText(rawText);
 
-    let searchId = cleanText;
-    if (searchId.startsWith('STJ-MEM-')) {
-        searchId = searchId.replace('STJ-MEM-', '').trim();
-    }
+    let searchKey = cleanText;
+    ['STJ:', 'STJ-MEM-', 'كود:', 'الاسم:'].forEach(prefix => {
+        if (searchKey.startsWith(prefix)) {
+            searchKey = searchKey.substring(prefix.length).trim();
+        }
+    });
 
     // Cooldown debouncing: ignore duplicate scan of same code within 2.5s
     const now = Date.now();
-    if (searchId === lastScannedCode && (now - lastScannedTime) < 2500) {
+    if (searchKey === lastScannedCode && (now - lastScannedTime) < 2500) {
         return;
     }
-    lastScannedCode = searchId;
+    lastScannedCode = searchKey;
     lastScannedTime = now;
 
+    const normSearch = typeof normalizeAr === 'function' ? normalizeAr(searchKey) : searchKey.toLowerCase();
     const members = getMembers();
-    let member = members.find(m => String(m.id).trim() === searchId);
+
+    // 1. Search by Name (exact or normalized)
+    let member = members.find(m => {
+        if (!m.name) return false;
+        if (m.name.trim() === searchKey) return true;
+        const normName = typeof normalizeAr === 'function' ? normalizeAr(m.name) : m.name.toLowerCase();
+        return normName === normSearch;
+    });
+
+    // 2. Fallback: Search by ID
     if (!member) {
-        member = members.find(m => String(m.id).trim() === cleanText);
+        member = members.find(m => String(m.id).trim() === searchKey || String(m.id).trim() === cleanText);
     }
+
+    // 3. Fallback: Search by clean phone
     if (!member) {
-        const cleanPhone = searchId.replace(/\D/g, '');
+        const cleanPhone = cleanText.replace(/\D/g, '');
         if (cleanPhone.length >= 7) {
             member = members.find(m => (m.phone || '').replace(/\D/g, '') === cleanPhone);
         }
@@ -6573,14 +6815,14 @@ function handleScannedMemberCode(rawText) {
         updateScannerFeedback({
             type: 'error',
             title: 'كود غير مسجل!',
-            subtitle: `لم يتم العثور على مخدوم بالكود (${esc(cleanText)})`,
+            subtitle: `لم يتم العثور على مخدوم باسم أو كود (${esc(cleanText)})`,
             badge: 'غير موجود'
         });
         showToast(`الكود (${cleanText}) غير مسجل في قاعدة البيانات`, 'warning');
         return;
     }
 
-    const listContainer = document.getElementById('attendance-members-list');
+        const listContainer = document.getElementById('attendance-members-list');
     if (!listContainer) return;
 
     const row = listContainer.querySelector(`.member-attendance-row[data-id="${member.id}"]`);
