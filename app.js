@@ -1,6 +1,97 @@
-// Legacy password bypass and cleanup flags
-window.isAdminUnlocked = true;
-window.isServantNotesUnlocked = true;
+// ==========================================
+// SECURE CRYPTOGRAPHIC HASHING & AUTH
+// ==========================================
+const AUTH_SALT = "ST_JOHN_CHURCH_APP_V2_SALT_984716";
+
+function sha256(ascii) {
+    ascii = unescape(encodeURIComponent(String(ascii ?? '')));
+    function rightRotate(value, amount) {
+        return (value >>> amount) | (value << (32 - amount));
+    }
+    let i, j;
+    let result = '';
+    const words = [];
+    const asciiBitLength = ascii.length * 8;
+    let hash = [
+        0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a,
+        0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19
+    ];
+    const k = [
+        0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
+        0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174,
+        0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
+        0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967,
+        0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85,
+        0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
+        0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
+        0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2
+    ];
+    words[asciiBitLength >> 5] |= 0x80 << (24 - asciiBitLength % 32);
+    words[((asciiBitLength + 64 >> 9) << 4) + 15] = asciiBitLength;
+    for (i = 0; i < ascii.length; i++) {
+        words[i >> 2] |= ascii.charCodeAt(i) << ((3 - i % 4) * 8);
+    }
+    const w = new Array(64);
+    for (i = 0; i < words.length; i += 16) {
+        let a = hash[0], b = hash[1], c = hash[2], d = hash[3];
+        let e = hash[4], f = hash[5], g = hash[6], h = hash[7];
+        for (j = 0; j < 64; j++) {
+            if (j < 16) {
+                w[j] = words[i + j] | 0;
+            } else {
+                const s0 = rightRotate(w[j - 15], 7) ^ rightRotate(w[j - 15], 18) ^ (w[j - 15] >>> 3);
+                const s1 = rightRotate(w[j - 2], 17) ^ rightRotate(w[j - 2], 19) ^ (w[j - 2] >>> 10);
+                w[j] = (w[j - 16] + s0 + w[j - 7] + s1) | 0;
+            }
+            const s1 = rightRotate(e, 6) ^ rightRotate(e, 11) ^ rightRotate(e, 25);
+            const ch = (e & f) ^ ((~e) & g);
+            const temp1 = (h + s1 + ch + k[j] + w[j]) | 0;
+            const s0 = rightRotate(a, 2) ^ rightRotate(a, 13) ^ rightRotate(a, 22);
+            const maj = (a & b) ^ (a & c) ^ (b & c);
+            const temp2 = (s0 + maj) | 0;
+            h = g;
+            g = f;
+            f = e;
+            e = (d + temp1) | 0;
+            d = c;
+            c = b;
+            b = a;
+            a = (temp1 + temp2) | 0;
+        }
+        hash[0] = (hash[0] + a) | 0;
+        hash[1] = (hash[1] + b) | 0;
+        hash[2] = (hash[2] + c) | 0;
+        hash[3] = (hash[3] + d) | 0;
+        hash[4] = (hash[4] + e) | 0;
+        hash[5] = (hash[5] + f) | 0;
+        hash[6] = (hash[6] + g) | 0;
+        hash[7] = (hash[7] + h) | 0;
+    }
+    for (i = 0; i < 8; i++) {
+        for (j = 3; j >= 0; j--) {
+            const byte = (hash[i] >> (j * 8)) & 0xff;
+            result += ('0' + byte.toString(16)).slice(-2);
+        }
+    }
+    return result;
+}
+
+function hashPassword(password) {
+    if (!password) return '';
+    return sha256(AUTH_SALT + ':PASS:' + String(password).trim());
+}
+
+function isHashed(str) {
+    return typeof str === 'string' && /^[0-9a-f]{64}$/i.test(str);
+}
+
+function generateSessionToken(userId, passwordHash) {
+    if (!userId || !passwordHash) return '';
+    return sha256(AUTH_SALT + ':SESSION:' + userId + ':' + passwordHash);
+}
+
+// Password bypasses removed for security
+// Servant notes bypass removed for security
 try {
     localStorage.removeItem('church_servant_notes_pass');
     localStorage.removeItem('church_servant_notes_unlocked');
@@ -589,7 +680,7 @@ function saveWaTasks(tasks) {
 try {
     let currentAuthData = getAuthData();
     if (currentAuthData && currentAuthData.admin && currentAuthData.admin.password === 'admin') {
-        currentAuthData.admin.password = 'George-STjohn';
+        currentAuthData.admin.password = hashPassword('George-STjohn');
         saveAuthData(currentAuthData);
         if (typeof triggerCloudSync === 'function') triggerCloudSync();
     }
@@ -904,11 +995,20 @@ function getAuthData() {
         const data = localStorage.getItem(DB_KEY_AUTH);
         if (data) {
             const parsed = JSON.parse(data);
-            if (!parsed.supervisor) parsed.supervisor = { password: 'stjohn123', permissions: ['dashboard-view'] };
+            if (!parsed.supervisor) parsed.supervisor = { password: hashPassword('stjohn123'), permissions: ['dashboard-view'] };
+            else if (!isHashed(parsed.supervisor.password)) parsed.supervisor.password = hashPassword(parsed.supervisor.password || 'stjohn123');
+            if (parsed.servants && typeof parsed.servants === 'object') {
+                Object.keys(parsed.servants).forEach(sId => {
+                    const sAuth = parsed.servants[sId];
+                    if (sAuth && sAuth.password && !isHashed(sAuth.password)) {
+                        sAuth.password = hashPassword(sAuth.password);
+                    }
+                });
+            }
             
             // Force admin password migration
-            if (parsed.admin && parsed.admin.password === 'admin') {
-                parsed.admin.password = 'George-STjohn';
+            if (parsed.admin && !isHashed(parsed.admin.password)) {
+                parsed.admin.password = hashPassword(parsed.admin.password === 'admin' ? 'George-STjohn' : (parsed.admin.password || 'George-STjohn'));
                 // Try to save it back immediately to fix it
                 localStorage.setItem(DB_KEY_AUTH, JSON.stringify(parsed));
             }
@@ -950,8 +1050,8 @@ function getAuthData() {
         }
     } catch { }
     return {
-        admin: { password: 'George-STjohn', permissions: ['dashboard-view', 'attendance-view', 'followup-view', 'servants-dashboard-view', 'servants-notes-view', 'competitions-view', 'trips-view', 'trips-edit', 'summary-view', 'admin-view', 'reports-view', 'settings-view'] },
-        supervisor: { password: 'stjohn123', permissions: ['dashboard-view'] },
+        admin: { password: hashPassword('George-STjohn'), permissions: ['dashboard-view', 'attendance-view', 'attendance-edit', 'followup-view', 'followup-edit', 'servants-dashboard-view', 'servants-dashboard-edit', 'servants-notes-view', 'servants-notes-edit', 'competitions-view', 'competitions-edit', 'trips-view', 'trips-edit', 'summary-view', 'admin-view', 'admin-edit', 'reports-view', 'settings-view'] },
+        supervisor: { password: hashPassword('stjohn123'), permissions: ['dashboard-view'] },
         servants: {}
     };
 }
@@ -966,12 +1066,15 @@ let currentPermissions = [];
 
 function checkLoginAndApply() {
     const loggedInId = localStorage.getItem('church_logged_in_user');
+    const sessionToken = localStorage.getItem('church_session_token');
     const authData = getAuthData();
+    let expectedHash = null;
+
     const loginModal = document.getElementById('login-modal-bg');
 
     if (loggedInId) {
         if (loggedInId === 'admin') {
-            currentUserRole = 'admin';
+            currentUserRole = 'admin'; expectedHash = authData.admin?.password;
             currentPermissions = (authData.admin && Array.isArray(authData.admin.permissions)) ? authData.admin.permissions : [
                 'dashboard-view',
                 'attendance-view', 'attendance-edit',
@@ -986,13 +1089,14 @@ function checkLoginAndApply() {
                 'settings-view'
             ];
         } else if (loggedInId === 'supervisor') {
-            currentUserRole = 'supervisor';
+            currentUserRole = 'supervisor'; expectedHash = authData.supervisor?.password;
             currentPermissions = authData.supervisor.permissions;
         } else if (authData.servants[loggedInId]) {
-            currentUserRole = 'servant';
+            currentUserRole = 'servant'; expectedHash = authData.servants[loggedInId]?.password;
             currentPermissions = authData.servants[loggedInId].permissions || ['dashboard-view'];
         } else {
             localStorage.removeItem('church_logged_in_user');
+        localStorage.removeItem('church_session_token');
             currentUserRole = null;
             currentPermissions = [];
             document.documentElement.classList.remove('is-logged-in');
@@ -1003,6 +1107,19 @@ function checkLoginAndApply() {
         }
 
         document.documentElement.classList.add('is-logged-in');
+        const isValidSession = Boolean(loggedInId && sessionToken && expectedHash && sessionToken === generateSessionToken(loggedInId, expectedHash));
+        if (!isValidSession) {
+            localStorage.removeItem('church_logged_in_user');
+        localStorage.removeItem('church_session_token');
+            localStorage.removeItem('church_session_token');
+            currentUserRole = null;
+            currentPermissions = [];
+            document.documentElement.classList.remove('is-logged-in');
+            document.documentElement.classList.add('is-not-logged-in');
+            document.body.classList.add('not-logged-in');
+            if (loginModal) loginModal.classList.add('active');
+            return;
+        }
         document.documentElement.classList.remove('is-not-logged-in');
         document.body.classList.remove('not-logged-in');
         if (loginModal) loginModal.classList.remove('active');
@@ -1305,17 +1422,17 @@ function populateDeleteList() {
         row.innerHTML = `
             <div class="member-name" style="display: flex; flex-direction: column;">
                 <div>
-                    ${m.name} 
+                    ${esc(m.name)} 
                     <span class="status-badge ${m.role === 'servant' ? 'badge-warning' : ''}" style="margin-right: 10px; font-size: 0.75rem;">${roleLabel}</span>
                 </div>
                 <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 5px;">
-                    <i class="ph ph-map-pin"></i> ${m.address || 'بدون عنوان / منطقة'}
+                    <i class="ph ph-map-pin"></i> ${esc(m.address || 'بدون عنوان / منطقة')}
                 </div>
             </div>
             <div style="display: flex; gap: 5px; flex-wrap: wrap;">
-                <button class="btn btn-outline" onclick="editMemberAddress('${m.id}')" style="padding: 5px 10px; display: inline-block;">العنوان</button>
-                <button class="btn btn-outline" onclick="toggleMemberRole('${m.id}')" style="padding: 5px 10px; display: inline-block;">${toggleRoleText}</button>
-                <button class="btn btn-danger" onclick="deleteMemberFromModal('${m.id}')" style="padding: 5px 15px; display: inline-block;">حذف</button>
+                <button class="btn btn-outline" onclick="editMemberAddress('${esc(m.id)}')" style="padding: 5px 10px; display: inline-block;">العنوان</button>
+                <button class="btn btn-outline" onclick="toggleMemberRole('${esc(m.id)}')" style="padding: 5px 10px; display: inline-block;">${toggleRoleText}</button>
+                <button class="btn btn-danger" onclick="deleteMemberFromModal('${esc(m.id)}')" style="padding: 5px 15px; display: inline-block;">حذف</button>
             </div>
         `;
         list.appendChild(row);
@@ -1531,10 +1648,21 @@ function setupSettings() {
 
             const pct = totalMeetings > 0 ? Math.round((attendCount / totalMeetings) * 100) : 0;
 
+            let presentedCount = 0;
+            if (servantRecords) {
+                allDates.forEach(d => {
+                    if (servantRecords[d] && servantRecords[d][m.id] && servantRecords[d][m.id].presented) {
+                        presentedCount++;
+                    }
+                });
+            }
+
             let row = {
                 'الاسم': m.name,
+                'الصفة': m.role === 'servant' ? 'خادم' : 'مخدوم',
                 'إجمالي الحضور': attendCount,
-                'نسبة الحضور': pct + '%'
+                'نسبة الحضور': pct + '%',
+                'مرات تقديم فقرة': presentedCount
             };
 
             allDates.forEach(d => {
@@ -1565,7 +1693,7 @@ function setupSettings() {
         });
         visitationRows.sort((a, b) => (b['التاريخ'] || '').localeCompare(a['التاريخ'] || ''));
 
-        // 4. متابعة الخدام
+        // 4. متابعة الخدام والفقرات
         const servantRows = [];
         if (servantRecords) {
             Object.keys(servantRecords).sort().forEach(date => {
@@ -1574,10 +1702,13 @@ function setupSettings() {
                 Object.keys(dayData).forEach(memberId => {
                     const s = dayData[memberId];
                     if (!s) return;
-                    const sName = members.find(m => m.id === memberId)?.name || memberId;
+                    const mObj = members.find(m => m.id === memberId);
+                    const sName = mObj?.name || memberId;
+                    const isServ = mObj ? mObj.role === 'servant' : false;
                     servantRows.push({
                         'التاريخ': date,
-                        'الخادم': sName,
+                        'الاسم': sName,
+                        'الصفة': isServ ? 'خادم' : 'مخدوم',
                         'قدّم فقرة': s.presented ? 'نعم' : 'لا',
                         'قائد': s.leader ? 'نعم' : 'لا',
                         'وقت الوصول': s.arrival || '',
@@ -2265,6 +2396,7 @@ function syncPastPresentationNotes() {
                     const exists = notes.some(n => n.id === autoNoteId);
                     if (!exists) {
                         const servant = members.find(m => m.id === servantId);
+                        if (!servant || servant.role !== 'servant') return;
                         notes.push({
                             id: autoNoteId,
                             servantId: servantId,
@@ -3647,6 +3779,33 @@ function setupAttendanceView() {
             }
         });
 
+        // Handle attendees (المخدومين) who presented a segment
+        document.getElementById('attendance-members-list').querySelectorAll('.member-attendance-row').forEach(row => {
+            const memberId = row.getAttribute('data-id');
+            const mObj = allMembers.find(m => m.id === memberId);
+            if (mObj && mObj.role === 'servant') return; // Servants already handled above
+
+            const isAttending = attendedIds.includes(memberId);
+            const btnPresent = row.querySelector('.btn-present-segment');
+            const isPresented = isAttending && btnPresent && btnPresent.classList.contains('active');
+
+            if (isAttending && isPresented) {
+                servantRecords[currentAttendanceDate][memberId] = {
+                    presented: true,
+                    role: 'member'
+                };
+            } else {
+                if (servantRecords[currentAttendanceDate] && servantRecords[currentAttendanceDate][memberId]) {
+                    delete servantRecords[currentAttendanceDate][memberId];
+                }
+            }
+        });
+
+        // Clean up empty date entry if no one has servant/presentation records
+        if (servantRecords[currentAttendanceDate] && Object.keys(servantRecords[currentAttendanceDate]).length === 0) {
+            delete servantRecords[currentAttendanceDate];
+        }
+
         records[currentAttendanceDate] = attendedIds;
         saveAttendanceRecords(records);
         saveServantRecords(servantRecords);
@@ -3726,7 +3885,9 @@ function updateAttendanceWorkspace() {
 
     const members = getMembers();
     const records = getAttendanceRecords();
+    const servantRecords = getServantRecords();
     const todayAttendees = records[currentAttendanceDate] || [];
+    const todayServantRecords = servantRecords[currentAttendanceDate] || {};
 
     const listContainer = document.getElementById('attendance-members-list');
     listContainer.innerHTML = '';
@@ -3734,12 +3895,76 @@ function updateAttendanceWorkspace() {
     const servantsListContainer = document.getElementById('attendance-servants-list');
     servantsListContainer.innerHTML = '';
 
+    // Presenters Section at top of the servants & presenters tab
+    const presentersCard = document.createElement('div');
+    presentersCard.id = 'presenters-summary-card';
+    presentersCard.className = 'presenters-summary-card glass';
+    presentersCard.innerHTML = `
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 8px;">
+            <div style="display: flex; align-items: center; gap: 8px; font-weight: 700; color: #ffffff; font-size: 0.95rem;">
+                <i class="ph ph-microphone-stage" style="color: #fbbf24; font-size: 1.2rem;"></i>
+                <span>مقدمو الفقرات اليوم (خدام ومخدومين)</span>
+            </div>
+            <span class="status-badge badge-warning" id="presenters-count-badge" style="font-size: 0.72rem; padding: 2px 8px;">0 فقرة</span>
+        </div>
+        <div style="display: flex; gap: 8px; margin-bottom: 10px; align-items: center; flex-wrap: wrap;">
+            <select id="select-add-presenter" class="form-control" style="font-size: 0.8rem; padding: 6px 10px; flex: 1; min-width: 200px;">
+                <option value="">-- اختر مخدوم حاضر لتعيينه كمقدّم فقرة --</option>
+            </select>
+            <button type="button" class="btn btn-primary btn-sm" id="btn-add-presenter-confirm" style="padding: 6px 14px; font-size: 0.78rem; white-space: nowrap;">
+                <i class="ph ph-plus"></i> إضافة للفقرات
+            </button>
+        </div>
+        <div id="presenters-chips-container" style="display: flex; flex-wrap: wrap; gap: 8px;"></div>
+    `;
+    servantsListContainer.appendChild(presentersCard);
+
+    const btnAddPres = presentersCard.querySelector('#btn-add-presenter-confirm');
+    if (btnAddPres) {
+        btnAddPres.addEventListener('click', () => {
+            if (currentUserRole !== 'admin' && !currentPermissions.includes('attendance-edit')) {
+                alert('عفواً، حسابك يملك صلاحية المشاهدة فقط ولا يمكنه تعديل الحضور.');
+                return;
+            }
+            const sel = presentersCard.querySelector('#select-add-presenter');
+            const targetId = sel ? sel.value : null;
+            if (!targetId) return alert('اختر مخدوماً أو خادماً أولاً');
+
+            const mRow = listContainer.querySelector(`.member-attendance-row[data-id="${targetId}"]`);
+            if (mRow) {
+                const b = mRow.querySelector('.btn-present-segment');
+                if (b) {
+                    b.classList.add('active');
+                    b.querySelector('i').className = 'ph ph-microphone-stage';
+                    b.querySelector('.btn-present-text').textContent = 'قدّم فقرة ✓';
+                }
+            }
+            const evalRow = servantsListContainer.querySelector(`.servant-eval-row[data-id="${targetId}"]`);
+            if (evalRow) {
+                const chk = evalRow.querySelector('.servant-presented');
+                if (chk) chk.checked = true;
+            }
+            updatePresentersSummary();
+            sel.value = '';
+        });
+    }
+
+    const servantsSectionHeader = document.createElement('div');
+    servantsSectionHeader.className = 'servants-section-header';
+    servantsSectionHeader.style.cssText = 'margin: 18px 0 10px; font-weight: 700; color: #94a3b8; font-size: 0.85rem; display: flex; align-items: center; gap: 8px; padding-top: 5px;';
+    servantsSectionHeader.innerHTML = `
+        <i class="ph ph-user-gear" style="color: var(--primary);"></i>
+        <span>تقييم ومتابعة الخدام الحاضرين</span>
+    `;
+    servantsListContainer.appendChild(servantsSectionHeader);
+
     // Sort members alphabetically
     members.sort((a, b) => a.name.localeCompare(b.name, 'ar'));
 
     members.forEach(member => {
         const isAttending = todayAttendees.includes(member.id);
         const isServant = member.role === 'servant';
+        const isPresented = isAttending && Boolean(todayServantRecords[member.id]?.presented);
 
         // --- General Attendance Row (Nocturne Ecclesia _5 Mobile Design) ---
         const row = document.createElement('div');
@@ -3758,18 +3983,26 @@ function updateAttendanceWorkspace() {
                     <div class="member-subtext">${esc(subtext)}</div>
                 </div>
             </div>
-            <div class="toggle-group">
-                <button class="toggle-btn btn-attend ${isAttending ? 'active attend' : ''}"><i class="ph ph-check"></i> حضر</button>
-                <button class="toggle-btn btn-absent ${!isAttending ? 'active absent' : ''}"><i class="ph ph-x"></i> غاب</button>
+            <div class="member-actions-wrap">
+                <button type="button" class="btn-present-segment ${isPresented ? 'active' : ''}" style="${isAttending ? 'display: inline-flex;' : 'display: none;'}" title="تحديد تقديم فقرة اليوم">
+                    <i class="ph ${isPresented ? 'ph-microphone-stage' : 'ph-microphone'}"></i>
+                    <span class="btn-present-text">${isPresented ? 'قدّم فقرة ✓' : 'قدّم فقرة'}</span>
+                </button>
+                <div class="toggle-group">
+                    <button class="toggle-btn btn-attend ${isAttending ? 'active attend' : ''}"><i class="ph ph-check"></i> حضر</button>
+                    <button class="toggle-btn btn-absent ${!isAttending ? 'active absent' : ''}"><i class="ph ph-x"></i> غاب</button>
+                </div>
             </div>
         `;
 
         const btnAttend = row.querySelector('.btn-attend');
         const btnAbsent = row.querySelector('.btn-absent');
+        const btnPresent = row.querySelector('.btn-present-segment');
 
         btnAttend.addEventListener('click', () => {
             btnAttend.classList.add('active', 'attend');
             btnAbsent.classList.remove('active', 'absent');
+            btnPresent.style.display = 'inline-flex';
             updateLiveCounter();
             // Show their row in servant evaluation list if they are a servant
             if (isServant) {
@@ -3784,11 +4017,16 @@ function updateAttendanceWorkspace() {
                 }
                 updateServantsEvalNotice();
             }
+            updatePresentersSummary();
         });
 
         btnAbsent.addEventListener('click', () => {
             btnAbsent.classList.add('active', 'absent');
             btnAttend.classList.remove('active', 'attend');
+            btnPresent.style.display = 'none';
+            btnPresent.classList.remove('active');
+            btnPresent.querySelector('i').className = 'ph ph-microphone';
+            btnPresent.querySelector('.btn-present-text').textContent = 'قدّم فقرة';
             updateLiveCounter();
             // Hide their row in servant evaluation list if they are absent
             if (isServant) {
@@ -3796,17 +4034,41 @@ function updateAttendanceWorkspace() {
                 if (evalRow) {
                     evalRow.setAttribute('data-attended', 'false');
                     evalRow.style.display = 'none';
+                    const chk = evalRow.querySelector('.servant-presented');
+                    if (chk) chk.checked = false;
                 }
                 updateServantsEvalNotice();
             }
+            updatePresentersSummary();
+        });
+
+        btnPresent.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (currentUserRole !== 'admin' && !currentPermissions.includes('attendance-edit')) {
+                alert('عفواً، حسابك يملك صلاحية المشاهدة فقط.');
+                return;
+            }
+            const isCurrentlyActive = btnPresent.classList.contains('active');
+            const willBeActive = !isCurrentlyActive;
+            btnPresent.classList.toggle('active', willBeActive);
+            btnPresent.querySelector('i').className = willBeActive ? 'ph ph-microphone-stage' : 'ph-microphone';
+            btnPresent.querySelector('.btn-present-text').textContent = willBeActive ? 'قدّم فقرة ✓' : 'قدّم فقرة';
+
+            if (isServant) {
+                const evalRow = servantsListContainer.querySelector(`.servant-eval-row[data-id="${member.id}"]`);
+                if (evalRow) {
+                    const chk = evalRow.querySelector('.servant-presented');
+                    if (chk) chk.checked = willBeActive;
+                }
+            }
+            updatePresentersSummary();
         });
 
         listContainer.appendChild(row);
 
         // --- Servant Evaluation Row ---
         if (isServant) {
-            const servantRecords = getServantRecords();
-            const todayServantData = (servantRecords[currentAttendanceDate] || {})[member.id] || { presented: false, leader: false, arrival: null };
+            const todayServantData = todayServantRecords[member.id] || { presented: false, leader: false, arrival: null };
 
             const evalRow = document.createElement('div');
             evalRow.className = 'servant-eval-row glass';
@@ -3850,6 +4112,18 @@ function updateAttendanceWorkspace() {
                     </select>
                 </div>
             `;
+
+            const servantChk = evalRow.querySelector('.servant-presented');
+            if (servantChk) {
+                servantChk.addEventListener('change', () => {
+                    const isChecked = servantChk.checked;
+                    btnPresent.classList.toggle('active', isChecked);
+                    btnPresent.querySelector('i').className = isChecked ? 'ph ph-microphone-stage' : 'ph-microphone';
+                    btnPresent.querySelector('.btn-present-text').textContent = isChecked ? 'قدّم فقرة ✓' : 'قدّم فقرة';
+                    updatePresentersSummary();
+                });
+            }
+
             servantsListContainer.appendChild(evalRow);
         }
     });
@@ -3870,7 +4144,112 @@ function updateAttendanceWorkspace() {
     updateServantsEvalNotice();
 
     updateLiveCounter();
+    updatePresentersSummary();
     if (typeof enforcePermissions === 'function') enforcePermissions();
+}
+
+function updatePresentersSummary() {
+    const card = document.getElementById('presenters-summary-card');
+    const chipsContainer = document.getElementById('presenters-chips-container');
+    const countBadge = document.getElementById('presenters-count-badge');
+    const selectAdd = document.getElementById('select-add-presenter');
+    if (!card || !chipsContainer) return;
+
+    const members = getMembers();
+    const membersMap = new Map(members.map(m => [m.id, m]));
+    
+    const presenterIds = [];
+    const attendedMemberIds = [];
+
+    const memberRows = document.querySelectorAll('#attendance-members-list .member-attendance-row');
+    memberRows.forEach(row => {
+        const id = row.getAttribute('data-id');
+        const isAttending = row.querySelector('.btn-attend')?.classList.contains('active');
+        if (isAttending) {
+            attendedMemberIds.push(id);
+            const isPres = row.querySelector('.btn-present-segment')?.classList.contains('active');
+            if (isPres) {
+                presenterIds.push(id);
+            }
+        }
+    });
+
+    if (countBadge) countBadge.textContent = `${presenterIds.length} فقرة`;
+
+    chipsContainer.innerHTML = '';
+    if (presenterIds.length === 0) {
+        chipsContainer.innerHTML = `
+            <div style="color: #94a3b8; font-size: 0.78rem; font-style: italic; padding: 4px 0;">
+                لم يتم تحديد أي مخدوم أو خادم قدّم فقرة اليوم بعد. يمكنك التحديد بالضغط على «قدّم فقرة» بجوار الاسم في قائمة الحضور أو اختيار مخدوم من القائمة أدناه.
+            </div>
+        `;
+    } else {
+        presenterIds.forEach(id => {
+            const m = membersMap.get(id);
+            const name = m ? m.name : id;
+            const isServant = m ? m.role === 'servant' : false;
+            const roleBadge = isServant 
+                ? `<span class="status-badge badge-warning" style="font-size: 0.62rem; padding: 1px 5px;">خادم</span>`
+                : `<span class="status-badge badge-primary" style="font-size: 0.62rem; padding: 1px 5px;">مخدوم</span>`;
+
+            const chip = document.createElement('div');
+            chip.className = 'presenter-chip glass';
+            chip.innerHTML = `
+                <i class="ph ph-microphone-stage" style="color: #fbbf24;"></i>
+                <span>${esc(name)}</span>
+                ${roleBadge}
+                <button type="button" class="btn-remove-presenter" data-id="${id}" title="إلغاء تقديم الفقرة">
+                    &times;
+                </button>
+            `;
+
+            chip.querySelector('.btn-remove-presenter').addEventListener('click', () => {
+                if (currentUserRole !== 'admin' && !currentPermissions.includes('attendance-edit')) {
+                    alert('عفواً، حسابك يملك صلاحية المشاهدة فقط ولا يمكنه تعديل الحضور.');
+                    return;
+                }
+                const row = document.querySelector(`#attendance-members-list .member-attendance-row[data-id="${id}"]`);
+                if (row) {
+                    const b = row.querySelector('.btn-present-segment');
+                    if (b) {
+                        b.classList.remove('active');
+                        b.querySelector('i').className = 'ph ph-microphone';
+                        b.querySelector('.btn-present-text').textContent = 'قدّم فقرة';
+                    }
+                }
+                if (isServant) {
+                    const evalRow = document.querySelector(`#attendance-servants-list .servant-eval-row[data-id="${id}"]`);
+                    if (evalRow) {
+                        const chk = evalRow.querySelector('.servant-presented');
+                        if (chk) chk.checked = false;
+                    }
+                }
+                updatePresentersSummary();
+            });
+
+            chipsContainer.appendChild(chip);
+        });
+    }
+
+    // Populate dropdown with attended members who haven't presented yet
+    if (selectAdd) {
+        const curVal = selectAdd.value;
+        selectAdd.innerHTML = '<option value="">-- اختر مخدوم حاضر لتعيينه كمقدّم فقرة --</option>';
+        attendedMemberIds.forEach(id => {
+            if (!presenterIds.includes(id)) {
+                const m = membersMap.get(id);
+                if (m) {
+                    const opt = document.createElement('option');
+                    opt.value = id;
+                    opt.textContent = `${m.name} (${m.role === 'servant' ? 'خادم' : 'مخدوم'})`;
+                    selectAdd.appendChild(opt);
+                }
+            }
+        });
+        if (curVal && selectAdd.querySelector(`option[value="${curVal}"]`)) {
+            selectAdd.value = curVal;
+        }
+    }
 }
 
 function updateServantsEvalNotice() {
@@ -4068,7 +4447,7 @@ function refreshFollowUp() {
             </div>
 
             <div class="followup-actions-row">
-                <button class="btn-primary-visit" onclick="openRecordVisitModal('${member.id}', '${member.name.replace(/'/g, "\\'")}')">
+                <button class="btn-primary-visit" onclick="openRecordVisitModal('${esc(member.id)}')">
                     <i class="ph ph-user-plus"></i>
                     <span>توثيق افتقاد</span>
                 </button>
@@ -4077,7 +4456,7 @@ function refreshFollowUp() {
                     <i class="ph ph-whatsapp-logo"></i>
                 </a>
                 ` : ''}
-                <button class="btn-profile-card" onclick="openMemberProfile('${member.id}')">
+                <button class="btn-profile-card" onclick="openMemberProfile('${esc(member.id)}')">
                     <i class="ph ph-user"></i>
                     <span>الملف</span>
                 </button>
@@ -4408,7 +4787,9 @@ function setupVisitationModals() {
 
 window.openRecordVisitModal = function (memberId, memberName) {
     document.getElementById('visit-member-id').value = memberId;
-    document.getElementById('visit-member-name').innerText = `تسجيل افتقاد: ${memberName}`;
+    const member = getMembers().find(m => m.id === memberId);
+    const resolvedName = member ? member.name : (memberName || '');
+    document.getElementById('visit-member-name').innerText = `تسجيل افتقاد: ${resolvedName}`;
     document.getElementById('visit-date').value = todayLocal();
     document.getElementById('visit-positives').value = '';
     document.getElementById('visit-problems').value = '';
@@ -4465,6 +4846,17 @@ window.openMemberProfile = function (memberId) {
     document.getElementById('profile-phone').innerText = member.phone || 'لا يوجد رقم هاتف';
     document.getElementById('profile-attendance-rate').innerText = `${percentage}%`;
     document.getElementById('profile-last-attend').innerText = `آخر حضور: ${lastAttendedDate}`;
+
+    // Presentation Count (for both attendees and servants)
+    const servantRecordsAll = getServantRecords();
+    let memberPresentedCount = 0;
+    dates.forEach(date => {
+        if (servantRecordsAll[date] && servantRecordsAll[date][memberId] && servantRecordsAll[date][memberId].presented) {
+            memberPresentedCount++;
+        }
+    });
+    const elMemberPres = document.getElementById('profile-member-presented');
+    if (elMemberPres) elMemberPres.innerText = memberPresentedCount;
 
     // Edit Phone Button
     const editPhoneBtn = document.getElementById('btn-edit-phone');
@@ -4702,11 +5094,11 @@ function generatePDFReport(year, month) {
             }
             html += `<tr>
                 <td>${formatDate(v.date)}</td>
-                <td>${v.memberName}</td>
-                <td>${servantNames}</td>
+                <td>${esc(v.memberName)}</td>
+                <td>${esc(servantNames)}</td>
                 <td style="text-align: right; padding-right: 10px;">
-                    ${v.positives ? `<b>إيجابيات:</b> ${v.positives}<br>` : ''}
-                    ${v.problems ? `<b>شكاوى:</b> ${v.problems}` : ''}
+                    ${v.positives ? `<b>إيجابيات:</b> ${esc(v.positives)}<br>` : ''}
+                    ${v.problems ? `<b>شكاوى:</b> ${esc(v.problems)}` : ''}
                     ${!v.positives && !v.problems ? '--' : ''}
                 </td>
             </tr>`;
@@ -4803,11 +5195,11 @@ function generateVisitationPDFReport(year, month) {
             }
             html += `<tr>
                 <td>${formatDate(v.date)}</td>
-                <td>${v.memberName}</td>
-                <td>${servantNames}</td>
+                <td>${esc(v.memberName)}</td>
+                <td>${esc(servantNames)}</td>
                 <td style="text-align: right; padding-right: 10px;">
-                    ${v.positives ? `<b>إيجابيات:</b> ${v.positives}<br>` : ''}
-                    ${v.problems ? `<b>شكاوى:</b> ${v.problems}` : ''}
+                    ${v.positives ? `<b>إيجابيات:</b> ${esc(v.positives)}<br>` : ''}
+                    ${v.problems ? `<b>شكاوى:</b> ${esc(v.problems)}` : ''}
                     ${!v.positives && !v.problems ? '--' : ''}
                 </td>
             </tr>`;
@@ -5368,15 +5760,24 @@ function setupAuth() {
         btnLogin.addEventListener('click', () => {
             const id = document.getElementById('login-username').value;
             const pass = document.getElementById('login-password').value.trim();
-            const authData = getAuthData();
+            const sessionToken = localStorage.getItem('church_session_token');
+    const authData = getAuthData();
+    let expectedHash = null;
 
-            let isValid = false;
-            if (id === 'admin') {
-                if (pass === authData.admin.password) isValid = true;
+
+            const inputHash = hashPassword(pass);
+            let targetHash = (id === 'admin') ? authData.admin?.password : (id === 'supervisor') ? authData.supervisor?.password : authData.servants[id]?.password;
+            const isValid = Boolean(targetHash && inputHash === targetHash);
+            if (isValid) {
+                const sessionToken = generateSessionToken(id, targetHash);
+                localStorage.setItem('church_session_token', sessionToken);
+            }
+            if (false) {
+
             } else if (id === 'supervisor') {
-                if (pass === authData.supervisor.password) isValid = true;
+
             } else {
-                if (authData.servants[id] && authData.servants[id].password === pass) isValid = true;
+
             }
 
             if (isValid) {
@@ -5402,6 +5803,7 @@ function setupAuth() {
 
     const performLogout = () => {
         localStorage.removeItem('church_logged_in_user');
+        localStorage.removeItem('church_session_token');
         currentUserRole = null;
         currentPermissions = [];
         document.documentElement.classList.remove('is-logged-in');
@@ -5458,15 +5860,7 @@ function setupAuth() {
         permServantSelect.addEventListener('change', () => {
             const id = permServantSelect.value;
             const authData = getAuthData();
-            let data;
-
-            if (id === 'admin') {
-                data = authData.admin;
-            } else if (id === 'supervisor') {
-                data = authData.supervisor;
-            } else {
-                data = authData.servants[id] || { password: '', permissions: ['dashboard-view'] };
-            }
+            let data = (id === 'admin') ? authData.admin : (id === 'supervisor') ? authData.supervisor : (authData.servants[id] || { password: '', permissions: ['dashboard-view'] });
 
             const permPassInput = document.getElementById('perm-password');
             if (permPassInput) {
@@ -5477,12 +5871,13 @@ function setupAuth() {
                     pIcon.classList.remove('ph-eye-slash');
                     pIcon.classList.add('ph-eye');
                 }
-                permPassInput.placeholder = data.password ? `اكتب كلمة مرور جديدة لتغييرها...` : 'أدخل كلمة مرور جديدة...';
+                permPassInput.placeholder = data.password ? 'اكتب كلمة مرور جديدة لتغييرها...' : 'أدخل كلمة مرور جديدة...';
             }
 
             const hintEl = document.getElementById('perm-pass-hint');
             if (hintEl) {
-                hintEl.innerText = data.password ? `🔑 كلمة المرور الحالية: "${data.password}"` : '⚠️ لا توجد كلمة مرور مسجلة بعد';
+                hintEl.innerText = data.password ? '🔒 تم تعيين كلمة مرور مشفرة للحساب (أدخل كلمة جديدة بالأسفل لتغييرها)' : '⚠️ لا توجد كلمة مرور مسجلة بعد لهذا الحساب';
+                hintEl.style.color = data.password ? '#34d399' : '#f59e0b';
             }
 
             Array.from(document.querySelectorAll('.perm-select')).forEach(sel => {
@@ -5524,7 +5919,13 @@ function setupAuth() {
             const authData = getAuthData();
 
             if (id === 'admin') {
-                if (pass) authData.admin.password = pass;
+                if (pass) {
+                    const h = hashPassword(pass);
+                    authData.admin.password = h;
+                    if (localStorage.getItem('church_logged_in_user') === 'admin') {
+                        localStorage.setItem('church_session_token', generateSessionToken('admin', h));
+                    }
+                }
                 authData.admin.permissions = [
                     'dashboard-view',
                     'attendance-view', 'attendance-edit',
@@ -5539,11 +5940,23 @@ function setupAuth() {
                     'settings-view'
                 ];
             } else if (id === 'supervisor') {
-                if (pass) authData.supervisor.password = pass;
+                if (pass) {
+                    const h = hashPassword(pass);
+                    authData.supervisor.password = h;
+                    if (localStorage.getItem('church_logged_in_user') === 'supervisor') {
+                        localStorage.setItem('church_session_token', generateSessionToken('supervisor', h));
+                    }
+                }
                 authData.supervisor.permissions = perms;
             } else {
                 if (!authData.servants[id]) authData.servants[id] = { role: 'servant', password: '', permissions: [] };
-                if (pass) authData.servants[id].password = pass;
+                if (pass) {
+                    const h = hashPassword(pass);
+                    authData.servants[id].password = h;
+                    if (localStorage.getItem('church_logged_in_user') === id) {
+                        localStorage.setItem('church_session_token', generateSessionToken(id, h));
+                    }
+                }
                 authData.servants[id].permissions = perms;
             }
 
@@ -5687,11 +6100,11 @@ function setupCompetitions() {
                 const roleBadge = member.role === 'servant' ? '<span class="badge-warning" style="font-size: 0.7rem; padding: 2px 5px; border-radius: 4px; margin-right: 5px;">خادم</span>' : '';
 
                 div.innerHTML = '<div style="flex: 2; display: flex; align-items: center;" class="member-name-label">' +
-                    '<span style="font-weight: 500;">' + member.name + '</span>' +
+                    '<span style="font-weight: 500;">' + esc(member.name) + '</span>' +
                     roleBadge +
                     '</div>' +
                     '<div style="flex: 3; display: flex; gap: 5px;">' +
-                    '<select class="form-control comp-team-select" data-id="' + member.id + '" style="padding: 5px; font-size: 0.9rem;">' +
+                    '<select class="form-control comp-team-select" data-id="' + esc(member.id) + '" style="padding: 5px; font-size: 0.9rem;">' +
                     '<option value="none">-- غير مشارك --</option>' +
                     '<option value="team1">الفريق 1</option>' +
                     '<option value="team2">الفريق 2</option>' +
@@ -5896,11 +6309,11 @@ function setupCompetitions() {
                 else if (comp.teams.team3.members.includes(member.id)) selectedTeam = 'team3';
 
                 div.innerHTML = '<div style="flex: 2; display: flex; align-items: center;" class="member-name-label">' +
-                    '<span style="font-weight: 500;">' + member.name + '</span>' +
+                    '<span style="font-weight: 500;">' + esc(member.name) + '</span>' +
                     roleBadge +
                     '</div>' +
                     '<div style="flex: 3; display: flex; gap: 5px;">' +
-                    '<select class="form-control comp-team-select" data-id="' + member.id + '" style="padding: 5px; font-size: 0.9rem;">' +
+                    '<select class="form-control comp-team-select" data-id="' + esc(member.id) + '" style="padding: 5px; font-size: 0.9rem;">' +
                     '<option value="none" ' + (selectedTeam === 'none' ? 'selected' : '') + '>-- غير مشارك --</option>' +
                     '<option value="team1" ' + (selectedTeam === 'team1' ? 'selected' : '') + '>الفريق 1</option>' +
                     '<option value="team2" ' + (selectedTeam === 'team2' ? 'selected' : '') + '>الفريق 2</option>' +
@@ -6257,7 +6670,7 @@ function openCompetitionDetails_original(compId) {
         const medalColor = index === 0 ? 'gold' : index === 1 ? 'silver' : '#cd7f32';
         summaryContainer.innerHTML += '<div class="stat-card glass" style="padding: 15px; display: flex; flex-direction: column; align-items: center; border: 1px solid ' + medalColor + ';">' +
             '<i class="ph ph-medal" style="font-size: 2.5rem; color: ' + medalColor + ';"></i>' +
-            '<h3 style="margin-top: 10px; font-size: 1.2rem;">' + ts.name + '</h3>' +
+            '<h3 style="margin-top: 10px; font-size: 1.2rem;">' + esc(ts.name) + '</h3>' +
             '<p style="font-size: 1.5rem; font-weight: bold; margin-top: 5px;">' + ts.totalPoints + ' <span style="font-size: 0.9rem; font-weight: normal; color: var(--text-muted);">نقطة كلي</span></p>' +
             '<p style="font-size: 0.8rem; color: var(--text-muted);">' + ts.membersList.length + ' مشترك</p>' +
             '</div>';
@@ -6279,8 +6692,8 @@ function openCompetitionDetails_original(compId) {
 
         tbody.innerHTML += '<tr style="' + rowStyle + '">' +
             '<td>' + rankHtml + '</td>' +
-            '<td style="font-weight: 500;">' + ind.name + '</td>' +
-            '<td><span class="badge-warning" style="background: rgba(99, 102, 241, 0.2); color: #818cf8;">' + ind.teamName + '</span></td>' +
+            '<td style="font-weight: 500;">' + esc(ind.name) + '</td>' +
+            '<td><span class="badge-warning" style="background: rgba(99, 102, 241, 0.2); color: #818cf8;">' + esc(ind.teamName) + '</span></td>' +
             '<td>' + ind.teamPoints + '</td>' +
             '<td><span style="color: var(--success); font-weight: bold;">+' + ind.attendancePoints + '</span></td>' +
             '<td style="font-weight: bold; font-size: 1.1rem; color: var(--primary);">' + ind.totalPoints + '</td>' +

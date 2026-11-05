@@ -429,6 +429,89 @@ body {
     color: white;
 }
 
+/* --- Member & Servant Segment Presentation Styles --- */
+.member-actions-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.btn-present-segment {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    padding: 6px 12px;
+    font-size: 0.74rem;
+    font-weight: 700;
+    border-radius: 8px;
+    border: 1px dashed rgba(245, 158, 11, 0.5);
+    background: rgba(245, 158, 11, 0.08);
+    color: #fbbf24;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    user-select: none;
+    line-height: 1.2;
+}
+
+.btn-present-segment:hover {
+    background: rgba(245, 158, 11, 0.18);
+    border-color: #f59e0b;
+}
+
+.btn-present-segment.active {
+    background: linear-gradient(135deg, #f59e0b, #d97706) !important;
+    color: #ffffff !important;
+    border: 1px solid #d97706 !important;
+    box-shadow: 0 2px 8px rgba(245, 158, 11, 0.45) !important;
+}
+
+.btn-present-segment i {
+    font-size: 0.88rem;
+}
+
+.presenters-summary-card {
+    margin-bottom: 15px;
+    padding: 14px 16px;
+    border-radius: 14px;
+    background: rgba(99, 102, 241, 0.05);
+    border: 1px solid rgba(99, 102, 241, 0.2);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.presenter-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    background: rgba(245, 158, 11, 0.12);
+    border: 1px solid rgba(245, 158, 11, 0.4);
+    color: #fef3c7;
+    font-size: 0.8rem;
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
+
+.presenter-chip .btn-remove-presenter {
+    background: none;
+    border: none;
+    color: #f87171;
+    cursor: pointer;
+    padding: 0 2px;
+    font-size: 1rem;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    transition: opacity 0.15s ease;
+}
+
+.presenter-chip .btn-remove-presenter:hover {
+    opacity: 0.8;
+}
+
 /* Base Servant Evaluation Styles */
 .servant-eval-row {
     background: #151c2f;
@@ -1927,6 +2010,24 @@ body {
         white-space: nowrap !important;
         overflow: hidden !important;
         text-overflow: ellipsis !important;
+    }
+
+    .member-actions-wrap {
+        display: flex !important;
+        align-items: center !important;
+        gap: 4px !important;
+        flex-shrink: 0 !important;
+    }
+
+    .btn-present-segment {
+        padding: 5px 8px !important;
+        font-size: 0.68rem !important;
+        border-radius: 7px !important;
+        gap: 3px !important;
+    }
+
+    .btn-present-segment i {
+        font-size: 0.78rem !important;
     }
 
     .toggle-group {

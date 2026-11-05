@@ -20,12 +20,12 @@
     <!-- SheetJS for Excel generation -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <!-- Styles -->
-    <link rel="stylesheet" href="style.css?v=20261026_installments_v4">
+    <link rel="stylesheet" href="style.css?v=20261105_presentations_v1">
     <!-- Immediate Authentication Check (Prevents Dashboard Flash Before Scripts Load) -->
     <script>
         (function() {
             try {
-                if (localStorage.getItem('church_logged_in_user')) {
+                if (localStorage.getItem('church_logged_in_user') && localStorage.getItem('church_session_token')) {
                     document.documentElement.classList.add('is-logged-in');
                 } else {
                     document.documentElement.classList.add('is-not-logged-in');
@@ -294,7 +294,7 @@
                             <i class="ph ph-user-check"></i> غياب وحضور
                         </button>
                         <button class="btn btn-outline" id="tab-attendance-servants">
-                            <i class="ph ph-chart-pie"></i> إحصائيات الخدام
+                            <i class="ph ph-sparkle"></i> الخدام والفقرات
                         </button>
                     </div>
 
@@ -1352,18 +1352,25 @@
                     <button class="btn btn-outline" id="btn-edit-gender" style="padding: 2px 8px; font-size: 0.8rem;"><i class="ph ph-arrows-left-right"></i> تغيير الجنس</button>
                 </div>
                 
-                <div class="stats-grid" style="grid-template-columns: 1fr 1fr; margin-bottom: 20px;">
-                    <div class="stat-card glass" style="padding: 15px;">
+                <div class="stats-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; margin-bottom: 20px;">
+                    <div class="stat-card glass" style="padding: 14px;">
                         <div class="stat-info">
-                            <h3 style="font-size: 0.9rem;">إحصائيات الحضور</h3>
-                            <p class="stat-value" id="profile-attendance-rate" style="font-size: 1.5rem;">0%</p>
-                            <p class="stat-subtext" id="profile-last-attend" style="color: var(--text-muted);">آخر حضور: --</p>
+                            <h3 style="font-size: 0.85rem;">إحصائيات الحضور</h3>
+                            <p class="stat-value" id="profile-attendance-rate" style="font-size: 1.4rem;">0%</p>
+                            <p class="stat-subtext" id="profile-last-attend" style="color: var(--text-muted); font-size: 0.75rem;">آخر حضور: --</p>
                         </div>
                     </div>
-                    <div class="stat-card glass" style="padding: 15px;">
+                    <div class="stat-card glass" style="padding: 14px;">
                         <div class="stat-info">
-                            <h3 style="font-size: 0.9rem;">تاريخ آخر افتقاد</h3>
-                            <p class="stat-value" id="profile-last-visit" style="font-size: 1.2rem; color: var(--warning);">--</p>
+                            <h3 style="font-size: 0.85rem;">تقديم فقرات</h3>
+                            <p class="stat-value" id="profile-member-presented" style="font-size: 1.4rem; color: #fbbf24;">0</p>
+                            <p class="stat-subtext" style="color: var(--text-muted); font-size: 0.75rem;">فقرة بالاجتماع</p>
+                        </div>
+                    </div>
+                    <div class="stat-card glass" style="padding: 14px;">
+                        <div class="stat-info">
+                            <h3 style="font-size: 0.85rem;">تاريخ آخر افتقاد</h3>
+                            <p class="stat-value" id="profile-last-visit" style="font-size: 1.1rem; color: var(--warning);">--</p>
                         </div>
                     </div>
                 </div>

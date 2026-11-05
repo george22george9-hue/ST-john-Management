@@ -1,19 +1,34 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // حماية وتأمين قاعدة بيانات الكنيسة والرحلات من المسح أو التخريب العرضي والخبيث
+    // تأمين وحماية قاعدة بيانات الكنيسة والخدمة من التخريب أو التلاعب
     match /church_db/{docId} {
-      allow read: if true;
-      // السماح بإنشاء المستند بشرط وجود حقل الأعضاء كمصفوفة
-      allow create: if request.resource.data.members is list;
-      // السماح بالتحديث مع حماية الأعضاء من المسح والتأكد من صحة بيانات الرحلات إن وجدت
-      allow update: if request.resource.data.members is list &&
+      // السماح بالقراءة فقط لمستند البيانات الرئيسي main_data
+      // ملاحظة أمنية هامة: عند تفعيل Firebase Authentication، يُوصى بتغيير الشرط إلى:
+      // allow read, write: if request.auth != null;
+      allow read: if docId == 'main_data';
+
+      // السماح بالإنشاء فقط لمستند main_data بشرط مطابقة البنية الأساسية
+      allow create: if docId == 'main_data' &&
+                    request.resource.data.members is list &&
+                    request.resource.data.attendance is map &&
+                    request.resource.data.visitations is map;
+
+      // السماح بالتحديث بشرط الحفاظ على الهيكل ومنع مسح البيانات الأساسية
+      allow update: if docId == 'main_data' &&
+                    request.resource.data.members is list &&
+                    request.resource.data.attendance is map &&
+                    request.resource.data.visitations is map &&
                     (!('trips' in request.resource.data) || request.resource.data.trips is list) &&
+                    (!('servantNotes' in request.resource.data) || request.resource.data.servantNotes is list) &&
+                    // منع تفريغ أو تصفير الأعضاء إذا كانت القاعدة تحتوي على بيانات بالفعل
                     (resource.data.members.size() == 0 || request.resource.data.members.size() > 0);
-      // منع المسح الكلي للوثيقة
+
+      // منع المسح الكلي للمستند منعاً باتاً
       allow delete: if false;
     }
-    // إغلاق أي وصول عشوائي خارج قاعدة الكنيسة
+
+    // إغلاق أي وصول لأي وثائق أخرى خارج church_db
     match /{document=**} {
       allow read, write: if false;
     }
