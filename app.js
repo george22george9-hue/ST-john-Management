@@ -6209,6 +6209,20 @@ function calculateMemberPassStats(member) {
     };
 }
 
+// Helper: Spiritual Encouragement Verse & Warm Church Message
+function getMemberPassEncouragement(member, isServant) {
+    if (isServant) {
+        return {
+            verse: '«مَنْ يَخْدِمْنِي يُكْرِمْهُ الآبُ» (يوحنا 12: 26)',
+            message: 'خدمتك وأمانتك بتفرّح قلوبنا وتنور اجتماعنا.. ربنا يديم تعب محبتك وأمانتك! ✝️'
+        };
+    }
+    return {
+        verse: '«فَرِحْتُ بِالْقَائِلِينَ لِي: إِلَى بَيْتِ الرَّبِّ نَذْهَبُ» (مزمور 122: 1)',
+        message: 'حضورك بيفرّح قلوبنا وبيكمّل بركة لمتنا.. مستنيينك دايماً في بيتك وكنيستك! ✨'
+    };
+}
+
 // Generate clean QR modules matrix synchronously using qrcode-generator
 function getQRMatrix(text) {
     if (typeof qrcode === 'undefined') {
@@ -6331,6 +6345,13 @@ function openDigitalPassModal(member) {
     const qrIdPill = document.getElementById('pass-qr-id-pill');
     if (qrIdPill) qrIdPill.textContent = stats.formattedId;
 
+    // Spiritual Encouragement Box inside Pass Card
+    const encouragement = getMemberPassEncouragement(member, stats.isServant);
+    const cardVerse = document.getElementById('pass-card-verse');
+    if (cardVerse) cardVerse.textContent = encouragement.verse;
+    const cardEnc = document.getElementById('pass-card-encouragement');
+    if (cardEnc) cardEnc.textContent = encouragement.message;
+
     // Render QR Code in the pass modal
     const qrView = document.getElementById('pass-qr-code-view');
     if (qrView) {
@@ -6382,13 +6403,14 @@ function closeDigitalPassModal() {
     if (modal) modal.classList.remove('active');
 }
 
-// Generate the Exact Visual Clone of the Pass Card on Ultra-HD Canvas
+// Generate the Exact Visual Clone of the Inner Pass Card on Ultra-HD Canvas (Only Inner Card Box)
 async function generatePassCardCanvasBlob(member) {
     if (!member) throw new Error('Member required');
     const stats = calculateMemberPassStats(member);
+    const encouragement = getMemberPassEncouragement(member, stats.isServant);
 
     const width = 1080;
-    const height = 1960;
+    const height = 1420;
     const canvas = document.createElement('canvas');
     canvas.width = width;
     canvas.height = height;
@@ -6411,224 +6433,231 @@ async function generatePassCardCanvasBlob(member) {
         c.closePath();
     }
 
-    // 1. Overall Deep Midnight Background
-    const bgGrad = ctx.createLinearGradient(0, 0, width, height);
-    bgGrad.addColorStop(0, '#060c18');
-    bgGrad.addColorStop(0.5, '#0a1324');
-    bgGrad.addColorStop(1, '#050a14');
-    ctx.fillStyle = bgGrad;
+    // 1. Overall Dark Outer Canvas Background
+    ctx.fillStyle = '#050a14';
     ctx.fillRect(0, 0, width, height);
 
-    // 2. Top Header Bar
-    // Church Pill
+    // 2. The Main Inner Card Container (Exact Stitched Visual Box)
+    const cardMargin = 24;
+    const cardW = width - (cardMargin * 2);
+    const cardH = height - (cardMargin * 2);
+    const cardX = cardMargin;
+    const cardY = cardMargin;
+
+    const cardGrad = ctx.createLinearGradient(cardX, cardY, cardX, cardY + cardH);
+    cardGrad.addColorStop(0, '#0e1a30');
+    cardGrad.addColorStop(0.5, '#0a1324');
+    cardGrad.addColorStop(1, '#070e1c');
+    ctx.fillStyle = cardGrad;
+    roundRect(ctx, cardX, cardY, cardW, cardH, 44);
+    ctx.fill();
+
+    // Subtle Glowing Border
+    ctx.strokeStyle = 'rgba(56, 189, 248, 0.35)';
+    ctx.lineWidth = 3;
+    ctx.stroke();
+
+    // 3. Church Header Inside Card
     const churchPillW = 380;
-    const churchPillH = 50;
+    const churchPillH = 46;
     const churchPillX = (width - churchPillW) / 2;
-    const churchPillY = 60;
+    const churchPillY = cardY + 28;
     ctx.fillStyle = 'rgba(245, 158, 11, 0.12)';
-    roundRect(ctx, churchPillX, churchPillY, churchPillW, churchPillH, 25);
+    roundRect(ctx, churchPillX, churchPillY, churchPillW, churchPillH, 23);
     ctx.fill();
     ctx.strokeStyle = 'rgba(245, 158, 11, 0.4)';
     ctx.lineWidth = 2;
     ctx.stroke();
 
     ctx.fillStyle = '#fbbf24';
-    ctx.font = 'bold 24px "Segoe UI", Tahoma, Arial, sans-serif';
+    ctx.font = 'bold 22px "Segoe UI", Tahoma, Arial, sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('✝ كنيسة مارجرجس بسندبيس', width / 2, churchPillY + 34);
+    ctx.fillText('✝  كنيسة مارجرجس بسندبيس', width / 2, churchPillY + 31);
 
-    // Header Titles
     ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 44px "Segoe UI", Tahoma, Arial, sans-serif';
-    ctx.fillText('اجتماع القديس يوحنا الحبيب', width / 2, 160);
+    ctx.font = 'bold 38px "Segoe UI", Tahoma, Arial, sans-serif';
+    ctx.fillText('اجتماع القديس يوحنا الحبيب', width / 2, churchPillY + 84);
 
     ctx.fillStyle = '#94a3b8';
-    ctx.font = '24px "Segoe UI", Tahoma, Arial, sans-serif';
-    ctx.fillText('بطاقة العضوية والحضور الذكي', width / 2, 205);
+    ctx.font = '20px "Segoe UI", Tahoma, Arial, sans-serif';
+    ctx.fillText('بطاقة العضوية والحضور الذكي', width / 2, churchPillY + 118);
 
-    // 3. Main Dark Glass Card
-    const cardX = 60;
-    const cardY = 240;
-    const cardW = width - 120;
-    const cardH = 1250;
-    const cardGrad = ctx.createLinearGradient(cardX, cardY, cardX, cardY + cardH);
-    cardGrad.addColorStop(0, '#0e1a30');
-    cardGrad.addColorStop(1, '#091222');
-    ctx.fillStyle = cardGrad;
-    roundRect(ctx, cardX, cardY, cardW, cardH, 44);
-    ctx.fill();
-    ctx.strokeStyle = 'rgba(56, 189, 248, 0.3)';
-    ctx.lineWidth = 3;
+    // Decorative divider line
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(cardX + 60, churchPillY + 140);
+    ctx.lineTo(cardX + cardW - 60, churchPillY + 140);
     ctx.stroke();
 
     // 4. Avatar with Gradient Ring & Verified Badge
     const avX = width / 2;
-    const avY = cardY + 130;
-    const avR = 85;
+    const avY = churchPillY + 215;
+    const avR = 64;
 
-    // Dual-color aura ring
+    // Dual-color aura ring (Cyan to Amber)
     const ringGrad = ctx.createLinearGradient(avX - avR, avY - avR, avX + avR, avY + avR);
     ringGrad.addColorStop(0, '#38bdf8');
     ringGrad.addColorStop(1, '#fbbf24');
     ctx.strokeStyle = ringGrad;
-    ctx.lineWidth = 8;
+    ctx.lineWidth = 6;
     ctx.beginPath();
     ctx.arc(avX, avY, avR, 0, Math.PI * 2);
     ctx.stroke();
 
-    // Avatar Inner
+    // Inner Circle
     ctx.fillStyle = '#132238';
     ctx.beginPath();
-    ctx.arc(avX, avY, avR - 5, 0, Math.PI * 2);
+    ctx.arc(avX, avY, avR - 4, 0, Math.PI * 2);
     ctx.fill();
 
     const letter = (member.name || '').trim().charAt(0) || 'ع';
     ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 80px "Segoe UI", Tahoma, Arial, sans-serif';
-    ctx.fillText(letter, avX, avY + 28);
+    ctx.font = 'bold 62px "Segoe UI", Tahoma, Arial, sans-serif';
+    ctx.fillText(letter, avX, avY + 22);
 
     // Verified checkmark badge
-    const badgeX = avX + 55;
-    const badgeY = avY + 55;
+    const badgeX = avX + 44;
+    const badgeY = avY + 44;
     ctx.fillStyle = '#0284c7';
     ctx.beginPath();
-    ctx.arc(badgeX, badgeY, 24, 0, Math.PI * 2);
+    ctx.arc(badgeX, badgeY, 18, 0, Math.PI * 2);
     ctx.fill();
     ctx.strokeStyle = '#0e1a30';
-    ctx.lineWidth = 4;
+    ctx.lineWidth = 3;
     ctx.stroke();
 
     ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 26px "Segoe UI", Tahoma, Arial, sans-serif';
-    ctx.fillText('✓', badgeX, badgeY + 9);
+    ctx.font = 'bold 20px "Segoe UI", Tahoma, Arial, sans-serif';
+    ctx.fillText('✓', badgeX, badgeY + 7);
 
     // 5. Member Name
     ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 54px "Segoe UI", Tahoma, Arial, sans-serif';
-    ctx.shadowColor = 'rgba(0, 0, 0, 0.7)';
-    ctx.shadowBlur = 10;
-    ctx.fillText(member.name, avX, avY + 145);
+    ctx.font = 'bold 44px "Segoe UI", Tahoma, Arial, sans-serif';
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.6)';
+    ctx.shadowBlur = 8;
+    ctx.fillText(member.name, avX, avY + 112);
     ctx.shadowBlur = 0;
 
     // 6. Role Badge
-    const rBadgeW = 300;
-    const rBadgeH = 50;
+    const rBadgeW = 250;
+    const rBadgeH = 40;
     const rBadgeX = (width - rBadgeW) / 2;
-    const rBadgeY = avY + 175;
+    const rBadgeY = avY + 134;
     ctx.fillStyle = stats.isServant ? 'rgba(245, 158, 11, 0.2)' : 'rgba(56, 189, 248, 0.2)';
-    roundRect(ctx, rBadgeX, rBadgeY, rBadgeW, rBadgeH, 25);
+    roundRect(ctx, rBadgeX, rBadgeY, rBadgeW, rBadgeH, 20);
     ctx.fill();
     ctx.strokeStyle = stats.isServant ? '#f59e0b' : '#38bdf8';
     ctx.lineWidth = 2;
     ctx.stroke();
 
     ctx.fillStyle = stats.isServant ? '#fbbf24' : '#7dd3fc';
-    ctx.font = 'bold 26px "Segoe UI", Tahoma, Arial, sans-serif';
-    ctx.fillText(stats.isServant ? '★  خادم بالاجتماع' : 'عضو بالاجتماع', avX, rBadgeY + 34);
+    ctx.font = 'bold 22px "Segoe UI", Tahoma, Arial, sans-serif';
+    ctx.fillText(stats.isServant ? '★  خادم بالاجتماع' : 'عضو بالاجتماع', avX, rBadgeY + 28);
 
     // 7. Phone Badge
     const phText = member.phone || '01202074649';
-    const phW = 280;
-    const phH = 44;
+    const phW = 240;
+    const phH = 34;
     const phX = (width - phW) / 2;
-    const phY = rBadgeY + 68;
+    const phY = rBadgeY + 52;
     ctx.fillStyle = 'rgba(30, 41, 59, 0.7)';
-    roundRect(ctx, phX, phY, phW, phH, 22);
+    roundRect(ctx, phX, phY, phW, phH, 17);
     ctx.fill();
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
     ctx.lineWidth = 1;
     ctx.stroke();
 
     ctx.fillStyle = '#94a3b8';
-    ctx.font = '24px monospace';
-    ctx.fillText(`📞 ${phText}`, avX, phY + 31);
+    ctx.font = '20px monospace';
+    ctx.fillText(`📞 ${phText}`, avX, phY + 24);
 
-    // 8. White Card with 4 Corner Brackets & QR Code
-    const qrOuterW = cardW - 80;
-    const qrOuterH = 590;
-    const qrOuterX = cardX + 40;
-    const qrOuterY = phY + 65;
+    // 8. White Card with 4 Corner Brackets & Authentic QR Code
+    const qrOuterW = cardW - 70;
+    const qrOuterH = 460;
+    const qrOuterX = cardX + 35;
+    const qrOuterY = phY + 48;
 
     // Dark inset container
-    ctx.fillStyle = '#080f1e';
-    roundRect(ctx, qrOuterX, qrOuterY, qrOuterW, qrOuterH, 32);
+    ctx.fillStyle = '#070e1b';
+    roundRect(ctx, qrOuterX, qrOuterY, qrOuterW, qrOuterH, 24);
     ctx.fill();
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.06)';
     ctx.lineWidth = 2;
     ctx.stroke();
 
     // White sheet
-    const whiteW = 540;
-    const whiteH = 530;
+    const whiteW = 440;
+    const whiteH = 416;
     const whiteX = (width - whiteW) / 2;
-    const whiteY = qrOuterY + 30;
+    const whiteY = qrOuterY + 22;
     ctx.fillStyle = '#ffffff';
-    roundRect(ctx, whiteX, whiteY, whiteW, whiteH, 24);
+    roundRect(ctx, whiteX, whiteY, whiteW, whiteH, 20);
     ctx.fill();
 
     // 4 Corner brackets (┌ ┐ └ ┘)
-    const bLen = 30;
-    const bThick = 4;
+    const bLen = 24;
+    const bThick = 3.5;
     ctx.strokeStyle = '#0f172a';
     ctx.lineWidth = bThick;
 
     // Top-left
     ctx.beginPath();
-    ctx.moveTo(whiteX + 24, whiteY + 24 + bLen);
-    ctx.lineTo(whiteX + 24, whiteY + 24);
-    ctx.lineTo(whiteX + 24 + bLen, whiteY + 24);
+    ctx.moveTo(whiteX + 20, whiteY + 20 + bLen);
+    ctx.lineTo(whiteX + 20, whiteY + 20);
+    ctx.lineTo(whiteX + 20 + bLen, whiteY + 20);
     ctx.stroke();
 
     // Top-right
     ctx.beginPath();
-    ctx.moveTo(whiteX + whiteW - 24 - bLen, whiteY + 24);
-    ctx.lineTo(whiteX + whiteW - 24, whiteY + 24);
-    ctx.lineTo(whiteX + whiteW - 24, whiteY + 24 + bLen);
+    ctx.moveTo(whiteX + whiteW - 20 - bLen, whiteY + 20);
+    ctx.lineTo(whiteX + whiteW - 20, whiteY + 20);
+    ctx.lineTo(whiteX + whiteW - 20, whiteY + 20 + bLen);
     ctx.stroke();
 
     // Bottom-left
     ctx.beginPath();
-    ctx.moveTo(whiteX + 24, whiteY + whiteH - 75 - bLen);
-    ctx.lineTo(whiteX + 24, whiteY + whiteH - 75);
-    ctx.lineTo(whiteX + 24 + bLen, whiteY + whiteH - 75);
+    ctx.moveTo(whiteX + 20, whiteY + whiteH - 56 - bLen);
+    ctx.lineTo(whiteX + 20, whiteY + whiteH - 56);
+    ctx.lineTo(whiteX + 20 + bLen, whiteY + whiteH - 56);
     ctx.stroke();
 
     // Bottom-right
     ctx.beginPath();
-    ctx.moveTo(whiteX + whiteW - 24 - bLen, whiteY + whiteH - 75);
-    ctx.lineTo(whiteX + whiteW - 24, whiteY + whiteH - 75);
-    ctx.lineTo(whiteX + whiteW - 24, whiteY + whiteH - 75 - bLen);
+    ctx.moveTo(whiteX + whiteW - 20 - bLen, whiteY + whiteH - 56);
+    ctx.lineTo(whiteX + whiteW - 20, whiteY + whiteH - 56);
+    ctx.lineTo(whiteX + whiteW - 20, whiteY + whiteH - 56 - bLen);
     ctx.stroke();
 
     // Draw the authentic QR code inside white sheet
     const qrMatrix = getQRMatrix(member.name);
-    const qrSize = 360;
+    const qrSize = 285;
     const qrDrawX = (width - qrSize) / 2;
-    const qrDrawY = whiteY + 45;
+    const qrDrawY = whiteY + 34;
     if (qrMatrix) {
         drawQRToCanvas(ctx, qrMatrix, qrDrawX, qrDrawY, qrSize, true);
     }
 
     // ID Badge below QR inside white sheet
-    const idBadgeW = 320;
-    const idBadgeH = 38;
+    const idBadgeW = 260;
+    const idBadgeH = 32;
     const idBadgeX = (width - idBadgeW) / 2;
-    const idBadgeY = whiteY + whiteH - 52;
+    const idBadgeY = whiteY + whiteH - 42;
     ctx.fillStyle = '#f1f5f9';
-    roundRect(ctx, idBadgeX, idBadgeY, idBadgeW, idBadgeH, 19);
+    roundRect(ctx, idBadgeX, idBadgeY, idBadgeW, idBadgeH, 16);
     ctx.fill();
 
     ctx.fillStyle = '#334155';
-    ctx.font = 'bold 20px monospace';
-    ctx.fillText(stats.formattedId, width / 2, idBadgeY + 26);
+    ctx.font = 'bold 16px monospace';
+    ctx.fillText(stats.formattedId, width / 2, idBadgeY + 22);
 
     // 9. Identifier Pill below QR Outer Box
-    const idBoxW = cardW - 80;
-    const idBoxH = 64;
-    const idBoxX = cardX + 40;
-    const idBoxY = qrOuterY + qrOuterH + 18;
+    const idBoxW = cardW - 70;
+    const idBoxH = 54;
+    const idBoxX = cardX + 35;
+    const idBoxY = qrOuterY + qrOuterH + 15;
     ctx.fillStyle = 'rgba(15, 23, 42, 0.9)';
-    roundRect(ctx, idBoxX, idBoxY, idBoxW, idBoxH, 18);
+    roundRect(ctx, idBoxX, idBoxY, idBoxW, idBoxH, 16);
     ctx.fill();
     ctx.strokeStyle = 'rgba(56, 189, 248, 0.35)';
     ctx.lineWidth = 2;
@@ -6636,101 +6665,63 @@ async function generatePassCardCanvasBlob(member) {
 
     ctx.textAlign = 'right';
     ctx.fillStyle = '#94a3b8';
-    ctx.font = '24px "Segoe UI", Tahoma, Arial, sans-serif';
-    ctx.fillText('معرّف الحضور:', idBoxX + idBoxW - 24, idBoxY + 41);
+    ctx.font = '21px "Segoe UI", Tahoma, Arial, sans-serif';
+    ctx.fillText('معرّف الحضور:', idBoxX + idBoxW - 22, idBoxY + 35);
 
     ctx.textAlign = 'left';
     ctx.fillStyle = '#38bdf8';
-    ctx.font = 'bold 28px "Segoe UI", Tahoma, Arial, sans-serif';
-    ctx.fillText(member.name, idBoxX + 24, idBoxY + 42);
+    ctx.font = 'bold 25px "Segoe UI", Tahoma, Arial, sans-serif';
+    ctx.fillText(member.name, idBoxX + 22, idBoxY + 36);
 
-    // 10. Microtext Tip
-    ctx.textAlign = 'center';
-    ctx.fillStyle = '#94a3b8';
-    ctx.font = '22px "Segoe UI", Tahoma, Arial, sans-serif';
-    ctx.fillText('امسح الكود لتسجيل الحضور الفوري في ثانية واحدة على الباب ⚡', width / 2, idBoxY + idBoxH + 40);
-
-    // 11. Bottom 3-Column Stats Grid
-    const statGridY = cardY + cardH + 24;
-    const statColW = (cardW - 32) / 3;
-
-    // Stat Col 1: Attendance Rate
-    const col1X = cardX;
-    ctx.fillStyle = 'rgba(15, 23, 42, 0.75)';
-    roundRect(ctx, col1X, statGridY, statColW, 160, 24);
+    // 10. Spiritual Encouraging Message Box (Core User Request)
+    const encBoxW = cardW - 70;
+    const encBoxH = 150;
+    const encBoxX = cardX + 35;
+    const encBoxY = idBoxY + idBoxH + 16;
+    ctx.fillStyle = 'rgba(245, 158, 11, 0.08)';
+    roundRect(ctx, encBoxX, encBoxY, encBoxW, encBoxH, 18);
     ctx.fill();
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+    ctx.strokeStyle = 'rgba(245, 158, 11, 0.35)';
     ctx.lineWidth = 2;
     ctx.stroke();
 
-    ctx.fillStyle = '#94a3b8';
-    ctx.font = '22px "Segoe UI", Tahoma, Arial, sans-serif';
-    ctx.fillText('نسبة الحضور', col1X + statColW / 2, statGridY + 40);
-
-    ctx.fillStyle = '#2dd4bf';
-    ctx.font = 'bold 44px "Segoe UI", Tahoma, Arial, sans-serif';
-    ctx.fillText(stats.rate, col1X + statColW / 2, statGridY + 95);
-
-    const b1W = 140, b1H = 32;
-    ctx.fillStyle = 'rgba(45, 212, 191, 0.15)';
-    roundRect(ctx, col1X + (statColW - b1W) / 2, statGridY + 112, b1W, b1H, 16);
+    // Top Mini Tag
+    const tagW = 160;
+    const tagH = 26;
+    const tagX = (width - tagW) / 2;
+    const tagY = encBoxY - 13;
+    ctx.fillStyle = '#0e1a30';
+    roundRect(ctx, tagX, tagY, tagW, tagH, 13);
     ctx.fill();
-    ctx.fillStyle = '#2dd4bf';
-    ctx.font = 'bold 18px "Segoe UI", Tahoma, Arial, sans-serif';
-    ctx.fillText(stats.rateBadge, col1X + statColW / 2, statGridY + 134);
-
-    // Stat Col 2: Total Weeks
-    const col2X = cardX + statColW + 16;
-    ctx.fillStyle = 'rgba(15, 23, 42, 0.75)';
-    roundRect(ctx, col2X, statGridY, statColW, 160, 24);
-    ctx.fill();
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+    ctx.strokeStyle = 'rgba(245, 158, 11, 0.4)';
+    ctx.lineWidth = 1.5;
     ctx.stroke();
 
-    ctx.fillStyle = '#94a3b8';
-    ctx.font = '22px "Segoe UI", Tahoma, Arial, sans-serif';
-    ctx.fillText('إجمالي الحضور', col2X + statColW / 2, statGridY + 40);
-
-    ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 38px "Segoe UI", Tahoma, Arial, sans-serif';
-    ctx.fillText(stats.totalWeeks, col2X + statColW / 2, statGridY + 95);
-
-    const b2W = 120, b2H = 32;
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
-    roundRect(ctx, col2X + (statColW - b2W) / 2, statGridY + 112, b2W, b2H, 16);
-    ctx.fill();
-    ctx.fillStyle = '#cbd5e1';
-    ctx.font = 'bold 18px "Segoe UI", Tahoma, Arial, sans-serif';
-    ctx.fillText('هذا الترم', col2X + statColW / 2, statGridY + 134);
-
-    // Stat Col 3: Status
-    const col3X = cardX + (statColW + 16) * 2;
-    ctx.fillStyle = 'rgba(15, 23, 42, 0.75)';
-    roundRect(ctx, col3X, statGridY, statColW, 160, 24);
-    ctx.fill();
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
-    ctx.stroke();
-
-    ctx.fillStyle = '#94a3b8';
-    ctx.font = '22px "Segoe UI", Tahoma, Arial, sans-serif';
-    ctx.fillText('حالة العضوية', col3X + statColW / 2, statGridY + 40);
-
+    ctx.textAlign = 'center';
     ctx.fillStyle = '#fbbf24';
-    ctx.font = 'bold 44px "Segoe UI", Tahoma, Arial, sans-serif';
-    ctx.fillText(stats.statusText, col3X + statColW / 2, statGridY + 95);
+    ctx.font = 'bold 15px "Segoe UI", Tahoma, Arial, sans-serif';
+    ctx.fillText('✝  نفرح بلقائك', width / 2, tagY + 18);
 
-    const b3W = 130, b3H = 32;
-    ctx.fillStyle = 'rgba(245, 158, 11, 0.15)';
-    roundRect(ctx, col3X + (statColW - b3W) / 2, statGridY + 112, b3W, b3H, 16);
-    ctx.fill();
+    // Bible Verse
     ctx.fillStyle = '#fbbf24';
-    ctx.font = 'bold 18px "Segoe UI", Tahoma, Arial, sans-serif';
-    ctx.fillText(stats.statusBadge, col3X + statColW / 2, statGridY + 134);
+    ctx.font = 'bold 23px "Segoe UI", Tahoma, Arial, sans-serif';
+    ctx.fillText(encouragement.verse, width / 2, encBoxY + 54);
+
+    // Encouraging Subtext
+    ctx.fillStyle = '#f1f5f9';
+    ctx.font = '21px "Segoe UI", Tahoma, Arial, sans-serif';
+    ctx.fillText(encouragement.message, width / 2, encBoxY + 104);
+
+    // 11. Microtext Tip
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#94a3b8';
+    ctx.font = '19px "Segoe UI", Tahoma, Arial, sans-serif';
+    ctx.fillText('امسح الكود لتسجيل الحضور الفوري في ثانية واحدة على الباب ⚡', width / 2, encBoxY + encBoxH + 34);
 
     // 12. Bottom Watermark Brand
     ctx.fillStyle = '#475569';
-    ctx.font = '20px "Segoe UI", Tahoma, Arial, sans-serif';
-    ctx.fillText('اجتماع القديس يوحنا الحبيب ☩ كنيسة مارجرجس بسندبيس', width / 2, height - 35);
+    ctx.font = '16px "Segoe UI", Tahoma, Arial, sans-serif';
+    ctx.fillText('اجتماع القديس يوحنا الحبيب ☩ كنيسة مارجرجس بسندبيس', width / 2, height - cardMargin - 15);
 
     return new Promise((resolve) => {
         canvas.toBlob((blob) => {
@@ -6740,7 +6731,7 @@ async function generatePassCardCanvasBlob(member) {
     });
 }
 
-// Download image trigger
+// Download image trigger (Downloads only the inner pass card)
 async function downloadDigitalPassImage(member) {
     if (!member) return;
     showToast('جارٍ حفظ كارت العضوية بالصور بجودة فائقة...', 'info');
@@ -6759,7 +6750,7 @@ async function downloadDigitalPassImage(member) {
     }
 }
 
-// WhatsApp share trigger
+// WhatsApp share trigger (Sends the inner card image + encouraging spiritual message)
 async function shareDigitalPassWhatsApp(member) {
     if (!member) return;
 
@@ -6769,14 +6760,18 @@ async function shareDigitalPassWhatsApp(member) {
     showToast('جارٍ تجهيز الكارت للمشاركة...', 'info');
 
     try {
+        const stats = calculateMemberPassStats(member);
+        const encouragement = getMemberPassEncouragement(member, stats.isServant);
         const { blob, fileName } = await generatePassCardCanvasBlob(member);
         const imageFile = new File([blob], fileName, { type: 'image/png' });
 
         const message = `سلام ونعمة يا ${member.name} ✝️\n` +
-            `ده كود وبطاقة الحضور الرقمية الخاصة بك في اجتماع القديس يوحنا الحبيب:\n` +
-            `📌 كود العضو: ${member.name}\n\n` +
-            `احفظ صورة الكارت على موبايلك لتسجيل حضورك في ثانية واحدة على باب الاجتماع! ✨\n` +
-            `نشوفك دايماً بخير في كنيستك.`;
+            `ده كود وبطاقة الحضور الخاصة بك في اجتماع القديس يوحنا الحبيب:\n` +
+            `📌 معرّف الحضور: ${member.name}\n` +
+            `📖 ${encouragement.verse}\n` +
+            `✨ ${encouragement.message}\n\n` +
+            `احفظ صورة الكارت المرفقة على موبايلك لتسجيل حضورك في ثانية واحدة على باب الاجتماع! ⚡\n` +
+            `نشوفك دايماً بخير وفرح في بيتك وكنيستك ❤️`;
 
         // 1. Mobile Web Share (actual image + text)
         if (navigator.canShare && navigator.canShare({ files: [imageFile] })) {
@@ -6819,16 +6814,9 @@ async function shareDigitalPassWhatsApp(member) {
         } else {
             showToast('تم تحميل صورة الكارت وفتح واتساب! أرفق الصورة المحملة 📥', 'info');
         }
-    } catch (err) {
-        console.error('Share pass error:', err);
-        const message = `سلام ونعمة يا ${member.name} ✝️\n` +
-            `ده كود الحضور الرقمي الخاص بك في اجتماع القديس يوحنا الحبيب:\n` +
-            `📌 كود العضو: ${member.name}\n\n` +
-            `احفظ هذا الكود لتسجيل حضورك في ثانية واحدة على باب الاجتماع! ✨`;
-        const waUrl = phone
-            ? `https://wa.me/${phone}?text=${encodeURIComponent(message)}`
-            : `https://wa.me/?text=${encodeURIComponent(message)}`;
-        window.open(waUrl, '_blank');
+    } catch (e) {
+        console.error('Share pass WhatsApp error:', e);
+        showToast('تعذر تجهيز بطاقة العضوية للمشاركة', 'error');
     }
 }
 

@@ -2318,18 +2318,14 @@
         <div class="modal pass-modal-sheet" style="max-width: 440px; width: 100%; background: #070e1b; border: 1px solid rgba(255,255,255,0.12); border-radius: 28px; padding: 20px 18px; color: #fff; max-height: 94vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.8);">
             
             <!-- Pass Top Navigation Bar -->
-            <div class="pass-top-bar" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+            <div class="pass-top-bar" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px;">
                 <button type="button" class="pass-circle-btn" id="btn-close-digital-pass" title="رجوع" style="width: 40px; height: 40px; border-radius: 50%; background: rgba(30, 41, 59, 0.7); border: 1px solid rgba(255,255,255,0.1); color: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer;">
                     <i class="ph ph-arrow-right" style="font-size: 1.2rem;"></i>
                 </button>
 
                 <div style="text-align: center; flex: 1; padding: 0 10px;">
-                    <div style="display: inline-flex; align-items: center; gap: 5px; padding: 3px 12px; border-radius: 20px; background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.35); font-size: 0.72rem; color: #fbbf24; font-weight: 700; margin-bottom: 4px;">
-                        <span>✝</span>
-                        <span id="pass-church-name-label">كنيسة مارجرجس بسندبيس</span>
-                    </div>
-                    <h3 style="margin: 0; font-size: 1.05rem; font-weight: 800; color: #ffffff;">اجتماع القديس يوحنا الحبيب</h3>
-                    <div style="font-size: 0.72rem; color: #94a3b8; margin-top: 2px;">بطاقة العضوية والحضور الذكي</div>
+                    <div style="font-size: 0.88rem; font-weight: 700; color: #fbbf24;">بطاقة العضوية والحضور الذكي</div>
+                    <div style="font-size: 0.7rem; color: #94a3b8; margin-top: 1px;">معاينة وتصدير الكارت بجودة فائقة</div>
                 </div>
 
                 <button type="button" class="pass-circle-btn" id="btn-top-share-pass" title="مشاركة" style="width: 40px; height: 40px; border-radius: 50%; background: rgba(30, 41, 59, 0.7); border: 1px solid rgba(255,255,255,0.1); color: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer;">
@@ -2338,7 +2334,17 @@
             </div>
 
             <!-- Pass Main Visual Card -->
-            <div id="pass-render-card" class="pass-main-card" style="background: linear-gradient(180deg, #0e1a30 0%, #0a1324 100%); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 24px; padding: 22px 18px; margin-bottom: 14px; position: relative; box-shadow: 0 12px 35px rgba(0,0,0,0.5);">
+            <div id="pass-render-card" class="pass-main-card" style="background: linear-gradient(180deg, #0e1a30 0%, #0a1324 100%); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 24px; padding: 20px 16px; margin-bottom: 14px; position: relative; box-shadow: 0 12px 35px rgba(0,0,0,0.5);">
+                
+                <!-- Card Church Header Inside Card -->
+                <div style="text-align: center; margin-bottom: 14px; padding-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.06);">
+                    <div style="display: inline-flex; align-items: center; gap: 5px; padding: 2px 10px; border-radius: 16px; background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.35); font-size: 0.7rem; color: #fbbf24; font-weight: 700; margin-bottom: 3px;">
+                        <span>✝</span>
+                        <span id="pass-church-name-label">كنيسة مارجرجس بسندبيس</span>
+                    </div>
+                    <div style="font-size: 0.98rem; font-weight: 800; color: #ffffff;">اجتماع القديس يوحنا الحبيب</div>
+                    <div style="font-size: 0.68rem; color: #94a3b8;">بطاقة العضوية والحضور الذكي</div>
+                </div>
                 
                 <!-- Member Avatar with Dual Gradient Ring and Verified Badge -->
                 <div style="display: flex; flex-direction: column; align-items: center; margin-bottom: 12px;">
@@ -2394,9 +2400,22 @@
                 </div>
 
                 <!-- Attendee Identifier Pill below QR Box -->
-                <div style="background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(56, 189, 248, 0.35); border-radius: 14px; padding: 8px 14px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+                <div style="background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(56, 189, 248, 0.35); border-radius: 14px; padding: 8px 14px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
                     <span style="font-size: 0.78rem; color: #94a3b8;">معرّف الحضور:</span>
                     <strong id="pass-id-name-bold" style="font-size: 0.88rem; color: #38bdf8;">جورج سليمان</strong>
+                </div>
+
+                <!-- Spiritual Encouragement Box (Encouraging Message & Bible Verse) -->
+                <div id="pass-encouragement-card" style="background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.35); border-radius: 16px; padding: 12px 14px; text-align: center; margin-bottom: 12px; position: relative;">
+                    <div style="position: absolute; top: -10px; left: 50%; transform: translateX(-50%); background: #0b1424; padding: 1px 10px; font-size: 0.68rem; color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.35); border-radius: 12px; font-weight: 700;">
+                        ✝ نفرح بلقائك
+                    </div>
+                    <div id="pass-card-verse" style="color: #fbbf24; font-size: 0.82rem; font-weight: 700; line-height: 1.45; margin-top: 4px; margin-bottom: 4px;">
+                        «فَرِحْتُ بِالْقَائِلِينَ لِي: إِلَى بَيْتِ الرَّبِّ نَذْهَبُ» (مز 122: 1)
+                    </div>
+                    <div id="pass-card-encouragement" style="color: #e2e8f0; font-size: 0.74rem; line-height: 1.45;">
+                        حضورك بيفرّح قلوبنا وبيكمّل بركة لمتنا.. مستنيينك دايماً في بيتك وكنيستك! ✨
+                    </div>
                 </div>
 
                 <!-- Scan Tip Microtext -->
