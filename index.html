@@ -2415,7 +2415,17 @@
                     </div>
                 </div>
                 <div class="form-group mb-3">
-                    <label style="font-size: 0.82rem; color: #cbd5e1; margin-bottom: 6px; display: block; font-weight: 600;">نص الرسالة (يمكنك التعديل والإضافة بحرية):</label>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 6px;">
+                        <label style="font-size: 0.82rem; color: #cbd5e1; margin: 0; font-weight: 600;">نص الرسالة (يمكنك التعديل بحرية):</label>
+                        <div id="wa-template-toggle-wrap" style="display: none; gap: 6px;">
+                            <button type="button" class="btn btn-sm wa-template-toggle-btn active" id="btn-wa-tpl-absent" onclick="selectWaHubTemplate('absent')">
+                                <i class="ph ph-heart-break"></i> رسالة الغياب
+                            </button>
+                            <button type="button" class="btn btn-sm wa-template-toggle-btn" id="btn-wa-tpl-attended" onclick="selectWaHubTemplate('attended')">
+                                <i class="ph ph-sparkle"></i> رسالة الحضور
+                            </button>
+                        </div>
+                    </div>
                     <textarea id="wa-hub-message-textarea" class="form-control" rows="8" style="font-size: 0.88rem; line-height: 1.5; resize: vertical; background: rgba(15, 23, 42, 0.85); color: #f1f5f9;"></textarea>
                 </div>
                 <div id="wa-hub-note-badge" style="font-size: 0.75rem; color: #94a3b8; margin-bottom: 14px; display: flex; align-items: center; gap: 6px;">
@@ -2701,6 +2711,6 @@
     <script src="firebase-firestore.js"></script>
     
     <!-- Script -->
-    <script src="app.js?v=20261105_pwa_v1"></script>
+    <script src="app.js?v=20261105_pwa_v2" charset="UTF-8"></script>
 </body>
 </html>

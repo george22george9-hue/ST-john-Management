@@ -9846,10 +9846,57 @@ function printTripReport() {
 // PHASE 2: SMART WHATSAPP AUTOMATION HUB
 // ==========================================
 
-let waHubActiveMemberId = null;
+// --- Helper: Clean First Name Extraction ---
+function getMemberFirstName(fullName) {
+    if (!fullName || typeof fullName !== 'string') return '';
+    // Strip parenthetical and bracket notes like (برادعه) or (ثانوي) or [خادم]
+    let clean = fullName.replace(/\(.*?\)/g, '').replace(/\[.*?\]/g, '').trim();
+    const compoundPrefixes = ['عبد', 'ابو', 'أبو', 'ابن', 'أم', 'ام', 'مارك', 'جون'];
+    const parts = clean.split(/\s+/).filter(Boolean);
+    if (parts.length === 0) return fullName.trim();
+    if (parts.length > 1 && compoundPrefixes.includes(parts[0])) {
+        return `${parts[0]} ${parts[1]}`;
+    }
+    return parts[0];
+}
+window.getMemberFirstName = getMemberFirstName;
 
-function openSmartWhatsAppHubModal({ title, subtitle, phone, message, memberId = null, onSend = null }) {
+// --- Helper: WhatsApp Clean Encoding (Eliminates Diamond Question Marks) ---
+function sanitizeForWhatsApp(text) {
+    if (!text || typeof text !== 'string') return '';
+    // Remove variation selectors (FE00-FE0F) and zero-width characters which cause black diamond ? glyphs on Windows / Web
+    return text.replace(/[\uFE00-\uFE0F\u200B-\u200D\uFFFD]/g, '');
+}
+window.sanitizeForWhatsApp = sanitizeForWhatsApp;
+
+let waHubActiveMemberId = null;
+let currentWaHubTemplates = null;
+
+function selectWaHubTemplate(type) {
+    const msgArea = document.getElementById('wa-hub-message-textarea');
+    const btnAbsent = document.getElementById('btn-wa-tpl-absent');
+    const btnAttended = document.getElementById('btn-wa-tpl-attended');
+
+    if (btnAbsent && btnAttended) {
+        if (type === 'attended') {
+            btnAttended.classList.add('active');
+            btnAbsent.classList.remove('active');
+        } else {
+            btnAbsent.classList.add('active');
+            btnAttended.classList.remove('active');
+        }
+    }
+
+    if (currentWaHubTemplates && currentWaHubTemplates[type] && msgArea) {
+        msgArea.value = sanitizeForWhatsApp(currentWaHubTemplates[type]);
+    }
+}
+window.selectWaHubTemplate = selectWaHubTemplate;
+
+function openSmartWhatsAppHubModal({ title, subtitle, phone, message, memberId = null, templates = null, defaultTemplate = 'absent', onSend = null }) {
     waHubActiveMemberId = memberId;
+    currentWaHubTemplates = templates;
+
     const modal = document.getElementById('smart-whatsapp-hub-modal');
     if (!modal) return;
 
@@ -9860,11 +9907,34 @@ function openSmartWhatsAppHubModal({ title, subtitle, phone, message, memberId =
     const savePhoneBtn = document.getElementById('btn-wa-hub-save-phone');
     const launchBtn = document.getElementById('btn-wa-hub-launch-app');
     const copyBtn = document.getElementById('btn-wa-hub-copy-text');
+    const templateWrap = document.getElementById('wa-template-toggle-wrap');
+    const btnAbsent = document.getElementById('btn-wa-tpl-absent');
+    const btnAttended = document.getElementById('btn-wa-tpl-attended');
 
     if (titleEl) titleEl.textContent = title || 'مركز مراسلات واتساب الذكي';
     if (subEl) subEl.textContent = subtitle || 'إرسال رسالة رسمية مخصصة';
     if (phoneInput) phoneInput.value = phone || '';
-    if (msgArea) msgArea.value = message || '';
+
+    // Handle Dual Templates (Absent vs Attended)
+    if (templates && templateWrap) {
+        templateWrap.style.display = 'inline-flex';
+        const activeType = defaultTemplate === 'attended' ? 'attended' : 'absent';
+        if (btnAbsent && btnAttended) {
+            if (activeType === 'attended') {
+                btnAttended.classList.add('active');
+                btnAbsent.classList.remove('active');
+            } else {
+                btnAbsent.classList.add('active');
+                btnAttended.classList.remove('active');
+            }
+        }
+        if (msgArea) {
+            msgArea.value = sanitizeForWhatsApp(templates[activeType] || message || '');
+        }
+    } else {
+        if (templateWrap) templateWrap.style.display = 'none';
+        if (msgArea) msgArea.value = sanitizeForWhatsApp(message || '');
+    }
 
     if (savePhoneBtn) {
         savePhoneBtn.style.display = memberId ? 'inline-flex' : 'none';
@@ -9885,7 +9955,7 @@ function openSmartWhatsAppHubModal({ title, subtitle, phone, message, memberId =
         launchBtn.onclick = () => {
             let targetPhone = (phoneInput.value || '').replace(/\D/g, '');
             if (targetPhone.startsWith('0')) targetPhone = '2' + targetPhone;
-            const currentMsg = msgArea.value.trim();
+            const currentMsg = sanitizeForWhatsApp(msgArea.value.trim());
 
             const waUrl = targetPhone 
                 ? `https://wa.me/${targetPhone}?text=${encodeURIComponent(currentMsg)}`
@@ -9899,7 +9969,7 @@ function openSmartWhatsAppHubModal({ title, subtitle, phone, message, memberId =
 
     if (copyBtn) {
         copyBtn.onclick = async () => {
-            const currentMsg = msgArea.value.trim();
+            const currentMsg = sanitizeForWhatsApp(msgArea.value.trim());
             if (!currentMsg) return;
             try {
                 await navigator.clipboard.writeText(currentMsg);
@@ -9948,9 +10018,10 @@ function sendTripReceiptWhatsApp(bookingId) {
     }
 
     const remainingText = remaining <= 0 ? 'خالص السداد بالكامل ✓' : `${remaining.toLocaleString()} ج.م`;
+    const firstName = getMemberFirstName(booking.name);
 
-    const receiptMessage = 
-`سلام ونعمة يا ${booking.name} ✝️
+    const receiptMessage = sanitizeForWhatsApp(
+`سلام ونعمة يا ${firstName} ✝
 🧾 إيصال سداد واشتراك رسمي
 كنيسة مارجرجس بسندبيس ☩ اجتماع القديس يوحنا الحبيب
 ━━━━━━━━━━━━━━━━━━━
@@ -9962,7 +10033,8 @@ function sendTripReceiptWhatsApp(bookingId) {
 ⏳ المبلغ المتبقي: ${remainingText}
 📌 حالة الحجز: مؤكد ومسجل بالسيستم ✓${lastPaymentNote}
 ━━━━━━━━━━━━━━━━━━━
-نشوفك دايماً بخير وفرح.. ونتمنى لك رحلة مباركة ومفرحة جداً! ❤️✨`;
+نشوفك دايماً بخير وفرح.. ونتمنى لك رحلة مباركة ومفرحة جداً! 🤍✨`
+    );
 
     openSmartWhatsAppHubModal({
         title: `🧾 إيصال سداد: ${tripName}`,
@@ -9980,25 +10052,33 @@ function sendBirthdayWhatsApp(memberId) {
     const member = getMembers().find(m => m.id === memberId);
     if (!member) return;
 
-    const bdayMessage = 
-`كل سنة وحضرتك طيب وبألف خير وفرح يا ${member.name}! 🎂🎉✨
-باسم أسرة وخدام اجتماع القديس يوحنا الحبيب ✝️
+    const firstName = getMemberFirstName(member.name);
+    const isFemale = member.gender === 'female';
+
+    const bdayGreeting = isFemale 
+        ? `كل سنة وانتي طيبة وبألف خير وفرح يا ${firstName}! 🎂🎉`
+        : `كل سنة وحضرتك طيب وبألف خير وفرح يا ${firstName}! 🎂🎉`;
+
+    const bdayMessage = sanitizeForWhatsApp(
+`${bdayGreeting}
+باسم أسرة وخدام اجتماع القديس يوحنا الحبيب ✝
 كنيسة الشهيد العظيم مارجرجس بسندبيس ⛪
 
-بنفرح بيك وبنحتفل بعيد ميلادك وبنتمنى لك سنة جديدة مباركة كلها سلام وبركة ونجاح في كل خطوة مع المسيح! 🕊️❤️
+بنفرح بيك وبنحتفل بعيد ميلادك وبنتمنى لك سنة جديدة مباركة كلها سلام وبركة ونجاح في كل خطوة مع المسيح! 🤍✨
 
 «يُعْطِيكَ الرَّبُّ حَسَبَ قَلْبِكَ، وَيُتَمِّمُ كُلَّ رَأْيِكَ» (مزمور 20: 4) 📖🌟
 
-دايماً منور بيتك وكنيستك ومستنيينك تفرح وسطينا في أقرب اجتماع! 🎈`;
+دايماً منور بيتك وكنيستك ومستنيينك تفرح وسطينا في أقرب اجتماع! 🎈`
+    );
 
     openSmartWhatsAppHubModal({
-        title: `🎂 تهنئة عيد ميلاد: ${member.name}`,
+        title: `🎂 تهنئة عيد ميلاد: ${firstName}`,
         subtitle: `اجتماع القديس يوحنا الحبيب`,
         phone: member.phone || '',
         memberId: member.id,
         message: bdayMessage,
         onSend: () => {
-            showToast(`تم فتح تهنئة عيد ميلاد ${member.name} في واتساب! 🎂🎉`, 'success');
+            showToast(`تم فتح تهنئة عيد ميلاد ${firstName} في واتساب! 🎂🎉`, 'success');
         }
     });
 }
@@ -10009,42 +10089,80 @@ function sendPastoralFollowupWhatsApp(memberId) {
     if (!member) return;
 
     const isServant = member.role === 'servant';
-    let followupMessage = '';
-    let modalTitle = '';
-    let modalSubtitle = '';
+    const isFemale = member.gender === 'female';
+    const firstName = getMemberFirstName(member.name);
+
+    // Check if attended last Friday/meeting
+    const records = getAttendanceRecords();
+    const dates = Object.keys(records).sort((a, b) => b.localeCompare(a));
+    const lastMeetingDate = dates.length > 0 ? dates[0] : null;
+    const attendedLast = lastMeetingDate ? (records[lastMeetingDate] || []).includes(memberId) : false;
+
+    let absentMessage = '';
+    let attendedMessage = '';
 
     if (isServant) {
-        const servantTitle = member.gender === 'female' 
-            ? `تاسوني ${member.name} خادمتنا الغالية` 
-            : `أستاذ ${member.name} خادمنا الغالي`;
+        const servantTitle = isFemale 
+            ? `تاسوني ${firstName} خادمتنا الغالية` 
+            : `أستاذ ${firstName} خادمنا الغالي`;
 
-        modalTitle = `❤️ رسالة افتقاد وتشجيع للخادم: ${member.name}`;
-        modalSubtitle = `متابعة وافتقاد خدام الاجتماع`;
-        followupMessage = 
-`سلام ونعمة ${servantTitle} ✝️
-افتقدناك جداً في اجتماع القديس يوحنا الحبيب بكنيسة مارجرجس بسندبيس.. مكانك وخدمتك وحضورك بيفرّح قلوبنا وبيكمّل بركة لمتنا! ✨
+        absentMessage = sanitizeForWhatsApp(
+`سلام ونعمة ${servantTitle} ✝
+افتقدناك جداً الجمعة اللي فاتت في اجتماع القديس يوحنا الحبيب بكنيسة مارجرجس بسندبيس.. مكانك وخدمتك وحضورك بيفرّح قلوبنا وبيكمّل بركة لمتنا! ✨
 
-حبينا نطمن عليك ونصلي من أجلك إن ربنا يقويك ويسندك في كل أمورك ويبارك خدمتك وتعب محبتك.. مستنيينك دايماً تنور بيتك وكنيستك في ميعادنا الجمعة القادمة! ❤️🕊️
+حبينا نطمن ${isFemale ? 'عليكي ونقولك إننا بنصليلك' : 'عليك ونقولك إننا بنصليلك'} ربنا يقويك ويسندك في كل أمورك ويبارك خدمتك وتعب محبتك.. مستنيينك دايماً تنور بيتك وكنيستك الجمعة الجاية! 🤍🌿
 
-«لأَنَّ اللهَ لَيْسَ بِظَالِمٍ حَتَّى يَنْسَى عَمَلَكُمْ وَتَعَبَ الْمَحَبَّةِ الَّتِي أَظْهَرْتُمُوهَا نَحْوَ اسْمِهِ» (عبرانيين 6: 10) 📖✨`;
+«لأَنَّ اللهَ لَيْسَ بِظَالِمٍ حَتَّى يَنْسَى عَمَلَكُمْ وَتَعَبَ الْمَحَبَّةِ الَّتِي أَظْهَرْتُمُوهَا نَحْوَ اسْمِهِ» (عبرانيين 6: 10)`
+        );
+
+        attendedMessage = sanitizeForWhatsApp(
+`سلام ونعمة ${servantTitle} ✝
+شكراً جداً على خدمتك وتعبك الجميل وبركة وجودك معانا الجمعة اللي فاتت في اجتماع القديس يوحنا الحبيب! ✨
+
+ربنا يديم خدمتك ويعوض تعب محبتك ويبارك في كل عمل إيديك.. مستنيينك تنورنا وتكمّل بركتنا الجمعة القادمة في ميعادنا! 🤍🌿
+
+«لأَنَّ اللهَ لَيْسَ بِظَالِمٍ حَتَّى يَنْسَى عَمَلَكُمْ وَتَعَبَ الْمَحَبَّةِ الَّتِي أَظْهَرْتُمُوهَا نَحْوَ اسْمِهِ» (عبرانيين 6: 10)`
+        );
     } else {
-        modalTitle = `❤️ رسالة افتقاد ومحبة: ${member.name}`;
-        modalSubtitle = `متابعة وافتقاد مخدومي الاجتماع`;
-        followupMessage = 
-`سلام ونعمة يا ${member.name} الغالي ✝️
-افتقدناك جداً في اجتماع القديس يوحنا الحبيب بكنيسة مارجرجس بسندبيس.. مكانك كان فاضي ولمتنا مش بتكمل إلا بيك! ✨
+        const title = isFemale 
+            ? `يا ${firstName} الغالية` 
+            : `يا ${firstName} الغالي`;
 
-حبينا نطمن عليك ونقولك إنك دايماً في صلواتنا وقلوبنا.. مستنيينك في ميعادنا الجمعة الجاية تنور بيتك وكنيستك! ❤️🕊️
+        absentMessage = sanitizeForWhatsApp(
+`سلام ونعمة ${title} ✝
+${isFemale ? 'افتقدناكي' : 'افتقدناك'} جداً الجمعة اللي فاتت في اجتماع القديس يوحنا الحبيب بكنيسة مارجرجس بسندبيس.. مكانك كان فاضي ولمتنا مش بتكمل إلا ${isFemale ? 'بيكي' : 'بيك'}! ✨
 
-«فَرِحْتُ بِالْقَائِلِينَ لِي: إِلَى بَيْتِ الرَّبِّ نَذْهَبُ» (مزمور 122: 1) 📖✨`;
+حبينا نطمن ${isFemale ? 'عليكي ونقولك إنك دايماً في صلواتنا وقلوبنا.. مستنيينك تنوري' : 'عليك ونقولك إنك دايماً في صلواتنا وقلوبنا.. مستنيينك تنور'} بيتك وكنيستك الجمعة الجاية في ميعادنا! 🤍🌿
+
+«فَرِحْتُ بِالْقَائِلِينَ لِي: إِلَى بَيْتِ الرَّبِّ نَذْهَبُ» (مزمور 122: 1)`
+        );
+
+        attendedMessage = sanitizeForWhatsApp(
+`سلام ونعمة ${title} ✝
+${isFemale ? 'فرّحتي' : 'فرّحت'} قلوبنا بحضورك الجميل ${isFemale ? 'ونورتي' : 'ونورت'} بيتك وكنيستك الجمعة اللي فاتت في اجتماع القديس يوحنا الحبيب! ✨
+
+دايماً وجودك بيفرّحنا وبيكمّل بركة لمتنا.. حبينا نشكرك ومستنيينك تنورنا الجمعة الجاية في ميعادنا ببركة وفرحة جديدة! 🤍🌿
+
+«فَرِحْتُ بِالْقَائِلِينَ لِي: إِلَى بَيْتِ الرَّبِّ نَذْهَبُ» (مزمور 122: 1)`
+        );
     }
 
+    const defaultTpl = attendedLast ? 'attended' : 'absent';
+    const activeMsg = defaultTpl === 'attended' ? attendedMessage : absentMessage;
+
     openSmartWhatsAppHubModal({
-        title: modalTitle,
-        subtitle: modalSubtitle,
+        title: isServant ? `❤️ رسالة للخادم: ${firstName}` : `❤️ رسالة تواصل وافتقاد: ${firstName}`,
+        subtitle: isServant 
+            ? `متابعة وتواصل خدام الاجتماع (${attendedLast ? 'حضر الجمعة الماضية' : 'غاب الجمعة الماضية'})`
+            : `متابعة وافتقاد مخدومي الاجتماع (${attendedLast ? 'حضر الجمعة الماضية' : 'غاب الجمعة الماضية'})`,
         phone: member.phone || '',
         memberId: member.id,
-        message: followupMessage,
+        message: activeMsg,
+        templates: {
+            absent: absentMessage,
+            attended: attendedMessage
+        },
+        defaultTemplate: defaultTpl,
         onSend: () => {
             try {
                 const visitations = getVisitations();
@@ -10053,14 +10171,16 @@ function sendPastoralFollowupWhatsApp(memberId) {
                     id: 'vis_wa_' + Date.now(),
                     date: todayLocal(),
                     type: 'واتساب',
-                    notes: isServant ? 'إرسال رسالة افتقاد وتشجيع للخادم عبر واتساب' : 'إرسال رسالة افتقاد ومحبة عبر واتساب',
+                    notes: isServant 
+                        ? `إرسال رسالة ${defaultTpl === 'attended' ? 'شكر وتشجيع على الخدمة' : 'افتقاد وتشجيع'} عبر واتساب`
+                        : `إرسال رسالة ${defaultTpl === 'attended' ? 'تشجيع للحضور' : 'افتقاد ومحبة'} عبر واتساب`,
                     servant: (typeof currentUserName === 'string' && currentUserName) || 'مسؤول الاجتماع'
                 });
                 saveVisitations(visitations);
             } catch (e) {
                 console.warn('Logging visit error:', e);
             }
-            showToast(`تم فتح رسالة الافتقاد لـ ${member.name} وتوثيقها بالسيستم! ❤️`, 'success');
+            showToast(`تم فتح رسالة ${firstName} وتوثيقها بالسيستم! ❤️`, 'success');
         }
     });
 }
