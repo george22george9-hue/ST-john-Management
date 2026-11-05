@@ -6539,6 +6539,20 @@ body.not-logged-in #login-modal-bg.modal-overlay,
     border-color: #34d399 !important;
 }
 
+.btn-servant-wa {
+    color: #34d399 !important;
+    border-color: rgba(52, 211, 153, 0.4) !important;
+    background: rgba(16, 185, 129, 0.08) !important;
+    transition: all 0.2s ease !important;
+}
+
+.btn-servant-wa:hover {
+    background: #10b981 !important;
+    color: #ffffff !important;
+    box-shadow: 0 0 12px rgba(16, 185, 129, 0.45) !important;
+    transform: translateY(-1px);
+}
+
 /* ==========================================================================
    Phase 3: Progressive Web App (PWA) & Offline Mode Styles
    ========================================================================== */

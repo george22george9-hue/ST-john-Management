@@ -2365,7 +2365,10 @@ function refreshServantsDashboard() {
             <td style="padding: 15px; text-align: center;">${presentedCount}</td>
             <td style="padding: 15px; text-align: center;">${leaderCount}</td>
             <td style="padding: 15px; text-align: right;">${arrivalHtml}</td>
-            <td style="padding: 15px; text-align: center;">
+            <td style="padding: 15px; text-align: center; white-space: nowrap;">
+                <button type="button" class="btn btn-outline btn-sm btn-servant-wa" onclick="sendPastoralFollowupWhatsApp('${servant.id}')" style="color: #34d399; border-color: rgba(52, 211, 153, 0.4); margin-left: 6px; background: rgba(16, 185, 129, 0.08); font-weight: 700;" title="إرسال رسالة افتقاد وتشجيع للخادم عبر واتساب">
+                    <i class="ph ph-whatsapp-logo"></i> افتقاد
+                </button>
                 <button class="btn btn-outline btn-sm" onclick="openServantReportModal('${servant.id}')" title="عرض ونسخ تقرير الخادم كرسالة">
                     <i class="ph ph-copy"></i> تقرير
                 </button>
@@ -4329,8 +4332,8 @@ function refreshFollowUp() {
     oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
     oneMonthAgo.setHours(0, 0, 0, 0);
 
-    const nonServants = members.filter(m => m.role !== 'servant');
-    nonServants.forEach(member => {
+    members.forEach(member => {
+        const isServant = member.role === 'servant';
         let attendedCount = 0;
         let consecutiveAbsences = 0;
         let countingConsecutive = true;
@@ -4381,7 +4384,11 @@ function refreshFollowUp() {
 
         let statusClass = '';
         let badgeHtml = '';
-        let filterAttr = 'all';
+        let filterAttr = isServant ? 'all servants' : 'all attendees';
+
+        if (isServant) {
+            badgeHtml = `<span class="status-badge badge-warning" style="font-size: 0.7rem; padding: 2px 7px; background: rgba(245, 158, 11, 0.2); border: 1px solid rgba(245, 158, 11, 0.5); color: #fbbf24; font-weight: 700;"><i class="ph ph-star"></i> خادم</span> ` + badgeHtml;
+        }
 
         if (consecutiveAbsences >= 4) {
             statusClass = 'status-danger';
@@ -5017,6 +5024,16 @@ window.openMemberProfile = function (memberId) {
     // Render Member QR Code and Digital Badge
     if (typeof renderMemberQRCode === 'function') {
         renderMemberQRCode(member);
+    }
+
+    // Direct WhatsApp Follow-up button from profile
+    const btnProfileFollowupWa = document.getElementById('btn-profile-followup-wa');
+    if (btnProfileFollowupWa) {
+        btnProfileFollowupWa.onclick = () => {
+            if (typeof sendPastoralFollowupWhatsApp === 'function') {
+                sendPastoralFollowupWhatsApp(memberId);
+            }
+        };
     }
 
     document.getElementById('member-profile-modal-bg').classList.add('active');
@@ -9991,17 +10008,40 @@ function sendPastoralFollowupWhatsApp(memberId) {
     const member = getMembers().find(m => m.id === memberId);
     if (!member) return;
 
-    const followupMessage = 
+    const isServant = member.role === 'servant';
+    let followupMessage = '';
+    let modalTitle = '';
+    let modalSubtitle = '';
+
+    if (isServant) {
+        const servantTitle = member.gender === 'female' 
+            ? `تاسوني ${member.name} خادمتنا الغالية` 
+            : `أستاذ ${member.name} خادمنا الغالي`;
+
+        modalTitle = `❤️ رسالة افتقاد وتشجيع للخادم: ${member.name}`;
+        modalSubtitle = `متابعة وافتقاد خدام الاجتماع`;
+        followupMessage = 
+`سلام ونعمة ${servantTitle} ✝️
+افتقدناك جداً في اجتماع القديس يوحنا الحبيب بكنيسة مارجرجس بسندبيس.. مكانك وخدمتك وحضورك بيفرّح قلوبنا وبيكمّل بركة لمتنا! ✨
+
+حبينا نطمن عليك ونصلي من أجلك إن ربنا يقويك ويسندك في كل أمورك ويبارك خدمتك وتعب محبتك.. مستنيينك دايماً تنور بيتك وكنيستك في ميعادنا الجمعة القادمة! ❤️🕊️
+
+«لأَنَّ اللهَ لَيْسَ بِظَالِمٍ حَتَّى يَنْسَى عَمَلَكُمْ وَتَعَبَ الْمَحَبَّةِ الَّتِي أَظْهَرْتُمُوهَا نَحْوَ اسْمِهِ» (عبرانيين 6: 10) 📖✨`;
+    } else {
+        modalTitle = `❤️ رسالة افتقاد ومحبة: ${member.name}`;
+        modalSubtitle = `متابعة وافتقاد مخدومي الاجتماع`;
+        followupMessage = 
 `سلام ونعمة يا ${member.name} الغالي ✝️
 افتقدناك جداً في اجتماع القديس يوحنا الحبيب بكنيسة مارجرجس بسندبيس.. مكانك كان فاضي ولمتنا مش بتكمل إلا بيك! ✨
 
 حبينا نطمن عليك ونقولك إنك دايماً في صلواتنا وقلوبنا.. مستنيينك في ميعادنا الجمعة الجاية تنور بيتك وكنيستك! ❤️🕊️
 
 «فَرِحْتُ بِالْقَائِلِينَ لِي: إِلَى بَيْتِ الرَّبِّ نَذْهَبُ» (مزمور 122: 1) 📖✨`;
+    }
 
     openSmartWhatsAppHubModal({
-        title: `❤️ رسالة افتقاد ومحبة: ${member.name}`,
-        subtitle: `متابعة وافتقاد مخدومي الاجتماع`,
+        title: modalTitle,
+        subtitle: modalSubtitle,
         phone: member.phone || '',
         memberId: member.id,
         message: followupMessage,
@@ -10013,8 +10053,8 @@ function sendPastoralFollowupWhatsApp(memberId) {
                     id: 'vis_wa_' + Date.now(),
                     date: todayLocal(),
                     type: 'واتساب',
-                    notes: 'إرسال رسالة افتقاد ومحبة عبر واتساب',
-                    servant: (typeof currentUserName === 'string' && currentUserName) || 'خادم بالاجتماع'
+                    notes: isServant ? 'إرسال رسالة افتقاد وتشجيع للخادم عبر واتساب' : 'إرسال رسالة افتقاد ومحبة عبر واتساب',
+                    servant: (typeof currentUserName === 'string' && currentUserName) || 'مسؤول الاجتماع'
                 });
                 saveVisitations(visitations);
             } catch (e) {

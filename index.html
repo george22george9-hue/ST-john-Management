@@ -416,6 +416,12 @@
 
                 <div class="filters-container mt-2 mb-4">
                     <button class="filter-btn active" data-filter="all">الكل</button>
+                    <button class="filter-btn" data-filter="servants" style="border-color: rgba(245, 158, 11, 0.45); color: #fbbf24; font-weight: 700;">
+                        <i class="ph ph-star"></i> الخدام
+                    </button>
+                    <button class="filter-btn" data-filter="attendees">
+                        <i class="ph ph-users"></i> المخدومين
+                    </button>
                     <button class="filter-btn warning-filter" data-filter="yellow">
                         <i class="ph ph-warning-circle"></i> إنذار أول (غائب جمعتين)
                     </button>
@@ -465,7 +471,7 @@
                                     <th style="padding: 15px; text-align: center; color: var(--primary);">قدم فقرة</th>
                                     <th style="padding: 15px; text-align: center; color: var(--primary);">مسؤول اليوم</th>
                                     <th style="padding: 15px; text-align: right; color: var(--primary);">تحليل الحضور</th>
-                                    <th style="padding: 15px; text-align: center; color: var(--primary);">تقرير الخادم</th>
+                                    <th style="padding: 15px; text-align: center; color: var(--primary);">المراسلة والتقرير</th>
                                 </tr>
                             </thead>
                             <tbody id="servants-dashboard-list">
@@ -1459,12 +1465,15 @@
                         <span>فتح بطاقة العضوية والـ Pass الرقمي الكامل</span>
                     </button>
 
-                    <div style="display: flex; gap: 8px;">
-                        <button type="button" class="btn btn-outline btn-sm" id="btn-download-member-qr" style="flex: 1; font-size: 0.78rem; padding: 7px 10px; justify-content: center;">
-                            <i class="ph ph-download-simple"></i> حفظ الكارت بالصور
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                        <button type="button" class="btn btn-outline btn-sm" id="btn-download-member-qr" style="flex: 1; min-width: 110px; font-size: 0.78rem; padding: 7px 10px; justify-content: center;">
+                            <i class="ph ph-download-simple"></i> حفظ بالصور
                         </button>
-                        <button type="button" class="btn btn-outline btn-sm" id="btn-share-member-qr-wa" style="flex: 1; font-size: 0.78rem; padding: 7px 10px; color: #34d399; border-color: rgba(52,211,153,0.3); justify-content: center;">
-                            <i class="ph ph-whatsapp-logo"></i> إرسال عبر واتساب
+                        <button type="button" class="btn btn-outline btn-sm" id="btn-share-member-qr-wa" style="flex: 1; min-width: 110px; font-size: 0.78rem; padding: 7px 10px; color: #34d399; border-color: rgba(52,211,153,0.3); justify-content: center;">
+                            <i class="ph ph-whatsapp-logo"></i> إرسال الكارت
+                        </button>
+                        <button type="button" class="btn btn-outline btn-sm" id="btn-profile-followup-wa" style="flex: 1; min-width: 110px; font-size: 0.78rem; padding: 7px 10px; color: #38bdf8; border-color: rgba(56,189,248,0.35); background: rgba(56,189,248,0.08); justify-content: center; font-weight: 700;" title="إرسال رسالة افتقاد ومحبة عبر واتساب">
+                            <i class="ph ph-chat-circle-dots"></i> افتقاد واتساب
                         </button>
                     </div>
                 </div>
