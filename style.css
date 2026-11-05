@@ -6475,3 +6475,66 @@ body.not-logged-in #login-modal-bg.modal-overlay,
     border-color: #34d399 !important;
     transform: translateY(-2px);
 }
+
+/* ==========================================
+   PHASE 2: SMART WHATSAPP AUTOMATION STYLES
+   ========================================== */
+
+.btn-bday-wa {
+    background: rgba(16, 185, 129, 0.15);
+    border: 1px solid rgba(16, 185, 129, 0.45);
+    color: #34d399;
+    font-size: 0.74rem;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 14px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    margin-right: 6px;
+    flex-shrink: 0;
+}
+
+.btn-bday-wa:hover {
+    background: #10b981;
+    color: #ffffff;
+    box-shadow: 0 0 14px rgba(16, 185, 129, 0.45);
+    transform: translateY(-1px);
+}
+
+.btn-absent-wa-followup {
+    background: rgba(16, 185, 129, 0.12);
+    border: 1px solid rgba(16, 185, 129, 0.35);
+    color: #34d399;
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    margin-left: 6px;
+}
+
+.btn-absent-wa-followup:hover {
+    background: #10b981;
+    color: #ffffff;
+    box-shadow: 0 0 12px rgba(16, 185, 129, 0.4);
+    transform: translateY(-1px);
+}
+
+.btn-receipt-wa {
+    color: #34d399 !important;
+    border-color: rgba(52, 211, 153, 0.35) !important;
+}
+
+.btn-receipt-wa:hover {
+    background: rgba(16, 185, 129, 0.2) !important;
+    border-color: #34d399 !important;
+}

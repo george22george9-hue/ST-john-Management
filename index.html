@@ -2244,8 +2244,14 @@
                     </div>
                 </div>
             </div>
-            <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center;">
-                <button class="btn btn-outline close-modal">إغلاق</button>
+            <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap;">
+                <div style="display: flex; gap: 8px;">
+                    <button class="btn btn-outline close-modal">إغلاق</button>
+                    <button type="button" class="btn btn-outline" id="btn-quick-pay-send-receipt" style="color: #34d399; border-color: rgba(52, 211, 153, 0.4); display: inline-flex; align-items: center; gap: 6px;">
+                        <i class="ph ph-whatsapp-logo" style="font-size: 1.1rem;"></i>
+                        <span>إرسال إيصال واتساب</span>
+                    </button>
+                </div>
                 <button class="btn btn-success" id="btn-save-quick-pay"><i class="ph ph-plus-circle"></i> تأكيد وتسجيل هذا القسط</button>
             </div>
         </div>
@@ -2330,6 +2336,52 @@
             <div class="modal-footer" style="padding: 12px 20px; border-top: 1px solid rgba(255,255,255,0.08); display: flex; justify-content: space-between; align-items: center; background: rgba(15,23,42,0.4);">
                 <button type="button" class="btn btn-outline" id="btn-qr-manual-focus" style="font-size: 0.82rem;"><i class="ph ph-magnifying-glass"></i> بحث سريع</button>
                 <button type="button" class="btn btn-primary close-modal" style="font-size: 0.82rem;"><i class="ph ph-check"></i> إنهاء المسح</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Smart WhatsApp Hub Modal (Receipts, Birthday & Pastoral Follow-up) -->
+    <div class="modal-overlay" id="smart-whatsapp-hub-modal" style="z-index: 10020; padding: 12px;">
+        <div class="modal glass" style="max-width: 520px; width: 100%; border-radius: 24px; padding: 0; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.8);">
+            <div class="modal-header" style="background: rgba(16, 185, 129, 0.15); border-bottom: 1px solid rgba(16, 185, 129, 0.3); padding: 16px 20px;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <div style="width: 40px; height: 40px; border-radius: 50%; background: #10b981; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 1.4rem; flex-shrink: 0;">
+                        <i class="ph ph-whatsapp-logo"></i>
+                    </div>
+                    <div>
+                        <h3 id="wa-hub-modal-title" style="margin: 0; font-size: 1.1rem; color: #ffffff;">مركز مراسلات واتساب الذكي</h3>
+                        <p id="wa-hub-modal-subtitle" style="margin: 2px 0 0; font-size: 0.78rem; color: #94a3b8;">إرسال رسالة رسمية مخصصة</p>
+                    </div>
+                </div>
+                <button type="button" class="close-modal"><span style="font-size: 1.6rem; font-weight: bold; line-height: 1;">&times;</span></button>
+            </div>
+            <div class="modal-body" style="padding: 18px 20px;">
+                <div class="form-group mb-3">
+                    <label style="font-size: 0.82rem; color: #cbd5e1; margin-bottom: 6px; display: block; font-weight: 600;">رقم الهاتف / الواتساب:</label>
+                    <div style="display: flex; gap: 8px;">
+                        <input type="text" id="wa-hub-phone-input" class="form-control" placeholder="01xxxxxxxxx" style="font-family: monospace; font-size: 0.95rem; letter-spacing: 0.5px;">
+                        <button type="button" class="btn btn-outline" id="btn-wa-hub-save-phone" title="حفظ هذا الرقم في بروفايل العضو" style="font-size: 0.8rem; white-space: nowrap; display: none;">
+                            <i class="ph ph-floppy-disk"></i> حفظ الرقم
+                        </button>
+                    </div>
+                </div>
+                <div class="form-group mb-3">
+                    <label style="font-size: 0.82rem; color: #cbd5e1; margin-bottom: 6px; display: block; font-weight: 600;">نص الرسالة (يمكنك التعديل والإضافة بحرية):</label>
+                    <textarea id="wa-hub-message-textarea" class="form-control" rows="8" style="font-size: 0.88rem; line-height: 1.5; resize: vertical; background: rgba(15, 23, 42, 0.85); color: #f1f5f9;"></textarea>
+                </div>
+                <div id="wa-hub-note-badge" style="font-size: 0.75rem; color: #94a3b8; margin-bottom: 14px; display: flex; align-items: center; gap: 6px;">
+                    <i class="ph ph-info" style="color: #38bdf8;"></i>
+                    <span id="wa-hub-note-text">سيتم فتح محادثة واتساب الرسمية مباشرة بنقرة واحدة.</span>
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <button type="button" class="btn btn-success" id="btn-wa-hub-launch-app" style="flex: 1; padding: 12px; font-weight: 700; font-size: 0.95rem; display: flex; align-items: center; justify-content: center; gap: 8px; border-radius: 12px;">
+                        <i class="ph ph-whatsapp-logo" style="font-size: 1.3rem;"></i>
+                        <span>فتح ومراسلة في واتساب</span>
+                    </button>
+                    <button type="button" class="btn btn-outline" id="btn-wa-hub-copy-text" title="نسخ النص للحافظة" style="padding: 12px 16px; border-radius: 12px;">
+                        <i class="ph ph-copy" style="font-size: 1.2rem;"></i>
+                    </button>
+                </div>
             </div>
         </div>
     </div>

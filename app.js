@@ -3524,6 +3524,10 @@ function refreshDashboard() {
                             <span class="bday-badge ${isToday ? 'badge-today' : 'badge-soon'}">${badgeText}</span>
                         </div>
                     </div>
+                    <button type="button" class="btn-bday-wa" onclick="sendBirthdayWhatsApp('${m.id}')" title="إرسال تهنئة عبر واتساب">
+                        <i class="ph ph-whatsapp-logo"></i>
+                        <span>تهنئة</span>
+                    </button>
                 </div>`;
             }).join('');
         } else {
@@ -3988,6 +3992,10 @@ function updateAttendanceWorkspace() {
                     <i class="ph ${isPresented ? 'ph-microphone-stage' : 'ph-microphone'}"></i>
                     <span class="btn-present-text">${isPresented ? 'قدّم فقرة ✓' : 'قدّم فقرة'}</span>
                 </button>
+                <button type="button" class="btn-absent-wa-followup" data-member-id="${member.id}" onclick="sendPastoralFollowupWhatsApp('${member.id}')" title="إرسال رسالة افتقاد ومحبة للمخدوم عبر واتساب" style="${!isAttending ? 'display: inline-flex;' : 'display: none;'}">
+                    <i class="ph ph-whatsapp-logo"></i>
+                    <span>افتقاد</span>
+                </button>
                 <div class="toggle-group">
                     <button class="toggle-btn btn-attend ${isAttending ? 'active attend' : ''}"><i class="ph ph-check"></i> حضر</button>
                     <button class="toggle-btn btn-absent ${!isAttending ? 'active absent' : ''}"><i class="ph ph-x"></i> غاب</button>
@@ -4003,6 +4011,8 @@ function updateAttendanceWorkspace() {
             btnAttend.classList.add('active', 'attend');
             btnAbsent.classList.remove('active', 'absent');
             btnPresent.style.display = 'inline-flex';
+            const bFollow = row.querySelector('.btn-absent-wa-followup');
+            if (bFollow) bFollow.style.display = 'none';
             updateLiveCounter();
             // Show their row in servant evaluation list if they are a servant
             if (isServant) {
@@ -4024,6 +4034,8 @@ function updateAttendanceWorkspace() {
             btnAbsent.classList.add('active', 'absent');
             btnAttend.classList.remove('active', 'attend');
             btnPresent.style.display = 'none';
+            const bFollow = row.querySelector('.btn-absent-wa-followup');
+            if (bFollow) bFollow.style.display = 'inline-flex';
             btnPresent.classList.remove('active');
             btnPresent.querySelector('i').className = 'ph ph-microphone';
             btnPresent.querySelector('.btn-present-text').textContent = 'قدّم فقرة';
@@ -4451,11 +4463,10 @@ function refreshFollowUp() {
                     <i class="ph ph-user-plus"></i>
                     <span>توثيق افتقاد</span>
                 </button>
-                ${member.phone ? `
-                <a href="https://wa.me/2${member.phone.startsWith('0') ? member.phone : '0' + member.phone}" target="_blank" class="btn-wa-direct" title="مراسلة واتساب">
+                <button type="button" class="btn-wa-direct" onclick="sendPastoralFollowupWhatsApp('${esc(member.id)}')" title="إرسال رسالة افتقاد ومحبة عبر واتساب">
                     <i class="ph ph-whatsapp-logo"></i>
-                </a>
-                ` : ''}
+                    <span>مراسلة</span>
+                </button>
                 <button class="btn-profile-card" onclick="openMemberProfile('${esc(member.id)}')">
                     <i class="ph ph-user"></i>
                     <span>الملف</span>
@@ -8714,6 +8725,8 @@ function handleBookingActionClick(e) {
 
     if (action === 'quick-pay') {
         openQuickPayModal(bookingId);
+    } else if (action === 'whatsapp-receipt') {
+        sendTripReceiptWhatsApp(bookingId);
     } else if (action === 'edit-booking') {
         openBookingModal(bookingId);
     } else if (action === 'delete-booking') {
@@ -8987,6 +9000,9 @@ function renderBookingsList() {
                                 <i class="ph ph-receipt"></i> الأقساط ${(b.history && b.history.length > 0) ? `(${b.history.length})` : ''}
                             </button>
                             `}
+                            <button class="btn btn-outline btn-sm btn-receipt-wa" data-action="whatsapp-receipt" data-booking-id="${b.id}" title="إرسال إيصال سداد واتساب للمشترك">
+                                <i class="ph ph-whatsapp-logo"></i> إيصال
+                            </button>
                             <button class="btn btn-outline btn-sm" data-action="edit-booking" data-booking-id="${b.id}" title="تعديل الحجز">
                                 <i class="ph ph-pencil"></i>
                             </button>
@@ -9060,6 +9076,9 @@ function renderBookingsList() {
                             <i class="ph ph-receipt"></i> الأقساط ${(b.history && b.history.length > 0) ? `(${b.history.length})` : ''}
                         </button>
                         `}
+                        <button class="btn btn-outline btn-sm btn-receipt-wa" data-action="whatsapp-receipt" data-booking-id="${b.id}" title="إرسال إيصال واتساب">
+                            <i class="ph ph-whatsapp-logo"></i> إيصال
+                        </button>
                         <button class="btn btn-outline btn-sm" data-action="edit-booking" data-booking-id="${b.id}" title="تعديل">
                             <i class="ph ph-pencil"></i> تعديل
                         </button>
@@ -9423,6 +9442,10 @@ function openQuickPayModal(bookingId) {
     booking.remaining = remaining;
 
     if (idInput) idInput.value = booking.id;
+    const btnSendReceipt = document.getElementById('btn-quick-pay-send-receipt');
+    if (btnSendReceipt) {
+        btnSendReceipt.onclick = () => sendTripReceiptWhatsApp(booking.id);
+    }
     if (nameEl) nameEl.textContent = booking.name;
     if (roleBadgeEl) {
         roleBadgeEl.innerHTML = booking.type === 'servant'
@@ -9796,3 +9819,205 @@ function printTripReport() {
     printWin.document.close();
 }
 
+
+
+// ==========================================
+// PHASE 2: SMART WHATSAPP AUTOMATION HUB
+// ==========================================
+
+let waHubActiveMemberId = null;
+
+function openSmartWhatsAppHubModal({ title, subtitle, phone, message, memberId = null, onSend = null }) {
+    waHubActiveMemberId = memberId;
+    const modal = document.getElementById('smart-whatsapp-hub-modal');
+    if (!modal) return;
+
+    const titleEl = document.getElementById('wa-hub-modal-title');
+    const subEl = document.getElementById('wa-hub-modal-subtitle');
+    const phoneInput = document.getElementById('wa-hub-phone-input');
+    const msgArea = document.getElementById('wa-hub-message-textarea');
+    const savePhoneBtn = document.getElementById('btn-wa-hub-save-phone');
+    const launchBtn = document.getElementById('btn-wa-hub-launch-app');
+    const copyBtn = document.getElementById('btn-wa-hub-copy-text');
+
+    if (titleEl) titleEl.textContent = title || 'مركز مراسلات واتساب الذكي';
+    if (subEl) subEl.textContent = subtitle || 'إرسال رسالة رسمية مخصصة';
+    if (phoneInput) phoneInput.value = phone || '';
+    if (msgArea) msgArea.value = message || '';
+
+    if (savePhoneBtn) {
+        savePhoneBtn.style.display = memberId ? 'inline-flex' : 'none';
+        savePhoneBtn.onclick = () => {
+            const newPhone = phoneInput.value.trim();
+            if (!newPhone) return alert('يرجى كتابة رقم الهاتف أولاً');
+            const members = getMembers();
+            const idx = members.findIndex(m => m.id === memberId);
+            if (idx !== -1) {
+                members[idx].phone = newPhone;
+                saveMembers(members);
+                showToast(`تم حفظ رقم الهاتف (${newPhone}) في بروفايل العضو بنجاح! 💾`, 'success');
+            }
+        };
+    }
+
+    if (launchBtn) {
+        launchBtn.onclick = () => {
+            let targetPhone = (phoneInput.value || '').replace(/\D/g, '');
+            if (targetPhone.startsWith('0')) targetPhone = '2' + targetPhone;
+            const currentMsg = msgArea.value.trim();
+
+            const waUrl = targetPhone 
+                ? `https://wa.me/${targetPhone}?text=${encodeURIComponent(currentMsg)}`
+                : `https://wa.me/?text=${encodeURIComponent(currentMsg)}`;
+
+            window.open(waUrl, '_blank');
+            modal.classList.remove('active');
+            if (typeof onSend === 'function') onSend();
+        };
+    }
+
+    if (copyBtn) {
+        copyBtn.onclick = async () => {
+            const currentMsg = msgArea.value.trim();
+            if (!currentMsg) return;
+            try {
+                await navigator.clipboard.writeText(currentMsg);
+                showToast('تم نسخ نص الرسالة إلى الحافظة بنجاح! 📋', 'success');
+            } catch {
+                showToast('تعذر النسخ التلقائي', 'warning');
+            }
+        };
+    }
+
+    modal.classList.add('active');
+}
+window.openSmartWhatsAppHubModal = openSmartWhatsAppHubModal;
+
+function sendTripReceiptWhatsApp(bookingId) {
+    const trips = getTrips();
+    let currentTrip = trips.find(t => t.id === selectedTripId);
+    let booking = currentTrip?.bookings?.find(b => b.id === bookingId);
+
+    if (!booking) {
+        for (const t of trips) {
+            const b = (t.bookings || []).find(x => x.id === bookingId);
+            if (b) {
+                currentTrip = t;
+                booking = b;
+                break;
+            }
+        }
+    }
+
+    if (!booking || !currentTrip) {
+        showToast('لم يتم العثور على بيانات الحجز', 'error');
+        return;
+    }
+
+    const price = Number(booking.price) || 0;
+    const paid = Number(booking.paid) || 0;
+    const remaining = Number(booking.remaining) || 0;
+    const tripName = currentTrip.name || 'رحلة كنسية';
+    const tripDate = currentTrip.date ? formatDate(currentTrip.date) : 'قريباً';
+
+    let lastPaymentNote = '';
+    if (booking.history && booking.history.length > 0) {
+        const lastPay = booking.history[booking.history.length - 1];
+        lastPaymentNote = `\n💳 آخر دفعة مسددة: ${Number(lastPay.amount || 0).toLocaleString()} ج.م (${lastPay.date || todayLocal()})`;
+    }
+
+    const remainingText = remaining <= 0 ? 'خالص السداد بالكامل ✓' : `${remaining.toLocaleString()} ج.م`;
+
+    const receiptMessage = 
+`سلام ونعمة يا ${booking.name} ✝️
+🧾 إيصال سداد واشتراك رسمي
+كنيسة مارجرجس بسندبيس ☩ اجتماع القديس يوحنا الحبيب
+━━━━━━━━━━━━━━━━━━━
+🚌 اسم الرحلة: ${tripName}
+📅 موعد الرحلة: ${tripDate}
+👤 اسم المشترك: ${booking.name}
+💵 تكلفة الاشتراك: ${price.toLocaleString()} ج.م
+💰 إجمالي المسدد: ${paid.toLocaleString()} ج.م
+⏳ المبلغ المتبقي: ${remainingText}
+📌 حالة الحجز: مؤكد ومسجل بالسيستم ✓${lastPaymentNote}
+━━━━━━━━━━━━━━━━━━━
+نشوفك دايماً بخير وفرح.. ونتمنى لك رحلة مباركة ومفرحة جداً! ❤️✨`;
+
+    openSmartWhatsAppHubModal({
+        title: `🧾 إيصال سداد: ${tripName}`,
+        subtitle: `المشترك: ${booking.name}`,
+        phone: booking.phone || '',
+        message: receiptMessage,
+        onSend: () => {
+            showToast(`تم فتح إيصال رحلة (${tripName}) في واتساب! 🎉`, 'success');
+        }
+    });
+}
+window.sendTripReceiptWhatsApp = sendTripReceiptWhatsApp;
+
+function sendBirthdayWhatsApp(memberId) {
+    const member = getMembers().find(m => m.id === memberId);
+    if (!member) return;
+
+    const bdayMessage = 
+`كل سنة وحضرتك طيب وبألف خير وفرح يا ${member.name}! 🎂🎉✨
+باسم أسرة وخدام اجتماع القديس يوحنا الحبيب ✝️
+كنيسة الشهيد العظيم مارجرجس بسندبيس ⛪
+
+بنفرح بيك وبنحتفل بعيد ميلادك وبنتمنى لك سنة جديدة مباركة كلها سلام وبركة ونجاح في كل خطوة مع المسيح! 🕊️❤️
+
+«يُعْطِيكَ الرَّبُّ حَسَبَ قَلْبِكَ، وَيُتَمِّمُ كُلَّ رَأْيِكَ» (مزمور 20: 4) 📖🌟
+
+دايماً منور بيتك وكنيستك ومستنيينك تفرح وسطينا في أقرب اجتماع! 🎈`;
+
+    openSmartWhatsAppHubModal({
+        title: `🎂 تهنئة عيد ميلاد: ${member.name}`,
+        subtitle: `اجتماع القديس يوحنا الحبيب`,
+        phone: member.phone || '',
+        memberId: member.id,
+        message: bdayMessage,
+        onSend: () => {
+            showToast(`تم فتح تهنئة عيد ميلاد ${member.name} في واتساب! 🎂🎉`, 'success');
+        }
+    });
+}
+window.sendBirthdayWhatsApp = sendBirthdayWhatsApp;
+
+function sendPastoralFollowupWhatsApp(memberId) {
+    const member = getMembers().find(m => m.id === memberId);
+    if (!member) return;
+
+    const followupMessage = 
+`سلام ونعمة يا ${member.name} الغالي ✝️
+افتقدناك جداً في اجتماع القديس يوحنا الحبيب بكنيسة مارجرجس بسندبيس.. مكانك كان فاضي ولمتنا مش بتكمل إلا بيك! ✨
+
+حبينا نطمن عليك ونقولك إنك دايماً في صلواتنا وقلوبنا.. مستنيينك في ميعادنا الجمعة الجاية تنور بيتك وكنيستك! ❤️🕊️
+
+«فَرِحْتُ بِالْقَائِلِينَ لِي: إِلَى بَيْتِ الرَّبِّ نَذْهَبُ» (مزمور 122: 1) 📖✨`;
+
+    openSmartWhatsAppHubModal({
+        title: `❤️ رسالة افتقاد ومحبة: ${member.name}`,
+        subtitle: `متابعة وافتقاد مخدومي الاجتماع`,
+        phone: member.phone || '',
+        memberId: member.id,
+        message: followupMessage,
+        onSend: () => {
+            try {
+                const visitations = getVisitations();
+                if (!visitations[member.id]) visitations[member.id] = [];
+                visitations[member.id].push({
+                    id: 'vis_wa_' + Date.now(),
+                    date: todayLocal(),
+                    type: 'واتساب',
+                    notes: 'إرسال رسالة افتقاد ومحبة عبر واتساب',
+                    servant: (typeof currentUserName === 'string' && currentUserName) || 'خادم بالاجتماع'
+                });
+                saveVisitations(visitations);
+            } catch (e) {
+                console.warn('Logging visit error:', e);
+            }
+            showToast(`تم فتح رسالة الافتقاد لـ ${member.name} وتوثيقها بالسيستم! ❤️`, 'success');
+        }
+    });
+}
+window.sendPastoralFollowupWhatsApp = sendPastoralFollowupWhatsApp;
