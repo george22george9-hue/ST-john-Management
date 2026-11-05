@@ -6412,3 +6412,66 @@ body.not-logged-in #login-modal-bg.modal-overlay,
         box-shadow: none;
     }
 }
+
+/* ===================================================
+   Digital Member Pass Card (Exact User Design)
+   =================================================== */
+.pass-modal-sheet {
+    animation: passSlideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255,255,255,0.2) transparent;
+}
+
+@keyframes passSlideUp {
+    0% {
+        opacity: 0;
+        transform: translateY(40px) scale(0.96);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.pass-circle-btn {
+    transition: all 0.2s ease;
+}
+
+.pass-circle-btn:hover {
+    transform: scale(1.08);
+    background: rgba(56, 189, 248, 0.2) !important;
+    border-color: #38bdf8 !important;
+}
+
+.pass-avatar-ring {
+    animation: passRingAura 4s ease-in-out infinite alternate;
+}
+
+@keyframes passRingAura {
+    0% {
+        box-shadow: 0 0 16px rgba(56, 189, 248, 0.3);
+    }
+    100% {
+        box-shadow: 0 0 26px rgba(245, 158, 11, 0.45);
+    }
+}
+
+#btn-save-pass-image {
+    transition: all 0.25s ease;
+}
+
+#btn-save-pass-image:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(245, 158, 11, 0.6) !important;
+    filter: brightness(1.05);
+}
+
+#btn-share-pass-whatsapp {
+    transition: all 0.25s ease;
+}
+
+#btn-share-pass-whatsapp:hover {
+    background: rgba(16, 185, 129, 0.25) !important;
+    border-color: #34d399 !important;
+    transform: translateY(-2px);
+}

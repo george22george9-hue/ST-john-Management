@@ -19,12 +19,12 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <!-- SheetJS for Excel generation -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <!-- QRCode.js for generating QR Codes -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <!-- QRCode Generator (High Compatibility & Arabic UTF-8 Support) -->
+    <script src="qrcode-generator.min.js"></script>
     <!-- Html5-QRCode for fast camera scanning -->
     <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
     <!-- Styles -->
-    <link rel="stylesheet" href="style.css?v=20261105_qr_v1">
+    <link rel="stylesheet" href="style.css?v=20261105_pass_v1">
     <!-- Immediate Authentication Check (Prevents Dashboard Flash Before Scripts Load) -->
     <script>
         (function() {
@@ -1385,32 +1385,42 @@
                     </div>
                 </div>
 
-                <!-- Member Digital QR Card Section -->
-                <div class="member-qr-card-box glass" style="margin-bottom: 20px; padding: 14px 16px; border-radius: 14px; background: rgba(30, 41, 59, 0.45); border: 1px solid rgba(255,255,255,0.08);">
-                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.06); padding-bottom: 6px;">
-                        <h4 style="margin: 0; font-size: 0.88rem; color: #e2e8f0; display: flex; align-items: center; gap: 6px;">
-                            <i class="ph ph-qr-code" style="color: var(--primary); font-size: 1.1rem;"></i> كود الحضور الرقمي (QR)
+                <!-- Member Digital Pass Card Button & Quick Preview -->
+                <div class="member-qr-card-box glass" style="margin-bottom: 20px; padding: 14px 16px; border-radius: 16px; background: rgba(30, 41, 59, 0.45); border: 1px solid rgba(255,255,255,0.08);">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.06); padding-bottom: 8px;">
+                        <h4 style="margin: 0; font-size: 0.9rem; color: #e2e8f0; display: flex; align-items: center; gap: 8px;">
+                            <i class="ph ph-identification-card" style="color: #fbbf24; font-size: 1.25rem;"></i> بطاقة العضوية والـ Pass الرقمي
                         </h4>
-                        <span class="status-badge badge-info" id="profile-qr-code-label" style="font-size: 0.7rem; font-family: monospace;">--</span>
+                        <span class="status-badge badge-warning" id="profile-qr-code-label" style="font-size: 0.72rem; font-weight: 700;">--</span>
                     </div>
-                    
-                    <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap; justify-content: center;">
-                        <div id="member-profile-qr-wrap" style="background: #ffffff; padding: 10px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.35);">
-                            <div id="member-profile-qrcode"></div>
+
+                    <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 14px;">
+                        <div id="member-profile-qr-wrap" style="background: #ffffff; padding: 8px; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.35); flex-shrink: 0;">
+                            <div id="member-profile-qrcode" style="width: 100px; height: 100px; display: flex; align-items: center; justify-content: center;"></div>
                         </div>
-                        <div style="flex: 1; min-width: 170px;">
-                            <p style="font-size: 0.78rem; color: #94a3b8; margin: 0 0 10px; line-height: 1.5;">
-                                امسح هذا الكود في شاشة الحضور بالكاميرا أو القارئ السريع لتسجيل الحضور في ثانية واحدة بدون كتابة.
+                        <div style="flex: 1; min-width: 0;">
+                            <p style="font-size: 0.8rem; color: #cbd5e1; margin: 0 0 6px; font-weight: 600;">
+                                كارت الحضور الذكي المعتمد للاجتماع ⚡
                             </p>
-                            <div style="display: flex; gap: 6px; flex-wrap: wrap;">
-                                <button type="button" class="btn btn-outline btn-sm" id="btn-download-member-qr" style="font-size: 0.75rem; padding: 5px 10px;">
-                                    <i class="ph ph-download-simple"></i> تحميل كارت فائق الجودة (HD)
-                                </button>
-                                <button type="button" class="btn btn-outline btn-sm" id="btn-share-member-qr-wa" style="font-size: 0.75rem; padding: 5px 10px; color: #34d399; border-color: rgba(52,211,153,0.3);">
-                                    <i class="ph ph-whatsapp-logo"></i> إرسال الكارت عبر واتساب
-                                </button>
-                            </div>
+                            <p style="font-size: 0.73rem; color: #94a3b8; margin: 0; line-height: 1.4;">
+                                يمكنك استعراض الكارت الكامل بتصميمه الفاخر، وحفظه في المحفظة، أو إرساله للمسؤول عبر واتساب.
+                            </p>
                         </div>
+                    </div>
+
+                    <!-- Prominent Golden Open Full Card Button -->
+                    <button type="button" class="btn" id="btn-open-digital-pass" style="background: linear-gradient(135deg, #f59e0b, #d97706); color: #0f172a; border: none; font-weight: 800; width: 100%; padding: 12px; border-radius: 12px; font-size: 0.92rem; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 16px rgba(245, 158, 11, 0.4); cursor: pointer; margin-bottom: 8px;">
+                        <i class="ph ph-eye" style="font-size: 1.2rem;"></i>
+                        <span>فتح بطاقة العضوية والـ Pass الرقمي الكامل</span>
+                    </button>
+
+                    <div style="display: flex; gap: 8px;">
+                        <button type="button" class="btn btn-outline btn-sm" id="btn-download-member-qr" style="flex: 1; font-size: 0.78rem; padding: 7px 10px; justify-content: center;">
+                            <i class="ph ph-download-simple"></i> حفظ الكارت بالصور
+                        </button>
+                        <button type="button" class="btn btn-outline btn-sm" id="btn-share-member-qr-wa" style="flex: 1; font-size: 0.78rem; padding: 7px 10px; color: #34d399; border-color: rgba(52,211,153,0.3); justify-content: center;">
+                            <i class="ph ph-whatsapp-logo"></i> إرسال عبر واتساب
+                        </button>
                     </div>
                 </div>
 
@@ -2303,6 +2313,139 @@
         </div>
     </div>
 
+    <!-- Dedicated Full Digital Member Pass Modal (Exact User Stitch Design) -->
+    <div class="modal-overlay" id="digital-pass-modal-bg" style="z-index: 10015; padding: 10px;">
+        <div class="modal pass-modal-sheet" style="max-width: 440px; width: 100%; background: #070e1b; border: 1px solid rgba(255,255,255,0.12); border-radius: 28px; padding: 20px 18px; color: #fff; max-height: 94vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.8);">
+            
+            <!-- Pass Top Navigation Bar -->
+            <div class="pass-top-bar" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+                <button type="button" class="pass-circle-btn" id="btn-close-digital-pass" title="رجوع" style="width: 40px; height: 40px; border-radius: 50%; background: rgba(30, 41, 59, 0.7); border: 1px solid rgba(255,255,255,0.1); color: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+                    <i class="ph ph-arrow-right" style="font-size: 1.2rem;"></i>
+                </button>
+
+                <div style="text-align: center; flex: 1; padding: 0 10px;">
+                    <div style="display: inline-flex; align-items: center; gap: 5px; padding: 3px 12px; border-radius: 20px; background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.35); font-size: 0.72rem; color: #fbbf24; font-weight: 700; margin-bottom: 4px;">
+                        <span>✝</span>
+                        <span id="pass-church-name-label">كنيسة مارجرجس بسندبيس</span>
+                    </div>
+                    <h3 style="margin: 0; font-size: 1.05rem; font-weight: 800; color: #ffffff;">اجتماع القديس يوحنا الحبيب</h3>
+                    <div style="font-size: 0.72rem; color: #94a3b8; margin-top: 2px;">بطاقة العضوية والحضور الذكي</div>
+                </div>
+
+                <button type="button" class="pass-circle-btn" id="btn-top-share-pass" title="مشاركة" style="width: 40px; height: 40px; border-radius: 50%; background: rgba(30, 41, 59, 0.7); border: 1px solid rgba(255,255,255,0.1); color: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+                    <i class="ph ph-share-network" style="font-size: 1.2rem;"></i>
+                </button>
+            </div>
+
+            <!-- Pass Main Visual Card -->
+            <div id="pass-render-card" class="pass-main-card" style="background: linear-gradient(180deg, #0e1a30 0%, #0a1324 100%); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 24px; padding: 22px 18px; margin-bottom: 14px; position: relative; box-shadow: 0 12px 35px rgba(0,0,0,0.5);">
+                
+                <!-- Member Avatar with Dual Gradient Ring and Verified Badge -->
+                <div style="display: flex; flex-direction: column; align-items: center; margin-bottom: 12px;">
+                    <div class="pass-avatar-wrapper" style="position: relative; width: 88px; height: 88px; margin-bottom: 8px;">
+                        <div class="pass-avatar-ring" style="width: 100%; height: 100%; border-radius: 50%; padding: 4px; background: linear-gradient(135deg, #38bdf8 0%, #fbbf24 100%); display: flex; align-items: center; justify-content: center; box-shadow: 0 0 20px rgba(56, 189, 248, 0.35);">
+                            <div style="width: 100%; height: 100%; border-radius: 50%; background: #132238; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 2.2rem; font-weight: 800;" id="pass-avatar-letter">
+                                ج
+                            </div>
+                        </div>
+                        <div class="pass-verified-badge" style="position: absolute; bottom: 2px; right: 2px; width: 24px; height: 24px; border-radius: 50%; background: #0284c7; border: 2px solid #070e1b; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 0.75rem;">
+                            <i class="ph ph-check-bold"></i>
+                        </div>
+                    </div>
+
+                    <!-- Member Name -->
+                    <h2 id="pass-member-name" style="margin: 0 0 6px; font-size: 1.45rem; font-weight: 800; color: #ffffff; text-align: center;">جورج سليمان</h2>
+
+                    <!-- Role Badge -->
+                    <div id="pass-role-badge-wrap" style="display: inline-flex; align-items: center; gap: 6px; padding: 4px 16px; border-radius: 20px; background: rgba(245, 158, 11, 0.18); border: 1px solid rgba(245, 158, 11, 0.5); color: #fbbf24; font-size: 0.8rem; font-weight: 700; margin-bottom: 8px;">
+                        <i class="ph ph-star-fill" style="font-size: 0.85rem;"></i>
+                        <span id="pass-role-badge-text">خادم بالاجتماع</span>
+                    </div>
+
+                    <!-- Phone Badge -->
+                    <div id="pass-phone-badge" style="display: inline-flex; align-items: center; gap: 6px; padding: 3px 14px; border-radius: 16px; background: rgba(30, 41, 59, 0.7); border: 1px solid rgba(255,255,255,0.08); font-size: 0.78rem; color: #94a3b8; font-family: monospace;">
+                        <i class="ph ph-phone" style="color: #38bdf8;"></i>
+                        <span id="pass-phone-text">01202074649</span>
+                    </div>
+                </div>
+
+                <!-- QR Code Box (Exact Matching Style with Corner Brackets & Center Accent) -->
+                <div class="pass-qr-container" style="background: #080f1e; border: 1px solid rgba(255,255,255,0.08); border-radius: 20px; padding: 14px; display: flex; flex-direction: column; align-items: center; margin-bottom: 12px;">
+                    <div class="pass-qr-white-sheet" style="background: #ffffff; border-radius: 16px; padding: 16px; width: 100%; max-width: 250px; position: relative; box-shadow: 0 8px 24px rgba(0,0,0,0.4);">
+                        
+                        <!-- 4 Corner Brackets -->
+                        <div class="pass-corner top-left" style="position: absolute; top: 10px; left: 10px; width: 18px; height: 18px; border-top: 3px solid #000; border-left: 3px solid #000;"></div>
+                        <div class="pass-corner top-right" style="position: absolute; top: 10px; right: 10px; width: 18px; height: 18px; border-top: 3px solid #000; border-right: 3px solid #000;"></div>
+                        <div class="pass-corner bottom-left" style="position: absolute; bottom: 38px; left: 10px; width: 18px; height: 18px; border-bottom: 3px solid #000; border-left: 3px solid #000;"></div>
+                        <div class="pass-corner bottom-right" style="position: absolute; bottom: 38px; right: 10px; width: 18px; height: 18px; border-bottom: 3px solid #000; border-right: 3px solid #000;"></div>
+
+                        <!-- The QR Code Image / SVG -->
+                        <div id="pass-qr-code-view" style="width: 100%; display: flex; align-items: center; justify-content: center; min-height: 190px; position: relative;">
+                            <!-- QR injected via JS -->
+                        </div>
+
+                        <!-- ID Badge under QR inside white box -->
+                        <div style="margin-top: 8px; text-align: center;">
+                            <span id="pass-qr-id-pill" style="display: inline-block; padding: 2px 12px; border-radius: 12px; background: #f1f5f9; color: #334155; font-size: 0.68rem; font-weight: 700; font-family: monospace; letter-spacing: 0.5px;">
+                                ID: GS-2024-SERVANT
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Attendee Identifier Pill below QR Box -->
+                <div style="background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(56, 189, 248, 0.35); border-radius: 14px; padding: 8px 14px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+                    <span style="font-size: 0.78rem; color: #94a3b8;">معرّف الحضور:</span>
+                    <strong id="pass-id-name-bold" style="font-size: 0.88rem; color: #38bdf8;">جورج سليمان</strong>
+                </div>
+
+                <!-- Scan Tip Microtext -->
+                <div style="text-align: center; font-size: 0.72rem; color: #94a3b8; display: flex; align-items: center; justify-content: center; gap: 4px;">
+                    <span>امسح الكود لتسجيل الحضور الفوري في ثانية واحدة على الباب</span>
+                    <span style="color: #fbbf24;">⚡</span>
+                </div>
+            </div>
+
+            <!-- Bottom 3-Column Stats Grid (Exact Screenshot Metrics) -->
+            <div class="pass-stats-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 16px;">
+                
+                <!-- Stat 1: Attendance Ratio -->
+                <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 12px 6px; text-align: center;">
+                    <div style="font-size: 0.72rem; color: #94a3b8; margin-bottom: 4px;">نسبة الحضور</div>
+                    <div id="pass-stat-rate" style="font-size: 1.35rem; font-weight: 800; color: #2dd4bf; margin-bottom: 4px;">92%</div>
+                    <span id="pass-stat-rate-badge" style="display: inline-block; padding: 1px 6px; border-radius: 8px; background: rgba(45, 212, 191, 0.15); color: #2dd4bf; font-size: 0.65rem; font-weight: 700;">ممتاز جداً</span>
+                </div>
+
+                <!-- Stat 2: Total Weeks -->
+                <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 12px 6px; text-align: center;">
+                    <div style="font-size: 0.72rem; color: #94a3b8; margin-bottom: 4px;">إجمالي الحضور</div>
+                    <div id="pass-stat-total" style="font-size: 1.2rem; font-weight: 800; color: #ffffff; margin-bottom: 4px;">14 أسبوع</div>
+                    <span style="display: inline-block; padding: 1px 6px; border-radius: 8px; background: rgba(255, 255, 255, 0.1); color: #cbd5e1; font-size: 0.65rem; font-weight: 600;">هذا الترم</span>
+                </div>
+
+                <!-- Stat 3: Membership Status -->
+                <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 12px 6px; text-align: center;">
+                    <div style="font-size: 0.72rem; color: #94a3b8; margin-bottom: 4px;">حالة العضوية</div>
+                    <div id="pass-stat-status" style="font-size: 1.35rem; font-weight: 800; color: #fbbf24; margin-bottom: 4px;">نشط</div>
+                    <span id="pass-stat-status-badge" style="display: inline-block; padding: 1px 6px; border-radius: 8px; background: rgba(245, 158, 11, 0.15); color: #fbbf24; font-size: 0.65rem; font-weight: 700;">خادم رسمي</span>
+                </div>
+            </div>
+
+            <!-- Two Big Action Buttons -->
+            <div style="display: flex; flex-direction: column; gap: 10px;">
+                <button type="button" class="btn" id="btn-save-pass-image" style="background: linear-gradient(135deg, #f59e0b, #d97706); color: #0f172a; border: none; font-weight: 800; width: 100%; padding: 14px; border-radius: 14px; font-size: 0.95rem; display: flex; align-items: center; justify-content: center; gap: 10px; box-shadow: 0 6px 20px rgba(245, 158, 11, 0.4); cursor: pointer;">
+                    <i class="ph ph-identification-badge" style="font-size: 1.3rem;"></i>
+                    <span>حفظ الكارت في الصور / المحفظة الرقمية</span>
+                </button>
+
+                <button type="button" class="btn" id="btn-share-pass-whatsapp" style="background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.35); color: #34d399; font-weight: 700; width: 100%; padding: 13px; border-radius: 14px; font-size: 0.92rem; display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer;">
+                    <i class="ph ph-whatsapp-logo" style="font-size: 1.3rem;"></i>
+                    <span>إرسال البطاقة عبر واتساب للمسؤول</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
 
 
     
@@ -2353,6 +2496,6 @@
     <script src="firebase-firestore.js"></script>
     
     <!-- Script -->
-    <script src="app.js?v=20261105_qr_v2_hd"></script>
+    <script src="app.js?v=20261105_pass_v3"></script>
 </body>
 </html>
