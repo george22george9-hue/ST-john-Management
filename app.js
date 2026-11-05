@@ -2532,7 +2532,8 @@ function setupServantsNotes() {
         btnShareWhatsapp.addEventListener('click', () => {
             const preview = document.getElementById('servant-report-preview');
             if (!preview || !preview.value) return;
-            const waUrl = `https://wa.me/?text=${encodeURIComponent(preview.value)}`;
+            const cleanMsg = typeof sanitizeForWhatsApp === 'function' ? sanitizeForWhatsApp(preview.value) : preview.value;
+            const waUrl = `https://api.whatsapp.com/send/?text=${encodeURIComponent(cleanMsg)}`;
             window.open(waUrl, '_blank');
         });
     }
@@ -6845,9 +6846,10 @@ async function shareDigitalPassWhatsApp(member) {
         link.click();
         setTimeout(() => URL.revokeObjectURL(downloadUrl), 5000);
 
+        const cleanMsg = typeof sanitizeForWhatsApp === 'function' ? sanitizeForWhatsApp(message) : message;
         const waUrl = phone
-            ? `https://wa.me/${phone}?text=${encodeURIComponent(message)}`
-            : `https://wa.me/?text=${encodeURIComponent(message)}`;
+            ? `https://api.whatsapp.com/send/?phone=${phone}&text=${encodeURIComponent(cleanMsg)}`
+            : `https://api.whatsapp.com/send/?text=${encodeURIComponent(cleanMsg)}`;
         window.open(waUrl, '_blank');
 
         if (copied) {
@@ -9952,14 +9954,20 @@ function openSmartWhatsAppHubModal({ title, subtitle, phone, message, memberId =
     }
 
     if (launchBtn) {
-        launchBtn.onclick = () => {
+        launchBtn.onclick = async () => {
             let targetPhone = (phoneInput.value || '').replace(/\D/g, '');
             if (targetPhone.startsWith('0')) targetPhone = '2' + targetPhone;
             const currentMsg = sanitizeForWhatsApp(msgArea.value.trim());
 
+            // Silently copy message to clipboard so user can always Ctrl+V in WhatsApp Web
+            try {
+                await navigator.clipboard.writeText(currentMsg);
+            } catch (e) {}
+
+            // Use direct api.whatsapp.com endpoint (prevents wa.me intermediate 302 redirect Unicode corruption)
             const waUrl = targetPhone 
-                ? `https://wa.me/${targetPhone}?text=${encodeURIComponent(currentMsg)}`
-                : `https://wa.me/?text=${encodeURIComponent(currentMsg)}`;
+                ? `https://api.whatsapp.com/send/?phone=${targetPhone}&text=${encodeURIComponent(currentMsg)}`
+                : `https://api.whatsapp.com/send/?text=${encodeURIComponent(currentMsg)}`;
 
             window.open(waUrl, '_blank');
             modal.classList.remove('active');

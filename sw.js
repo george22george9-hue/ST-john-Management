@@ -1,6 +1,6 @@
 // Service Worker for St. John Church Management System
 // كنيسة مارجرجس بسندبيس - اجتماع القديس يوحنا الحبيب
-const CACHE_VERSION = 'stjohn-pwa-v1.0.1';
+const CACHE_VERSION = 'stjohn-pwa-v1.0.3';
 const STATIC_CACHE_NAME = `static-${CACHE_VERSION}`;
 const DYNAMIC_CACHE_NAME = `dynamic-${CACHE_VERSION}`;
 
@@ -115,6 +115,24 @@ self.addEventListener('fetch', (event) => {
 
     // 2. Handle Local Static Assets (App Shell)
     if (url.origin === self.location.origin) {
+        // Versioned assets (e.g. app.js?v=... or style.css?v=...) use Network-First to immediately fetch new updates
+        if (url.search) {
+            event.respondWith(
+                fetch(request)
+                    .then((networkResponse) => {
+                        if (networkResponse && networkResponse.status === 200) {
+                            const responseClone = networkResponse.clone();
+                            caches.open(STATIC_CACHE_NAME).then((cache) => {
+                                cache.put(request, responseClone);
+                            });
+                        }
+                        return networkResponse;
+                    })
+                    .catch(() => caches.match(request))
+            );
+            return;
+        }
+
         event.respondWith(
             caches.match(request).then((cachedResponse) => {
                 if (cachedResponse) {
