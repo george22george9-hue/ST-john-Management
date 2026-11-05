@@ -10269,18 +10269,46 @@ function setupPWAAndOfflineMode() {
 }
 
 function togglePwaInstallButtons(show) {
-    const mobileBtn = document.getElementById('btn-pwa-install-mobile');
     const sidebarBtn = document.getElementById('btn-pwa-install-sidebar');
-    const dashBtn = document.getElementById('btn-pwa-install-dash');
+    const settingsBtn = document.getElementById('btn-pwa-install-settings');
 
-    if (mobileBtn) mobileBtn.style.display = show ? 'inline-flex' : 'none';
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
+                         window.navigator.standalone === true ||
+                         document.referrer.includes('android-app://');
+
+    if (isStandalone) {
+        if (sidebarBtn) sidebarBtn.style.display = 'none';
+        if (settingsBtn) {
+            settingsBtn.innerHTML = '<i class="ph ph-check-circle"></i> <span>التطبيق مثبت بالفعل على جهازك ✓</span>';
+            settingsBtn.classList.remove('btn-emerald');
+            settingsBtn.classList.add('btn-secondary');
+            settingsBtn.style.opacity = '0.75';
+            settingsBtn.disabled = true;
+        }
+        return;
+    }
+
     if (sidebarBtn) sidebarBtn.style.display = show ? 'block' : 'none';
-    if (dashBtn) dashBtn.style.display = show ? 'inline-flex' : 'none';
+    if (settingsBtn) {
+        settingsBtn.disabled = false;
+        settingsBtn.style.opacity = '1';
+    }
 }
 
 function triggerPwaInstallPrompt() {
     const modal = document.getElementById('pwa-install-modal');
     if (!modal) return;
+
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
+                         window.navigator.standalone === true ||
+                         document.referrer.includes('android-app://');
+
+    if (isStandalone) {
+        if (typeof showToast === 'function') {
+            showToast('التطبيق مثبت بالفعل ويعمل من شاشتك الرئيسية! 🎉', 'success');
+        }
+        return;
+    }
 
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
     const iosBox = document.getElementById('pwa-ios-instructions');
@@ -10295,6 +10323,8 @@ function triggerPwaInstallPrompt() {
     }
 
     modal.style.display = 'flex';
+    void modal.offsetWidth;
+    modal.classList.add('active');
 }
 
 async function executePwaInstallPrompt() {
@@ -10305,6 +10335,9 @@ async function executePwaInstallPrompt() {
             console.log('[PWA] User choice:', outcome);
             if (outcome === 'accepted') {
                 togglePwaInstallButtons(false);
+                if (typeof showToast === 'function') {
+                    showToast('تم بدء تثبيت التطبيق بنجاح! 🎉 ستجده في شاشتك الرئيسية', 'success');
+                }
             }
         } catch (e) {
             console.warn('[PWA] Install prompt error:', e);
@@ -10313,15 +10346,29 @@ async function executePwaInstallPrompt() {
         closePwaInstallModal();
     } else {
         closePwaInstallModal();
-        if (typeof showToast === 'function') {
-            showToast('لتثبيت التطبيق: افتح قائمة المتصفح (⋮) واختر "تثبيت التطبيق" أو "إضافة إلى الشاشة الرئيسية" 📲', 'info');
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+        if (isIOS) {
+            if (typeof showToast === 'function') {
+                showToast('على الآيفون: اضغط زر المشاركة (Share) ثم اختر "إضافة إلى الشاشة الرئيسية" 📲', 'info');
+            }
+        } else {
+            if (typeof showToast === 'function') {
+                showToast('لتثبيت التطبيق: افتح قائمة المتصفح (⋮) بأعلى الشاشة واختر "تثبيت التطبيق" أو "إضافة إلى الشاشة الرئيسية" 📲', 'info');
+            }
         }
     }
 }
 
 function closePwaInstallModal() {
     const modal = document.getElementById('pwa-install-modal');
-    if (modal) modal.style.display = 'none';
+    if (modal) {
+        modal.classList.remove('active');
+        setTimeout(() => {
+            if (!modal.classList.contains('active')) {
+                modal.style.display = 'none';
+            }
+        }, 220);
+    }
 }
 
 function handleNetworkChange(isOnline) {

@@ -29,7 +29,7 @@
         }
     </script>
     <!-- Styles -->
-    <link rel="stylesheet" href="style.css?v=20261105_pwa_v1">
+    <link rel="stylesheet" href="style.css?v=20261105_pwa_v2">
     
     <!-- PWA & Mobile Web App Manifest -->
     <link rel="manifest" href="manifest.json">
@@ -85,10 +85,6 @@
             </div>
         </div>
         <div class="mobile-header-actions">
-            <button class="mobile-header-btn pwa-install-btn" id="btn-pwa-install-mobile" style="display: none;" onclick="triggerPwaInstallPrompt()" title="تثبيت التطبيق على هاتفك">
-                <i class="ph ph-download-simple"></i>
-                <span class="pwa-badge-text">تثبيت 📲</span>
-            </button>
             <button class="mobile-header-btn" id="btn-mobile-sync" onclick="if(typeof triggerCloudSync === 'function') triggerCloudSync()" title="مزامنة فورية">
                 <i class="ph ph-arrows-clockwise"></i>
             </button>
@@ -168,11 +164,7 @@
                             </h1>
                             <p class="dash-subtitle">نظرة عامة دقيقة على إحصائيات ونشاط الحضور</p>
                         </div>
-                        <div class="dash-header-actions" style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-                            <button type="button" class="dash-refresh-btn pwa-install-btn" id="btn-pwa-install-dash" style="display: none; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); color: #34d399;" onclick="triggerPwaInstallPrompt()" title="تثبيت التطبيق على جهازك للعمل بدون إنترنت">
-                                <i class="ph ph-download-simple"></i>
-                                <span>تثبيت التطبيق 📲</span>
-                            </button>
+                        <div class="dash-header-actions">
                             <button class="dash-refresh-btn" id="btn-refresh-dashboard" onclick="refreshDashboard()" title="تحديث البيانات">
                                 <i class="ph ph-arrows-clockwise"></i>
                                 <span>تحديث</span>
@@ -1026,6 +1018,24 @@
                 </header>
 
                 <div class="settings-sections-wrap">
+                    <!-- Section 0: Progressive Web App / Mobile App -->
+                    <div class="settings-section-divider" id="settings-sec-pwa-divider">
+                        <span class="settings-sec-title">تطبيق الهاتف والكمبيوتر</span>
+                        <span class="settings-sec-badge badge-emerald">يعمل أوفلاين</span>
+                    </div>
+
+                    <div class="settings-card-nocturne" id="card-pwa-install-settings">
+                        <div class="card-head">
+                            <div class="card-icon-box box-emerald"><i class="ph ph-device-mobile"></i></div>
+                            <h2 class="card-title">تثبيت التطبيق على جهازك</h2>
+                        </div>
+                        <p class="card-desc">تثبيت البرنامج كتطبيق أصلي سريع يعمل أوفلاين بدون إنترنت على هاتفك أو كمبيوترك بضغطة زر.</p>
+                        <button class="btn-nocturne btn-emerald" id="btn-pwa-install-settings" onclick="triggerPwaInstallPrompt()">
+                            <i class="ph ph-download-simple"></i>
+                            <span>تثبيت التطبيق 📲</span>
+                        </button>
+                    </div>
+
                     <!-- Section 1: Security & Admin -->
                     <div class="settings-section-divider" id="settings-sec-security-divider">
                         <span class="settings-sec-title">إجراءات الإدارة والأمان</span>
@@ -2598,7 +2608,7 @@
     </div>
 
     <!-- PWA Install Modal (Phase 3) -->
-    <div class="modal-overlay" id="pwa-install-modal" style="display: none; z-index: 10025; padding: 12px; align-items: center; justify-content: center;">
+    <div class="modal-overlay" id="pwa-install-modal" onclick="if(event.target === this) closePwaInstallModal()" style="display: none; z-index: 10025; padding: 12px; align-items: center; justify-content: center;">
         <div class="pwa-modal-card">
             <div class="pwa-modal-header">
                 <button type="button" class="modal-close-btn" onclick="closePwaInstallModal()" style="position: absolute; left: 16px; top: 16px; background: none; border: none; color: #94a3b8; font-size: 1.3rem; cursor: pointer;">
@@ -2711,6 +2721,6 @@
     <script src="firebase-firestore.js"></script>
     
     <!-- Script -->
-    <script src="app.js?v=20261105_wa_v5" charset="UTF-8"></script>
+    <script src="app.js?v=20261105_pwa_v7" charset="UTF-8"></script>
 </body>
 </html>

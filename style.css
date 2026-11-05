@@ -6777,6 +6777,22 @@ body.not-logged-in #login-modal-bg.modal-overlay,
 }
 
 /* PWA Installation Modal */
+#pwa-install-modal.modal-overlay {
+    z-index: 10025;
+}
+#pwa-install-modal.modal-overlay.active {
+    opacity: 1 !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
+}
+#pwa-install-modal .pwa-modal-card {
+    transform: translateY(20px);
+    transition: transform 0.25s ease-out, opacity 0.25s ease-out;
+}
+#pwa-install-modal.active .pwa-modal-card {
+    transform: translateY(0);
+}
+
 .pwa-modal-card {
     background: linear-gradient(145deg, #0f172a, #090e1a);
     border: 1px solid rgba(59, 130, 246, 0.3);
