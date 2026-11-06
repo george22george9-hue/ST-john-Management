@@ -4524,15 +4524,15 @@ function refreshFollowUp() {
             </div>
 
             <div class="followup-actions-row">
-                <button class="btn-primary-visit" onclick="openRecordVisitModal('${esc(member.id)}')">
+                <button type="button" class="btn-primary-visit" onclick="openRecordVisitModal('${esc(member.id)}')" title="توثيق افتقاد">
                     <i class="ph ph-user-plus"></i>
                     <span>توثيق افتقاد</span>
                 </button>
                 <button type="button" class="btn-wa-direct" onclick="sendPastoralFollowupWhatsApp('${esc(member.id)}')" title="إرسال رسالة افتقاد ومحبة عبر واتساب">
                     <i class="ph ph-whatsapp-logo"></i>
-                    <span>مراسلة</span>
+                    <span>الواتساب</span>
                 </button>
-                <button class="btn-profile-card" onclick="openMemberProfile('${esc(member.id)}')">
+                <button type="button" class="btn-profile-card" onclick="openMemberProfile('${esc(member.id)}')" title="عرض ملف العضو">
                     <i class="ph ph-user"></i>
                     <span>الملف</span>
                 </button>
@@ -9927,6 +9927,8 @@ window.sanitizeForWhatsApp = sanitizeForWhatsApp;
 
 let waHubActiveMemberId = null;
 let currentWaHubTemplates = null;
+let currentWaHubActiveMember = null;
+let currentWaHubThemeIndex = 0;
 
 function selectWaHubTemplate(type) {
     const msgArea = document.getElementById('wa-hub-message-textarea');
@@ -9949,7 +9951,31 @@ function selectWaHubTemplate(type) {
 }
 window.selectWaHubTemplate = selectWaHubTemplate;
 
-function openSmartWhatsAppHubModal({ title, subtitle, phone, message, memberId = null, templates = null, defaultTemplate = 'absent', onSend = null }) {
+function cycleFridayTheme() {
+    if (!currentWaHubActiveMember) return;
+    currentWaHubThemeIndex = (currentWaHubThemeIndex + 1) % FRIDAY_PASTORAL_THEMES.length;
+    const tplData = getPastoralMessagesForTheme(currentWaHubThemeIndex, currentWaHubActiveMember);
+    if (!tplData) return;
+
+    currentWaHubTemplates = {
+        absent: tplData.absent,
+        attended: tplData.attended
+    };
+
+    const themeNameEl = document.getElementById('wa-friday-theme-name');
+    if (themeNameEl) themeNameEl.textContent = tplData.theme.title;
+
+    // Detect currently selected type (absent or attended)
+    const btnAttended = document.getElementById('btn-wa-tpl-attended');
+    const isAttendedActive = btnAttended && btnAttended.classList.contains('active');
+    selectWaHubTemplate(isAttendedActive ? 'attended' : 'absent');
+    if (typeof showToast === 'function') {
+        showToast(`تم التبديل إلى: ${tplData.theme.title} ✨`, 'info');
+    }
+}
+window.cycleFridayTheme = cycleFridayTheme;
+
+function openSmartWhatsAppHubModal({ title, subtitle, phone, message, memberId = null, templates = null, defaultTemplate = 'absent', fridayThemeTitle = null, onSend = null }) {
     waHubActiveMemberId = memberId;
     currentWaHubTemplates = templates;
 
@@ -9966,10 +9992,20 @@ function openSmartWhatsAppHubModal({ title, subtitle, phone, message, memberId =
     const templateWrap = document.getElementById('wa-template-toggle-wrap');
     const btnAbsent = document.getElementById('btn-wa-tpl-absent');
     const btnAttended = document.getElementById('btn-wa-tpl-attended');
+    const fridayBar = document.getElementById('wa-friday-theme-bar');
+    const fridayName = document.getElementById('wa-friday-theme-name');
 
     if (titleEl) titleEl.textContent = title || 'مركز مراسلات واتساب الذكي';
     if (subEl) subEl.textContent = subtitle || 'إرسال رسالة رسمية مخصصة';
     if (phoneInput) phoneInput.value = phone || '';
+
+    // Handle Friday Rotating Theme Bar
+    if (fridayThemeTitle && fridayBar) {
+        fridayBar.style.display = 'flex';
+        if (fridayName) fridayName.textContent = fridayThemeTitle;
+    } else if (fridayBar) {
+        fridayBar.style.display = 'none';
+    }
 
     // Handle Dual Templates (Absent vs Attended)
     if (templates && templateWrap) {
@@ -10146,12 +10182,204 @@ function sendBirthdayWhatsApp(memberId) {
 }
 window.sendBirthdayWhatsApp = sendBirthdayWhatsApp;
 
+// ==========================================
+// FRIDAY ROTATING PASTORAL THEMES (تتغير كل جمعة تلقائياً)
+// ==========================================
+const FRIDAY_PASTORAL_THEMES = [
+    {
+        id: 'house-of-lord',
+        title: 'الجمعة ١: الشوق لبيت الرب (مزمور ١٢٢)',
+        verse: '«فَرِحْتُ بِالْقَائِلِينَ لِي: إِلَى بَيْتِ الرَّبِّ نَذْهَبُ» (مزمور 122: 1)',
+        getAbsent: (title, isFemale) => 
+`سلام ونعمة ${title} ✝
+${isFemale ? 'افتقدناكي' : 'افتقدناك'} جداً الجمعة اللي فاتت في اجتماع القديس يوحنا الحبيب بكنيسة مارجرجس بسندبيس.. مكانك كان فاضي ولمتنا مش بتكمل إلا ${isFemale ? 'بيكي' : 'بيك'}! ✨
+
+حبينا نطمن ${isFemale ? 'عليكي ونقولك إنك دايماً في صلواتنا وقلوبنا.. مستنيينك تنوري' : 'عليك ونقولك إنك دايماً في صلواتنا وقلوبنا.. مستنيينك تنور'} بيتك وكنيستك الجمعة الجاية في ميعادنا! 🤍🌿
+
+«فَرِحْتُ بِالْقَائِلِينَ لِي: إِلَى بَيْتِ الرَّبِّ نَذْهَبُ» (مزمور 122: 1)`,
+        getAttended: (title, isFemale) =>
+`سلام ونعمة ${title} ✝
+${isFemale ? 'فرّحتي' : 'فرّحت'} قلوبنا بحضورك الجميل ${isFemale ? 'ونورتي' : 'ونورت'} بيتك وكنيستك الجمعة اللي فاتت في اجتماع القديس يوحنا الحبيب! ✨
+
+دايماً وجودك بيفرّحنا وبيكمّل بركة لمتنا.. حبينا نشكرك ومستنيينك تنورنا الجمعة الجاية في ميعادنا ببركة وفرحة جديدة! 🤍🌿
+
+«فَرِحْتُ بِالْقَائِلِينَ لِي: إِلَى بَيْتِ الرَّبِّ نَذْهَبُ» (مزمور 122: 1)`
+    },
+    {
+        id: 'brotherhood-fellowship',
+        title: 'الجمعة ٢: المحبة وشركة الإخوة (مزمور ١٣٣)',
+        verse: '«هُوَذَا مَا أَحْسَنَ وَمَا أَجْمَلَ أَنْ يَسْكُنَ الإِخْوَةُ مَعاً!» (مزمور 133: 1)',
+        getAbsent: (title, isFemale) =>
+`سلام ومحبة ${title} ✝
+${isFemale ? 'وحشتينا' : 'وحشتنا'} جداً الجمعة اللي فاتت، ومكانك وسطينا كان فارق ومحسوس في اجتماع القديس يوحنا الحبيب! 🤍
+
+إخوتك وخدامك بيصلولك من قلوبهم بكل خير وتوفيق.. وبنستناك تنورنا الجمعة دي وتفرحنا بلمتك معانا في كنيستنا مارجرجس بسندبيس! ✨🌿
+
+«هُوَذَا مَا أَحْسَنَ وَمَا أَجْمَلَ أَنْ يَسْكُنَ الإِخْوَةُ مَعاً!» (مزمور 133: 1)`,
+        getAttended: (title, isFemale) =>
+`سلام ومحبة ${title} ✝
+حبينا نقولك شكراً من القلب على وجودك ولمتك الحلوة وسطينا الجمعة اللي فاتت في اجتماع القديس يوحنا الحبيب! ✨
+
+دايماً وجودك بيعطي روح أخوة وفرح لكل إخوتك في الكنيسة.. ومستنيينك تواصل حضورك الجميل وتنورنا الجمعة الجاية! 🤍🌿
+
+«هُوَذَا مَا أَحْسَنَ وَمَا أَجْمَلَ أَنْ يَسْكُنَ الإِخْوَةُ مَعاً!» (مزمور 133: 1)`
+    },
+    {
+        id: 'peace-comfort',
+        title: 'الجمعة ٣: سلام وطمأنينة المسيح (يوحنا ١٤)',
+        verse: '«سَلاَمِي أُعْطِيكُمْ. لاَ تَضْطَرِبْ قُلُوبُكُمْ وَلاَ تَرْهَبْ» (يوحنا 14: 27)',
+        getAbsent: (title, isFemale) =>
+`سلام ونعمة من المسيح ${title} ✝
+بنبعتلك نسلم ${isFemale ? 'عليكي ونطمن على كل أمورك وأحوالك.. افتقدنا وجودك الهادي والمبارك' : 'عليك ونطمن على كل أمورك وأحوالك.. افتقدنا وجودك الهادي والمبارك'} الجمعة الماضية في اجتماع القديس يوحنا الحبيب! 🕊
+
+بنصلي ربنا يملا أيامك بسلامه وفرحه، وتكون منورنا الجمعة الجاية في بيتك كنيسة مارجرجس بسندبيس! 🤍✨
+
+«سَلاَمِي أُعْطِيكُمْ. لاَ تَضْطَرِبْ قُلُوبُكُمْ وَلاَ تَرْهَبْ» (يوحنا 14: 27)`,
+        getAttended: (title, isFemale) =>
+`سلام ونعمة من المسيح ${title} ✝
+حضورك الجمعة الماضية في اجتماع القديس يوحنا الحبيب كان لمسة سلام وبركة لمتنا كلنا! 🕊
+
+ربنا يديم أمانتك وتواجدك الدائم وسط إخوتك، وفي انتظارك تنورنا الجمعة الجاية ببركة وسلام المسيح! 🤍✨
+
+«سَلاَمِي أُعْطِيكُمْ. لاَ تَضْطَرِبْ قُلُوبُكُمْ وَلاَ تَرْهَبْ» (يوحنا 14: 27)`
+    },
+    {
+        id: 'light-blessing',
+        title: 'الجمعة ٤: نور وبركة الحضور (مزمور ٢٧)',
+        verse: '«اَلرَّبُّ نُورِي وَخَلاَصِي، مِمَّنْ أَخَافُ؟» (مزمور 27: 1)',
+        getAbsent: (title, isFemale) =>
+`سلام ونعمة ${title} ✝
+حبينا نفكرك إنك غالي جداً في قلوبنا وإن مكانك محجوز دايماً في صلواتنا.. غيابك الجمعة اللي فاتت كان باين ووحشنا حضورك المنوّر في اجتماع القديس يوحنا الحبيب! ✨
+
+مستنيينك الجمعة الجاية في ميعادنا تنور بيتك التاني في كنيسة مارجرجس بسندبيس ببركة وفرح! 🤍🌸
+
+«اَلرَّبُّ نُورِي وَخَلاَصِي، مِمَّنْ أَخَافُ؟» (مزمور 27: 1)`,
+        getAttended: (title, isFemale) =>
+`سلام ونعمة ${title} ✝
+حضورك المنوّر الجمعة الماضية فرّح قلوب الخدام وكل إخوتك في اجتماع القديس يوحنا الحبيب! ✨
+
+ربنا يبارك محبتك وينور طريقك دايماً.. مستنيينك الجمعة القادمة تكمّل معانا بركة وفرحة الاجتماع! 🤍🌸
+
+«اَلرَّبُّ نُورِي وَخَلاَصِي، مِمَّنْ أَخَافُ؟» (مزمور 27: 1)`
+    },
+    {
+        id: 'renew-strength',
+        title: 'الجمعة ٥: تجديد القوة والنشاط (إشعياء ٤٠)',
+        verse: '«أَمَّا مُنْتَظِرُو الرَّبِّ فَيُجَدِّدُونَ قُوَّةً» (إشعياء 40: 31)',
+        getAbsent: (title, isFemale) =>
+`سلام ومحبة ${title} ✝
+بنبعتلك نطمن ${isFemale ? 'عليكي وعلى دراستك وشغلك وكل تفاصيل أسبوعك.. حسينا بنقص لمتنا من غيرك' : 'عليك وعلى دراستك وشغلك وكل تفاصيل أسبوعك.. حسينا بنقص لمتنا من غيرك'} الجمعة اللي فاتت في اجتماع القديس يوحنا الحبيب! 🌿
+
+بندعيلك ربنا يجدد قوتك ويبارك في كل خطواتك، ومستنيين حضورك الجمعة دي يعطينا فرحة ولمة جديدة! 🤍✨
+
+«أَمَّا مُنْتَظِرُو الرَّبِّ فَيُجَدِّدُونَ قُوَّةً» (إشعياء 40: 31)`,
+        getAttended: (title, isFemale) =>
+`سلام ومحبة ${title} ✝
+تعب محبتك ومشاركتك الفعالة الجمعة اللي فاتت أضافت روح حيوية وبركة كبيرة لاجتماع القديس يوحنا الحبيب! 🌿
+
+ربنا يجدد قوتك ونشاطك دايماً، وفي انتظارك بكل شوق تنورنا الجمعة الجاية! 🤍✨
+
+«أَمَّا مُنْتَظِرُو الرَّبِّ فَيُجَدِّدُونَ قُوَّةً» (إشعياء 40: 31)`
+    },
+    {
+        id: 'rejoice-always',
+        title: 'الجمعة ٦: الفرح في الرب دائماً (فيلبي ٤)',
+        verse: '«افْرَحُوا فِي الرَّبِّ كُلَّ حِينٍ، وَأَقُولُ أَيْضاً: افْرَحُوا!» (فيلبي 4: 4)',
+        getAbsent: (title, isFemale) =>
+`سلام وفرح من ربنا ${title} ✝
+افتقدنا ابتسامتك وروحك الحلوة الجمعة الماضية في كنيسة مارجرجس بسندبيس.. بنطمن ${isFemale ? 'عليكي وبنقولك إنك في البال والصلوات' : 'عليك وبنقولك إنك في البال والصلوات'} دايماً! 🎈
+
+فرحتنا بتكمل بوجودك، ومستنيينك الجمعة الجاية تنورنا في اجتماع القديس يوحنا الحبيب وتفرح معانا! 🤍✨
+
+«افْرَحُوا فِي الرَّبِّ كُلَّ حِينٍ، وَأَقُولُ أَيْضاً: افْرَحُوا!» (فيلبي 4: 4)`,
+        getAttended: (title, isFemale) =>
+`سلام وفرح من ربنا ${title} ✝
+${isFemale ? 'فرّحتي' : 'فرّحت'} قلوبنا بحضورك الحلو وروحك الإيجابية الجمعة الماضية في اجتماع القديس يوحنا الحبيب! 🎈
+
+ربنا يديم الفرح والبركة في قلبك وبيتك دايماً.. مستنيينك الجمعة الجاية تنورنا بفرحة جديدة! 🤍✨
+
+«افْرَحُوا فِي الرَّبِّ كُلَّ حِينٍ، وَأَقُولُ أَيْضاً: افْرَحُوا!» (فيلبي 4: 4)`
+    },
+    {
+        id: 'grace-sufficient',
+        title: 'الجمعة ٧: كفاية النعمة والمحبة (٢ كورنثوس ١٢)',
+        verse: '«تَكْفِيكَ نِعْمَتِي، لأَنَّ قُوَّتِي فِي الضَّعْفِ تُكْمَلُ» (2 كورنثوس 12: 9)',
+        getAbsent: (title, isFemale) =>
+`سلام ونعمة ${title} ✝
+رسالة حب من إخوتك وخدامك باجتماع القديس يوحنا الحبيب لنطمن على أحوالك.. ${isFemale ? 'افتقدناكي' : 'افتقدناك'} جداً الجمعة اللي فاتت ونتمنى تكون كل أمورك بأحسن حال! 🌸
+
+نعمة ربنا تسندك في كل أمر ومستنيين تنور بيتك وكنيستك الجمعة الجاية في ميعادنا المعتاد! 🤍🌿
+
+«تَكْفِيكَ نِعْمَتِي، لأَنَّ قُوَّتِي فِي الضَّعْفِ تُكْمَلُ» (2 كورنثوس 12: 9)`,
+        getAttended: (title, isFemale) =>
+`سلام ونعمة ${title} ✝
+حضورك وبركتك وسطينا الجمعة الماضية كان سبب فرح وسرور لكل أسرة اجتماع القديس يوحنا الحبيب! 🌸
+
+ربنا يفيض عليك من نعمته ومحبته دايماً، ومستنيين تنورنا الجمعة القادمة ببركة متجددة! 🤍🌿
+
+«تَكْفِيكَ نِعْمَتِي، لأَنَّ قُوَّتِي فِي الضَّعْفِ تُكْمَلُ» (2 كورنثوس 12: 9)`
+    },
+    {
+        id: 'faithfulness-crown',
+        title: 'الجمعة ٨: الأمانة وتاج الحياة (رؤيا ٢)',
+        verse: '«كُنْ أَمِيناً إِلَى الْمَوْتِ فَسَأُعْطِيكَ إِكْلِيلَ الْحَيَاةِ» (رؤيا 2: 10)',
+        getAbsent: (title, isFemale) =>
+`سلام ومحبة المسيح ${title} ✝
+حبينا نطمن ${isFemale ? 'عليكي ونوصلك' : 'عليك ونوصلك'} محبة وصلوات إخوتك في كنيسة مارجرجس بسندبيس.. افتقدنا حضورك الجميل الجمعة اللي فاتت في اجتماع القديس يوحنا الحبيب! 👑
+
+مكانك دايماً محفوظ، وبنستناك تنورنا الجمعة الجاية وتشاركنا بركة كلمتنا ولمتنا المباركة! 🤍✨
+
+«كُنْ أَمِيناً إِلَى الْمَوْتِ فَسَأُعْطِيكَ إِكْلِيلَ الْحَيَاةِ» (رؤيا 2: 10)`,
+        getAttended: (title, isFemale) =>
+`سلام ومحبة المسيح ${title} ✝
+شكر وتقدير من القلب على أمانتك وحضورك المشرّف الجمعة الماضية في اجتماع القديس يوحنا الحبيب! 👑
+
+ربنا يبارك أمانتك ومحبتك للكنيسة ويديم خدمتك، ومستنيينك تنورنا الجمعة الجاية على خير وفرح! 🤍✨
+
+«كُنْ أَمِيناً إِلَى الْمَوْتِ فَسَأُعْطِيكَ إِكْلِيلَ الْحَيَاةِ» (رؤيا 2: 10)`
+    }
+];
+
+// Helper: Calculate Friday Week Index so message changes every single Friday automatically
+function getCurrentFridayThemeIndex(referenceDate = new Date()) {
+    const d = new Date(referenceDate);
+    const day = d.getDay(); // 0: Sun, 1: Mon, ..., 5: Fri, 6: Sat
+    // Days since last Friday (Friday is day 5)
+    const daysSinceFriday = (day >= 5) ? (day - 5) : (day + 2);
+    const lastFriday = new Date(d);
+    lastFriday.setDate(d.getDate() - daysSinceFriday);
+    
+    // Week number of the year for this Friday
+    const startOfYear = new Date(lastFriday.getFullYear(), 0, 1);
+    const pastDaysOfYear = (lastFriday - startOfYear) / 86400000;
+    const weekNumber = Math.ceil((pastDaysOfYear + startOfYear.getDay() + 1) / 7);
+
+    return Math.abs(weekNumber - 1) % FRIDAY_PASTORAL_THEMES.length;
+}
+
+// Helper: Generate pastoral messages for specific theme
+function getPastoralMessagesForTheme(themeIndex, member) {
+    if (!member) return null;
+    const isFemale = member.gender === 'female';
+    const firstName = getMemberFirstName(member.name);
+    const title = isFemale ? `يا ${firstName} الغالية` : `يا ${firstName} الغالي`;
+    const safeIndex = Math.abs(themeIndex) % FRIDAY_PASTORAL_THEMES.length;
+    const theme = FRIDAY_PASTORAL_THEMES[safeIndex];
+
+    return {
+        theme,
+        themeIndex: safeIndex,
+        absent: sanitizeForWhatsApp(theme.getAbsent(title, isFemale)),
+        attended: sanitizeForWhatsApp(theme.getAttended(title, isFemale))
+    };
+}
+
 function sendPastoralFollowupWhatsApp(memberId) {
     const member = getMembers().find(m => m.id === memberId);
     if (!member) return;
 
-    const isFemale = member.gender === 'female';
-    const firstName = getMemberFirstName(member.name);
+    currentWaHubActiveMember = member;
+    currentWaHubThemeIndex = getCurrentFridayThemeIndex();
 
     // Check if attended last Friday/meeting
     const records = getAttendanceRecords();
@@ -10159,32 +10387,11 @@ function sendPastoralFollowupWhatsApp(memberId) {
     const lastMeetingDate = dates.length > 0 ? dates[0] : null;
     const attendedLast = lastMeetingDate ? (records[lastMeetingDate] || []).includes(memberId) : false;
 
-    const title = isFemale 
-        ? `يا ${firstName} الغالية` 
-        : `يا ${firstName} الغالي`;
-
-    // 1. Absent Template (رسالة الغياب)
-    const absentMessage = sanitizeForWhatsApp(
-`سلام ونعمة ${title} ✝
-${isFemale ? 'افتقدناكي' : 'افتقدناك'} جداً الجمعة اللي فاتت في اجتماع القديس يوحنا الحبيب بكنيسة مارجرجس بسندبيس.. مكانك كان فاضي ولمتنا مش بتكمل إلا ${isFemale ? 'بيكي' : 'بيك'}! ✨
-
-حبينا نطمن ${isFemale ? 'عليكي ونقولك إنك دايماً في صلواتنا وقلوبنا.. مستنيينك تنوري' : 'عليك ونقولك إنك دايماً في صلواتنا وقلوبنا.. مستنيينك تنور'} بيتك وكنيستك الجمعة الجاية في ميعادنا! 🤍🌿
-
-«فَرِحْتُ بِالْقَائِلِينَ لِي: إِلَى بَيْتِ الرَّبِّ نَذْهَبُ» (مزمور 122: 1)`
-    );
-
-    // 2. Attended Template (رسالة الحضور)
-    const attendedMessage = sanitizeForWhatsApp(
-`سلام ونعمة ${title} ✝
-${isFemale ? 'فرّحتي' : 'فرّحت'} قلوبنا بحضورك الجميل ${isFemale ? 'ونورتي' : 'ونورت'} بيتك وكنيستك الجمعة اللي فاتت في اجتماع القديس يوحنا الحبيب! ✨
-
-دايماً وجودك بيفرّحنا وبيكمّل بركة لمتنا.. حبينا نشكرك ومستنيينك تنورنا الجمعة الجاية في ميعادنا ببركة وفرحة جديدة! 🤍🌿
-
-«فَرِحْتُ بِالْقَائِلِينَ لِي: إِلَى بَيْتِ الرَّبِّ نَذْهَبُ» (مزمور 122: 1)`
-    );
+    const tplData = getPastoralMessagesForTheme(currentWaHubThemeIndex, member);
+    const firstName = getMemberFirstName(member.name);
 
     const defaultTpl = attendedLast ? 'attended' : 'absent';
-    const activeMsg = defaultTpl === 'attended' ? attendedMessage : absentMessage;
+    const activeMsg = defaultTpl === 'attended' ? tplData.attended : tplData.absent;
 
     openSmartWhatsAppHubModal({
         title: `❤️ رسالة تواصل وافتقاد: ${firstName}`,
@@ -10192,9 +10399,10 @@ ${isFemale ? 'فرّحتي' : 'فرّحت'} قلوبنا بحضورك الجمي
         phone: member.phone || '',
         memberId: member.id,
         message: activeMsg,
+        fridayThemeTitle: tplData.theme.title,
         templates: {
-            absent: absentMessage,
-            attended: attendedMessage
+            absent: tplData.absent,
+            attended: tplData.attended
         },
         defaultTemplate: defaultTpl,
         onSend: () => {
@@ -10205,7 +10413,7 @@ ${isFemale ? 'فرّحتي' : 'فرّحت'} قلوبنا بحضورك الجمي
                     id: 'vis_wa_' + Date.now(),
                     date: todayLocal(),
                     type: 'واتساب',
-                    notes: `إرسال رسالة ${defaultTpl === 'attended' ? 'تشجيع للحضور' : 'افتقاد ومحبة'} عبر واتساب`,
+                    notes: `إرسال رسالة ${defaultTpl === 'attended' ? 'تشجيع للحضور' : 'افتقاد ومحبة'} عبر واتساب (${tplData.theme.title})`,
                     servant: (typeof currentUserName === 'string' && currentUserName) || 'مسؤول الاجتماع'
                 });
                 saveVisitations(visitations);
